@@ -2,3 +2,8 @@
 \.vagrant
 *.log
 /target/
+
+# eclipse IDE files
+/.settings/
+.project
+.classpath
