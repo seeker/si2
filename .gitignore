@@ -1,0 +1,4 @@
+# vagrant releated files
+\.vagrant
+*.log
+/target/
