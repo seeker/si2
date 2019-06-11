@@ -1,0 +1,2 @@
+mongodb.ip: "192.168.42.10"
+mongodb.database: "mongodbintegration"

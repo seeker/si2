@@ -4,6 +4,11 @@
 sudo apt-get update
 sudo apt-get install mongodb rabbitmq-server unzip -y
 
+# setup mongodb configuration
+sudo systemctl enable mongodb
+sudo sed -i 's|bind_ip = 127.0.0.1|bind_ip = 0.0.0.0|' /etc/mongodb.conf
+sudo systemctl restart mongodb
+
 # fix ubuntu systemctl bug for rabbitmq
 sudo sed -i 's/rabbitmqctl stop/rabbitmqctl shutdown/' /lib/systemd/system/rabbitmq-server.service
 sudo systemctl daemon-reload
