@@ -51,6 +51,11 @@
 				<artifactId>mongo-java-driver</artifactId>
 				<version>3.5.0</version>
 			</dependency>
+		    <dependency>
+			    <groupId>com.github.seeker.commonhash</groupId>
+			    <artifactId>common-hash</artifactId>
+			    <version>1.0.0</version>
+		    </dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -268,6 +273,10 @@
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
+		</dependency>
+	   <dependency>
+			<groupId>com.github.seeker.commonhash</groupId>
+		  	<artifactId>common-hash</artifactId>
 		</dependency>
 	</dependencies>
 </project>
