@@ -4,7 +4,7 @@ Documentation=https://www.consul.io/docs/index.html
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/consul agent -dev -node=vagrant-default -datacenter=vagrant -bind 192.168.42.10 -client 192.168.42.10
+ExecStart=/usr/local/bin/consul agent -dev -ui -node=vagrant-default -datacenter=vagrant -bind 192.168.42.10 -client 192.168.42.10
 
 [Install]
 WantedBy=multi-user.target
