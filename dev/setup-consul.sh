@@ -2,7 +2,7 @@
 
 sh /vagrant/dev/install-consul.sh
 
-sudo cp /vagrant/dev/consul-server.service /lib/systemd/system/consul.service
+sudo cp -v  /vagrant/dev/consul-server.service /lib/systemd/system/consul.service
 sudo systemctl daemon-reload
 sudo systemctl enable consul.service
-sudo systemctl start consul.service
+sudo systemctl restart consul.service

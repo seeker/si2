@@ -10,3 +10,4 @@ unzip consul*
 rm consul_1.5.1_linux_amd64.zip
 sudo mv consul /usr/local/bin
 sudo mkdir -p /etc/consul.d/
+sudo mkdir -p /var/consul/

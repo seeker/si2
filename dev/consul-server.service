@@ -4,7 +4,7 @@ Documentation=https://www.consul.io/docs/index.html
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/consul agent -dev -ui -node=consul-server -datacenter=vagrant -bind '{{ GetInterfaceIP "enp0s8" }}' -client '{{ GetInterfaceIP "enp0s8" }}'
+ExecStart=/usr/local/bin/consul agent -server -bootstrap-expect=1 -data-dir=/var/consul/ -ui -node=consul-server -datacenter=vagrant -bind '{{ GetInterfaceIP "enp0s8" }}' -client '{{ GetInterfaceIP "enp0s8" }}'
 
 [Install]
 WantedBy=multi-user.target

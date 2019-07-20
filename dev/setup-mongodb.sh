@@ -12,8 +12,12 @@ sudo systemctl enable mongodb
 sudo systemctl restart mongodb
 
 # configure consul
-sudo cp /vagrant/dev/mongodb.json /etc/consul.d/
-sudo cp /vagrant/dev/consul-mongodb.service /lib/systemd/system/consul.service
+sudo cp -v /vagrant/dev/mongodb.json /etc/consul.d/
+sudo cp -v /vagrant/dev/consul-mongodb.service /lib/systemd/system/consul.service
 sudo systemctl daemon-reload
 sudo systemctl enable consul.service
-sudo systemctl start consul.service
+sudo systemctl restart consul.service
+
+sleep 5
+
+consul kv put config/mongodb/database/integration mongodbintegration
