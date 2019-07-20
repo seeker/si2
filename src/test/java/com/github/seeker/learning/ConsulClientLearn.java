@@ -24,7 +24,7 @@ public class ConsulClientLearn {
 	private static Consul client;
 	private static AgentClient serviceAgent;
 	
-	private static final String MONGODB_SERVICE = "mongodb";
+	private static final String TEST_SERVICE = "training-wheels";
 	private static final String NODE_IP = "192.168.42.10";
 	
 	@BeforeClass
@@ -32,7 +32,7 @@ public class ConsulClientLearn {
 		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(NODE_IP, 8500)).build();
 		serviceAgent = client.agentClient();
 		
-		Registration service = ImmutableRegistration.builder().id(MONGODB_SERVICE).name(MONGODB_SERVICE).port(27017).build();
+		Registration service = ImmutableRegistration.builder().id(TEST_SERVICE).name(TEST_SERVICE).port(27017).build();
 		
 		serviceAgent.register(service);
 	}
@@ -40,14 +40,14 @@ public class ConsulClientLearn {
 	@Test
 	public void getHealthyService() {
 		HealthClient healthClient = client.healthClient();
-		assertThat(healthClient.getHealthyServiceInstances(MONGODB_SERVICE).getResponse(),hasSize(1));
+		assertThat(healthClient.getHealthyServiceInstances(TEST_SERVICE).getResponse(),hasSize(1));
 	}
 	
 	@Test
 	public void getIpOfDatabase() {
 		HealthClient healthClient = client.healthClient();
 		
-		List<ServiceHealth> services  = healthClient.getHealthyServiceInstances(MONGODB_SERVICE).getResponse();
+		List<ServiceHealth> services  = healthClient.getHealthyServiceInstances(TEST_SERVICE).getResponse();
 		
 		assertThat(services.get(0).getNode().getAddress(), is(NODE_IP));
 	}
