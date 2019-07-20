@@ -6,8 +6,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 
-
-
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -35,6 +34,11 @@ public class ConsulClientLearn {
 		Registration service = ImmutableRegistration.builder().id(TEST_SERVICE).name(TEST_SERVICE).port(27017).build();
 		
 		serviceAgent.register(service);
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		serviceAgent.deregister(TEST_SERVICE);
 	}
 
 	@Test
