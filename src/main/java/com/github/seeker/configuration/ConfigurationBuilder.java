@@ -30,26 +30,13 @@ public class ConfigurationBuilder {
 	 * Provide a configuration object for the application. Reads a configuration file and a in memory fallback.
 	 */
 	private ConfigurationProvider provideConfigurationProvider() {
-		Properties defaultProperties = new Properties();
-		defaultProperties.put("mongodb.ip", "127.0.0.1");
-		defaultProperties.put("mongodb.database", "similarimage2");
-		
-		InMemoryConfigurationSource inMemory = new InMemoryConfigurationSource(defaultProperties);
-		
 		ConfigFilesProvider configFilesProvider = () -> Arrays.asList(Paths.get(CONFIG_FILE_NAME));
 		ConfigurationSource fileConfig = new FilesConfigurationSource(configFilesProvider);
 		ConfigurationSource classPathConfig = new ClasspathConfigurationSource(configFilesProvider);
 		
-		ConfigurationSource configWithFallback = new FallbackConfigurationSource(classPathConfig, fileConfig, inMemory);
+		ConfigurationSource configWithFallback = new FallbackConfigurationSource(classPathConfig, fileConfig);
 
 		return new ConfigurationProviderBuilder().withConfigurationSource(configWithFallback).build();
-	}
-	
-	/**
-	 * Bind the mongodb configuration to a configuration object
-	 */
-	public MongoDbConfiguration provideMongoDbConfiguration() {
-		return configProvider.bind("mongodb", MongoDbConfiguration.class);
 	}
 	
 	public ConsulConfiguration getConsulConfiguration() {
