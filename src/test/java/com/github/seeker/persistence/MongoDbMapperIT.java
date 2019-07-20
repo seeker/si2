@@ -5,6 +5,7 @@
 package com.github.seeker.persistence;
 
 import java.util.Calendar;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,10 +13,18 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.MongoDbConfiguration;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.google.common.net.HostAndPort;
+import com.orbitz.consul.Consul;
+import com.orbitz.consul.HealthClient;
+import com.orbitz.consul.config.ClientConfig;
+import com.orbitz.consul.model.health.ServiceHealth;
+import com.orbitz.consul.option.QueryOptions;
 
 import de.caluga.morphium.Morphium;
+import de.caluga.morphium.MorphiumConfig;
 
 public class MongoDbMapperIT {
 	private static final byte[] IMAGE_DATA = { 1, 2, 2, 45, 6, 4 };
@@ -23,14 +32,24 @@ public class MongoDbMapperIT {
 	private static MongoDbMapper mapper;
 
 	private static Morphium morphium;
-
+	private static Consul client;
+	
 	private ImageMetaData metadata;
 	
 	@BeforeClass
 	public static void setUpClass() {
-		MongoDbConfiguration integrationConfig = new ConfigurationBuilder().provideMongoDbConfiguration();
+		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
 
-		morphium = new MongoDbBuilder().build(integrationConfig);
+		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(consulConfiguration.ip(), consulConfiguration.port())).build();
+		
+		HealthClient healthClient = client.healthClient();
+		List<ServiceHealth> healtyMongoDbServers = healthClient.getHealthyServiceInstances("mongodb",QueryOptions.blockSeconds(5, "foo").datacenter("vagrant").build()).getResponse();
+		
+		MorphiumConfig cfg = new MorphiumConfig();
+		cfg.setDatabase("mongodbintegration");
+		cfg.addHostToSeed(healtyMongoDbServers.get(0).getNode().getAddress());
+				
+		morphium = new Morphium(cfg);
 		mapper = new MongoDbMapper(morphium);
 	}
 

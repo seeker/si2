@@ -1,2 +1,5 @@
 mongodb.ip: "192.168.42.11"
 mongodb.database: "mongodbintegration"
+consul.ip: "192.168.42.11"
+consul.port: 8500
+consul.datacenter: "vagrant"

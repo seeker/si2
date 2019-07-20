@@ -51,4 +51,8 @@ public class ConfigurationBuilder {
 	public MongoDbConfiguration provideMongoDbConfiguration() {
 		return configProvider.bind("mongodb", MongoDbConfiguration.class);
 	}
+	
+	public ConsulConfiguration getConsulConfiguration() {
+		return configProvider.bind("consul", ConsulConfiguration.class);
+	}
 }
