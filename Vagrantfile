@@ -14,6 +14,23 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
 
+  config.vm.define "consul", primary: true do |consul|
+	consul.vm.network "private_network", ip: "192.168.42.10"
+	consul.vm.provision "shell", path: "dev/setup-consul.sh"
+	consul.vm.provider "virtualbox" do |vb|
+		vb.memory = 512
+		vb.cpus = 2
+	end
+  end
+
+  config.vm.define "mongodb" do |mongodb|
+	mongodb.vm.network "private_network", ip: "192.168.42.11"
+	mongodb.vm.provision "shell", path: "dev/setup-mongodb.sh"
+	mongodb.vm.provider "virtualbox" do |vb|
+		vb.memory = 1024
+		vb.cpus = 2
+	end
+  end
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
@@ -32,7 +49,6 @@ Vagrant.configure("2") do |config|
 
   #Create a private network, which allows host-only access to the machine
   #using a specific IP.
-  config.vm.network "private_network", ip: "192.168.42.10"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -49,10 +65,6 @@ Vagrant.configure("2") do |config|
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
   #
-  config.vm.provider "virtualbox" do |vb|
-    # Customize the amount of memory on the VM:
-    vb.memory = "1024"
-  end
   #
   # View the documentation for the provider you are using for more
   # information on available options.
@@ -60,5 +72,4 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", path: "dev/vagrant-setup.sh"
 end
