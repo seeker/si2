@@ -80,10 +80,11 @@ public class MongoDbMapperIT {
 		thumbnailNew = new Thumbnail(20, IMAGE_DATA_NEW);
 		metadataNew = new ImageMetaData();
 		metadataNew.setThumbnail(thumbnailNew);
-		
+
 		Morphium dbClient = new Morphium(cfg);
 		dbClient.store(metadataExisting);
-		dbClient.close();
+		dbClient.clearCachefor(ImageMetaData.class);
+		dbClient.clearCachefor(Thumbnail.class);
 	}
 
 	@After
