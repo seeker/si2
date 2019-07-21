@@ -64,7 +64,7 @@ public class MongoDbMapperIT {
 
 	@After
 	public void tearDown() {
-
+		cleanUpCollection(ImageMetaData.class);
 	}
 	
 	@Test(timeout=3000)
