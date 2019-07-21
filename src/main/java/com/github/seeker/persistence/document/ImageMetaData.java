@@ -14,6 +14,9 @@ import de.caluga.morphium.annotations.Id;
 import de.caluga.morphium.annotations.Index;
 import de.caluga.morphium.driver.bson.MorphiumId;
 
+/**
+ * Stores metadata for an image.
+ */
 @CreationTime
 @Entity(translateCamelCase = true)
 public class ImageMetaData {
@@ -45,12 +48,22 @@ public class ImageMetaData {
 	@Index
 	private Map<String, String> hashes;
 	
-	//TODO index this or create another boolean field? Index size? performance?
 	/**
-	 * Thumbnail data for the image, if any
+	 * Thumbnail for the image, if any
 	 */
-	private byte[] thumbnail;
+	private Thumbnail thumbnail;
 	
+	/**
+	 * Tags assigned to this image
+	 */
 	@Index
 	private List<String> tags;
+
+	public Thumbnail getThumbnail() {
+		return thumbnail;
+	}
+
+	public void setThumbnail(Thumbnail thumbnail) {
+		this.thumbnail = thumbnail;
+	}
 }
