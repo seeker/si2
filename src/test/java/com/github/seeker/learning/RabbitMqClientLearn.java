@@ -3,8 +3,6 @@ package com.github.seeker.learning;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.util.List;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -12,12 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.configuration.ConsulConfiguration;
-import com.google.common.net.HostAndPort;
-import com.orbitz.consul.Consul;
-import com.orbitz.consul.HealthClient;
 import com.orbitz.consul.model.health.ServiceHealth;
-import com.orbitz.consul.option.QueryOptions;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -38,17 +34,15 @@ public class RabbitMqClientLearn {
 	public static void setUpClass() throws Exception {
 		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
 
-		Consul client = Consul.builder().withHostAndPort(HostAndPort.fromParts(consulConfiguration.ip(), consulConfiguration.port())).build();
+		ConsulClient consulClient = new ConsulClient(consulConfiguration);
+		ServiceHealth rabbitMqService = consulClient.getFirstHealtyInstance(ConfiguredService.rabbitmq);
 		
-		HealthClient healthClient = client.healthClient();
-		List<ServiceHealth> healtyMongoDbServers = healthClient.getHealthyServiceInstances("rabbitmq",QueryOptions.blockSeconds(5, "bar").datacenter("vagrant").build()).getResponse();
-
-		String serverAddress = healtyMongoDbServers.get(0).getNode().getAddress();
-		int serverPort = healtyMongoDbServers.get(0).getService().getPort();
+		String serverAddress = rabbitMqService.getNode().getAddress();
+		int serverPort = rabbitMqService.getService().getPort();
 		
 		connFactory = new ConnectionFactory();
 		connFactory.setUsername("integration");
-		connFactory.setPassword(client.keyValueClient().getValue("config/rabbitmq/users/integration").get().getValueAsString().get());
+		connFactory.setPassword(consulClient.getKvAsString("config/rabbitmq/users/integration"));
 		connFactory.setHost(serverAddress);
 		connFactory.setPort(serverPort);
 		

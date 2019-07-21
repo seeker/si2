@@ -5,7 +5,6 @@
 package com.github.seeker.persistence;
 
 import java.util.Calendar;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -18,14 +17,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
-import com.google.common.net.HostAndPort;
 import com.orbitz.consul.Consul;
-import com.orbitz.consul.HealthClient;
 import com.orbitz.consul.model.health.ServiceHealth;
-import com.orbitz.consul.option.QueryOptions;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.MorphiumConfig;
@@ -54,13 +52,12 @@ public class MongoDbMapperIT {
 	public static void setUpClass() {
 		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
 
-		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(consulConfiguration.ip(), consulConfiguration.port())).build();
+		ConsulClient consulClient = new ConsulClient(consulConfiguration);
 		
-		HealthClient healthClient = client.healthClient();
-		List<ServiceHealth> healtyMongoDbServers = healthClient.getHealthyServiceInstances("mongodb",QueryOptions.blockSeconds(5, "foo").datacenter("vagrant").build()).getResponse();
+		ServiceHealth mongodbService = consulClient.getFirstHealtyInstance(ConfiguredService.mongodb);
 		
-		String database = client.keyValueClient().getValue("config/mongodb/database/integration").get().getValueAsString().get();
-		String serverAddress = healtyMongoDbServers.get(0).getNode().getAddress();
+		String database = consulClient.getKvAsString("config/mongodb/database/integration");
+		String serverAddress = mongodbService.getNode().getAddress();
 		
 		cfg = new MorphiumConfig();
 		LOGGER.info("Conneting to mongodb database {}", database);
