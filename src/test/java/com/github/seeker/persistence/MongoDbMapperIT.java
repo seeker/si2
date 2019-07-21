@@ -4,15 +4,16 @@
  */
 package com.github.seeker.persistence;
 
-import static org.junit.Assert.*;
-
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,9 @@ public class MongoDbMapperIT {
 	private ImageMetaData metadataNew;
 	private Thumbnail thumbnailExisting;
 	private Thumbnail thumbnailNew;
+	
+	@Rule
+	public Timeout testCaseTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(10, TimeUnit.SECONDS));
 	
 	@BeforeClass
 	public static void setUpClass() {
