@@ -31,6 +31,15 @@ Vagrant.configure("2") do |config|
 		vb.cpus = 2
 	end
   end
+  
+  config.vm.define "rabbitmq" do |rabbitmq|
+	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
+	rabbitmq.vm.provision "shell", path: "dev/setup-rabbitmq.sh"
+	rabbitmq.vm.provider "virtualbox" do |vb|
+		vb.memory = 1024
+		vb.cpus = 2
+	end
+  end
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
