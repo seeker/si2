@@ -25,7 +25,7 @@ public class App {
 		Subparsers subparsers = parser.addSubparsers().title("subcommands");
 		
 		Subparser loader = subparsers.addParser("loader").description("loads files for processing").setDefault(COMMAND_ATTRIBUTE, LOADER_COMMAND);
-		loader.addArgument("--id").required(true).nargs(1).action(Arguments.store()).help("The id of this loader, used to get anchors from consul");
+		loader.addArgument("--id").required(true).action(Arguments.store()).help("The id of this loader, used to get anchors from consul");
 
 		try {
 			processArgs(parser.parseArgs(args));
