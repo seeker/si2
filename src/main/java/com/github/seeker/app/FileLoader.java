@@ -1,11 +1,13 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
@@ -46,9 +48,17 @@ public class FileLoader {
 		
 		LOGGER.info("Creating queue {}", queueFileFeed);
 		channel.queueDeclare(queueFileFeed, false, false, false, null);
+		
+		
+		LOGGER.info("Loading anchors for ID {}...", id);
+		String encodedAnchors = consul.getKvAsString("config/fileloader/anchors/" + id);
+		LOGGER.debug("Loaded encoded anchors {} for ID {}", encodedAnchors, id);
+		loadFiles(encodedAnchors);
 	}
 	
-	public void loadFiles() {
+	public void loadFiles(String encodedAnchors) {
+		Map<String, String> anchors = new AnchorParser().parse(encodedAnchors);
+		LOGGER.info("Loaded {} anchors}", anchors.size());
 		
 	}
 }
