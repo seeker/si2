@@ -4,8 +4,10 @@
  */
 package com.github.seeker.persistence;
 
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -122,6 +124,20 @@ public class MongoDbMapperIT {
 	@Test
 	public void doesNotHaveSha512Hash() throws Exception {
 		assertThat(mapper.hasHash(TEST_ANCHOR, TEST_PATH, HASH_NAME_SHA512), is(false));
+	}
+	
+	@Test
+	public void getExisitingMetadataIsNotNull() throws Exception {
+		ImageMetaData meta = mapper.getImageMetadata(TEST_ANCHOR, TEST_PATH);
+		
+		assertThat(meta, is(notNullValue()));
+	}
+	
+	@Test
+	public void getNonExisitingMetadataIsNull() throws Exception {
+		ImageMetaData meta = mapper.getImageMetadata("none", TEST_PATH);
+		
+		assertThat(meta, is(nullValue()));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {
