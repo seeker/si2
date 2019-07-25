@@ -26,4 +26,9 @@ sudo rabbitmqctl -n rabbit add_user integration $(consul kv get config/rabbitmq/
 sudo rabbitmqctl -n rabbit set_permissions integration ".*" ".*" ".*"
 sudo rabbitmqctl -n rabbit set_user_tags integration administrator
 
+consul kv put config/rabbitmq/users/si2 m6dtSqijKqldu6zHE9hK
+sudo rabbitmqctl -n rabbit delete_user si2
+sudo rabbitmqctl -n rabbit add_user si2 $(consul kv get config/rabbitmq/users/si2)
+sudo rabbitmqctl -n rabbit set_permissions si2 ".*" ".*" ".*"
+
 sudo rabbitmq-plugins enable rabbitmq_management
