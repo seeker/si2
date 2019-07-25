@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +18,15 @@ import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
+import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.processor.FileToQueueVistor;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
+import de.caluga.morphium.Morphium;
+import de.caluga.morphium.MorphiumConfig;
 
 /**
  * Loads files from the file system and sends them to the message broker with additional meta data.
@@ -28,6 +35,8 @@ public class FileLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FileLoader.class);
 	
 	private final Channel channel;
+	private final MongoDbMapper mapper;
+	private final List<String> requriedHashes;
 	private final String queueFileFeed;
 	
 	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
@@ -61,6 +70,22 @@ public class FileLoader {
 		LOGGER.info("Loading anchors for ID {}...", id);
 		String encodedAnchors = consul.getKvAsString("config/fileloader/anchors/" + id);
 		LOGGER.debug("Loaded encoded anchors {} for ID {}", encodedAnchors, id);
+		
+		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
+		
+		String database = consul.getKvAsString("config/mongodb/database/si2");
+		String mongoDBserverAddress = mongodbService.getNode().getAddress();
+		
+		MorphiumConfig cfg = new MorphiumConfig();
+		LOGGER.info("Conneting to mongodb database {}", database);
+		cfg.setDatabase(database);
+		cfg.addHostToSeed(mongoDBserverAddress);
+				
+		Morphium morphium = new Morphium(cfg);
+		mapper = new MongoDbMapper(morphium);
+		
+		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
+		
 		loadFiles(encodedAnchors);
 	}
 	
@@ -79,7 +104,7 @@ public class FileLoader {
 		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
 		
 		try {
-			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel,anchor,anchorAbsolutePath, queueFileFeed));
+			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel,anchor,anchorAbsolutePath, mapper, requriedHashes, queueFileFeed));
 		} catch (IOException e) {
 			LOGGER.warn("Failed to walk file tree for {}: {}", anchorAbsolutePath, e.getMessage());
 		}

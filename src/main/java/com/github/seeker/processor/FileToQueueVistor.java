@@ -10,13 +10,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.io.ImageFileFilter;
+import com.github.seeker.persistence.MongoDbMapper;
+import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -30,16 +36,18 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 
 	private final ImageFileFilter fileFilter = new ImageFileFilter();
 	private final Channel channel;
+	private final MongoDbMapper mapper;
+	private final List<String> requiredHashes;
 	private final String loadedFileQueue;
 	private final String anchor;
 	private final Path anchorPath;
 	
-	private final String metaDataQueue = "file-meta-data"; 
-	
-	public FileToQueueVistor(Channel channel, String anchor, Path anchorPath, String loadedFileQueue) {
+	public FileToQueueVistor(Channel channel, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String loadedFileQueue) {
 		this.channel = channel;
+		this.mapper = mapper;
 		this.anchor = anchor;
 		this.anchorPath = anchorPath;
+		this.requiredHashes = requiredHashes;
 		this.loadedFileQueue = loadedFileQueue;
 	}
 
@@ -56,7 +64,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 			LOGGER.trace("Skipping {}", file);
 		}
 
-		return super.visitFile(file, attrs);
+		return FileVisitResult.CONTINUE;
 	}
 	
 	@Override
@@ -66,9 +74,34 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	}
 	
 	private void loadFileIntoQueue(Path file, BasicFileAttributes attrs) throws IOException {
-		byte[] rawImageData = Files.readAllBytes(file); 
-		
 		Path relativeToAnchor = anchorPath.relativize(file);
+		
+		LOGGER.trace("Fetching meta data for {} {}", anchor, relativeToAnchor);
+		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeToAnchor);
+		
+		if(meta == null) {
+			meta = new ImageMetaData();
+			
+			meta.setAnchor(anchor);
+			meta.setPath(relativeToAnchor.toString());
+			meta.setFileSize(attrs.size());
+			meta.setHashes(new HashMap<String, List<Byte>>());
+			mapper.storeDocument(meta);
+		}
+		
+		List<String> missingHashes = new ArrayList<String>();
+		
+		for(String hash : requiredHashes) {
+			if(!meta.getHashes().containsKey(hash)) {
+				missingHashes.add(hash);
+			}
+		}
+
+		if(missingHashes.isEmpty()) {
+			return;
+		}
+		
+		byte[] rawImageData = Files.readAllBytes(file); 
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
 		headers.put("anchor", anchor);

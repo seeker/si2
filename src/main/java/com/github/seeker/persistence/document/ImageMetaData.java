@@ -90,4 +90,12 @@ public class ImageMetaData {
 	public void setPath(String path) {
 		this.path = path;
 	}
+
+	public long getFileSize() {
+		return fileSize;
+	}
+
+	public void setFileSize(long fileSize) {
+		this.fileSize = fileSize;
+	}
 }
