@@ -4,7 +4,16 @@
  */
 package com.github.seeker.persistence;
 
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -33,6 +42,11 @@ public class MongoDbMapperIT {
 	
 	private static final byte[] IMAGE_DATA = { 1, 2, 2, 45, 6, 4 };
 	private static final byte[] IMAGE_DATA_NEW = { 7, 3, 22, 48, 33, 87 };
+	
+	private static final String TEST_ANCHOR = "imAnAnchor";
+	private static final String HASH_NAME_SHA256 = "sha256";
+	private static final String HASH_NAME_SHA512 = "sha512";
+	private static final Path TEST_PATH = Paths.get("foo/bar/baz.jpg");
 
 	private static MongoDbMapper mapper;
 
@@ -70,9 +84,15 @@ public class MongoDbMapperIT {
 	
 	@Before
 	public void setUp() throws Exception {
+		Map<String, List<Byte>> hashes = new HashMap<>();
+		hashes.put(HASH_NAME_SHA256, Arrays.asList(new Byte[]{1,2,3,5}));
+		
 		thumbnailExisting = new Thumbnail(42, IMAGE_DATA);
 		metadataExisting = new ImageMetaData();
 		metadataExisting.setThumbnail(thumbnailExisting);
+		metadataExisting.setHashes(hashes);
+		metadataExisting.setAnchor(TEST_ANCHOR);
+		metadataExisting.setPath(TEST_PATH.toString());
 		
 		thumbnailNew = new Thumbnail(20, IMAGE_DATA_NEW);
 		metadataNew = new ImageMetaData();
@@ -92,6 +112,16 @@ public class MongoDbMapperIT {
 	@Test
 	public void insertDocument() {
 		mapper.storeDocument(metadataNew);
+	}
+	
+	@Test
+	public void hasSha256Hash() throws Exception {
+		assertThat(mapper.hasHash(TEST_ANCHOR, TEST_PATH, HASH_NAME_SHA256), is(true));
+	}
+	
+	@Test
+	public void doesNotHaveSha512Hash() throws Exception {
+		assertThat(mapper.hasHash(TEST_ANCHOR, TEST_PATH, HASH_NAME_SHA512), is(false));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {

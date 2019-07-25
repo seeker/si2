@@ -46,7 +46,7 @@ public class ImageMetaData {
 	 * Hashes of this file. Hash and the corresponding value.
 	 */
 	@Index
-	private Map<String, String> hashes;
+	private Map<String, List<Byte>> hashes;
 	
 	/**
 	 * Thumbnail for the image, if any
@@ -65,5 +65,29 @@ public class ImageMetaData {
 
 	public void setThumbnail(Thumbnail thumbnail) {
 		this.thumbnail = thumbnail;
+	}
+
+	public Map<String, List<Byte>> getHashes() {
+		return hashes;
+	}
+
+	public void setHashes(Map<String, List<Byte>> hashes) {
+		this.hashes = hashes;
+	}
+
+	public String getAnchor() {
+		return anchor;
+	}
+
+	public void setAnchor(String anchor) {
+		this.anchor = anchor;
+	}
+
+	public String getPath() {
+		return path;
+	}
+
+	public void setPath(String path) {
+		this.path = path;
 	}
 }
