@@ -104,6 +104,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		byte[] rawImageData = Files.readAllBytes(file); 
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
+		headers.put("missing-hash", String.join(",", missingHashes));
 		headers.put("anchor", anchor);
 		headers.put("path", relativeToAnchor.toString());
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
