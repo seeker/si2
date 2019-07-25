@@ -33,6 +33,8 @@ public class App {
 			parser.handleError(e);
 			System.exit(1);
 		}
+		
+		System.exit(0);
 	}
 	
 	private static void processArgs(Namespace namespace) {
