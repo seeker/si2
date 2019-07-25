@@ -49,23 +49,15 @@ public class ImageMetaData {
 	private Map<String, List<Byte>> hashes;
 	
 	/**
-	 * Thumbnail for the image, if any
+	 * Id of the thumbnail
 	 */
-	private Thumbnail thumbnail;
+	private byte[] thumbnailId;
 	
 	/**
 	 * Tags assigned to this image
 	 */
 	@Index
 	private List<String> tags;
-
-	public Thumbnail getThumbnail() {
-		return thumbnail;
-	}
-
-	public void setThumbnail(Thumbnail thumbnail) {
-		this.thumbnail = thumbnail;
-	}
 
 	public Map<String, List<Byte>> getHashes() {
 		return hashes;
@@ -97,5 +89,21 @@ public class ImageMetaData {
 
 	public void setFileSize(long fileSize) {
 		this.fileSize = fileSize;
+	}
+
+	public byte[] getThumbnailId() {
+		return thumbnailId;
+	}
+
+	public void setThumbnailId(byte[] thumbnailId) {
+		this.thumbnailId = thumbnailId;
+	}
+	
+	/**
+	 * Is there a thumbnail available for this image?
+	 * @return true if there is a thumbnail
+	 */
+	public boolean hasThumbnail() {
+		return this.thumbnailId != null;
 	}
 }

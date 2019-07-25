@@ -42,8 +42,8 @@ import de.caluga.morphium.MorphiumConfig;
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
 	
-	private static final byte[] IMAGE_DATA = { 1, 2, 2, 45, 6, 4 };
-	private static final byte[] IMAGE_DATA_NEW = { 7, 3, 22, 48, 33, 87 };
+	private static final byte[] THUMBNAIL_ID = { 1, 2, 2, 45, 6, 4 };
+	private static final byte[] THUMBNAIL_ID_NEW = { 7, 3, 22, 48, 33, 87 };
 	
 	private static final String TEST_ANCHOR = "imAnAnchor";
 	private static final String HASH_NAME_SHA256 = "sha256";
@@ -89,16 +89,14 @@ public class MongoDbMapperIT {
 		Map<String, List<Byte>> hashes = new HashMap<>();
 		hashes.put(HASH_NAME_SHA256, Arrays.asList(new Byte[]{1,2,3,5}));
 		
-		thumbnailExisting = new Thumbnail(42, IMAGE_DATA);
 		metadataExisting = new ImageMetaData();
-		metadataExisting.setThumbnail(thumbnailExisting);
+		metadataExisting.setThumbnailId(THUMBNAIL_ID);
 		metadataExisting.setHashes(hashes);
 		metadataExisting.setAnchor(TEST_ANCHOR);
 		metadataExisting.setPath(TEST_PATH.toString());
 		
-		thumbnailNew = new Thumbnail(20, IMAGE_DATA_NEW);
 		metadataNew = new ImageMetaData();
-		metadataNew.setThumbnail(thumbnailNew);
+		metadataNew.setThumbnailId(THUMBNAIL_ID_NEW);
 
 		Morphium dbClient = new Morphium(cfg);
 		dbClient.store(metadataExisting);
