@@ -29,7 +29,7 @@ public class ImageMetaData {
 	private String anchor;
 
 	/**
-	 * The path of the file. Must be unique per anchor.
+	 * The path of the file, relative to the anchor. Must be unique per anchor.
 	 */
 	@Index
 	private String path;

@@ -1,7 +1,11 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -11,6 +15,7 @@ import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
+import com.github.seeker.processor.FileToQueueVistor;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -24,6 +29,9 @@ public class FileLoader {
 	
 	private final Channel channel;
 	private final String queueFileFeed;
+	
+	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
+	//TODO get file types from consul
 	
 	public FileLoader(String id) throws IOException, TimeoutException {
 		ConsulClient consul = new ConsulClient(new ConfigurationBuilder().getConsulConfiguration());
@@ -60,5 +68,20 @@ public class FileLoader {
 		Map<String, String> anchors = new AnchorParser().parse(encodedAnchors);
 		LOGGER.info("Loaded {} anchors}", anchors.size());
 		
+		for (Entry<String, String> entry : anchors.entrySet()) {
+			Path anchorAbsolutePath = Paths.get(entry.getValue());
+			
+			loadFilesForAnchor(entry.getKey(), anchorAbsolutePath);
+		}
+	}
+	
+	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath) {
+		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
+		
+		try {
+			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel,anchor,anchorAbsolutePath, queueFileFeed));
+		} catch (IOException e) {
+			LOGGER.warn("Failed to walk file tree for {}: {}", anchorAbsolutePath, e.getMessage());
+		}
 	}
 }
