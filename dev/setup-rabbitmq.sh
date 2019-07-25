@@ -31,4 +31,6 @@ sudo rabbitmqctl -n rabbit delete_user si2
 sudo rabbitmqctl -n rabbit add_user si2 $(consul kv get config/rabbitmq/users/si2)
 sudo rabbitmqctl -n rabbit set_permissions si2 ".*" ".*" ".*"
 
+consul kv put config/rabbitmq/queue/loader-file-feed loaded-files
+
 sudo rabbitmq-plugins enable rabbitmq_management
