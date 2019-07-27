@@ -136,6 +136,13 @@ class FileMessageConsumer extends DefaultConsumer {
 		
 		BufferedImage originalImage = ImageIO.read(dis);
 		
+		if (originalImage == null) {
+			//TODO send an error message
+			LOGGER.warn("Was unable to read image data for {} - {} ", header.get("anchor"), header.get("path"));
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
+		}
+		
 		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, thumbnailSize);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		ImageIO.write(thumbnail, "jpg", os);
