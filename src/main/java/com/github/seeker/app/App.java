@@ -18,6 +18,7 @@ import net.sourceforge.argparse4j.inf.Subparsers;
 public class App {
 	private static final String COMMAND_ATTRIBUTE = "command";
 	private static final String LOADER_COMMAND = "loader";
+	private static final String PROCESSOR_COMMAND = "processor";
 
 	public static void main(String[] args) {
 		
@@ -26,6 +27,8 @@ public class App {
 		
 		Subparser loader = subparsers.addParser("loader").description("loads files for processing").setDefault(COMMAND_ATTRIBUTE, LOADER_COMMAND);
 		loader.addArgument("--id").required(true).action(Arguments.store()).help("The id of this loader, used to get anchors from consul");
+		
+		subparsers.addParser("processor").description("Processes files from the queue").setDefault(COMMAND_ATTRIBUTE, PROCESSOR_COMMAND);
 
 		try {
 			processArgs(parser.parseArgs(args));
@@ -33,8 +36,6 @@ public class App {
 			parser.handleError(e);
 			System.exit(1);
 		}
-		
-		System.exit(0);
 	}
 	
 	private static void processArgs(Namespace namespace) {
@@ -43,6 +44,13 @@ public class App {
 		if(LOADER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
 				new FileLoader(namespace.getString("id"));
+				System.exit(0);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if(PROCESSOR_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
+			try {
+				new FileProcessor();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

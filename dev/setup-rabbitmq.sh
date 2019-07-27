@@ -32,6 +32,8 @@ sudo rabbitmqctl -n rabbit add_user si2 $(consul kv get config/rabbitmq/users/si
 sudo rabbitmqctl -n rabbit set_permissions si2 ".*" ".*" ".*"
 
 consul kv put config/rabbitmq/queue/loader-file-feed loaded-files
+consul kv put config/rabbitmq/queue/thumbnail thumbnails
+consul kv put config/rabbitmq/queue/hash hashes
 consul kv put config/general/required-hashes sha256,sha512
 
 sudo rabbitmq-plugins enable rabbitmq_management
