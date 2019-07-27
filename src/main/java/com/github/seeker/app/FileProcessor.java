@@ -143,17 +143,11 @@ class FileMessageConsumer extends DefaultConsumer {
 			return;
 		}
 		
-		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, thumbnailSize);
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		ImageIO.write(thumbnail, "jpg", os);
-		thumbnail.flush();
+		boolean hasThumbnail = Boolean.parseBoolean(header.get("thumb").toString());
 		
-		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
-		thumbnailHeaders.put("anchor", header.get("anchor"));
-		thumbnailHeaders.put("path", header.get("path"));
-		
-		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
-		getChannel().basicPublish("", queueThumbnails, thumbnailProps, os.toByteArray());
+		if(!hasThumbnail) {
+			createThumbnail(header, originalImage);
+		}
 		
 		long pHash = calculatePhash(originalImage);
 		originalImage.flush();
@@ -170,6 +164,20 @@ class FileMessageConsumer extends DefaultConsumer {
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"),	header.get("missing-hash"));
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
+	}
+
+	private void createThumbnail(Map<String, Object> header, BufferedImage originalImage) throws IOException {
+		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, thumbnailSize);
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		ImageIO.write(thumbnail, "jpg", os);
+		thumbnail.flush();
+		
+		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
+		thumbnailHeaders.put("anchor", header.get("anchor"));
+		thumbnailHeaders.put("path", header.get("path"));
+		
+		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
+		getChannel().basicPublish("", queueThumbnails, thumbnailProps, os.toByteArray());
 	}
 	
 	private long calculatePhash(BufferedImage originalImage) {

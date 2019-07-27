@@ -97,7 +97,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 			}
 		}
 
-		if(missingHashes.isEmpty()) {
+		if(missingHashes.isEmpty() && meta.hasThumbnail()) {
 			return;
 		}
 		
@@ -107,6 +107,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		headers.put("missing-hash", String.join(",", missingHashes));
 		headers.put("anchor", anchor);
 		headers.put("path", relativeToAnchor.toString());
+		headers.put("thumb", Boolean.toString(meta.hasThumbnail()));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		channel.basicPublish("", loadedFileQueue, props, rawImageData);
