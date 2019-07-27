@@ -135,7 +135,8 @@ class ThumbnailStore extends DefaultConsumer {
 		
 		Path thumbnailDirectory = generateDirectories(uuid);
 		storeThumbnail(thumbnailDirectory, uuid, body);
-		
+
+		mapper.storeDocument(meta);
 		LOGGER.info("Stored thumbnail for {} - {} in {}", anchor, relativeAnchorPath, thumbnailDirectory.resolve(uuid.toString()));
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
