@@ -13,3 +13,6 @@
 
 # configuration files that should not be made public
 src/main/resources/si2.yaml
+
+# thumbnail directory for thumbnail node
+thumbs/
