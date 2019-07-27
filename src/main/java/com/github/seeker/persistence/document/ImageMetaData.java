@@ -7,6 +7,7 @@ package com.github.seeker.persistence.document;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import de.caluga.morphium.annotations.CreationTime;
 import de.caluga.morphium.annotations.Entity;
@@ -51,7 +52,7 @@ public class ImageMetaData {
 	/**
 	 * Id of the thumbnail
 	 */
-	private byte[] thumbnailId;
+	private UUID thumbnailId;
 	
 	/**
 	 * Tags assigned to this image
@@ -91,11 +92,11 @@ public class ImageMetaData {
 		this.fileSize = fileSize;
 	}
 
-	public byte[] getThumbnailId() {
+	public UUID getThumbnailId() {
 		return thumbnailId;
 	}
 
-	public void setThumbnailId(byte[] thumbnailId) {
+	public void setThumbnailId(UUID thumbnailId) {
 		this.thumbnailId = thumbnailId;
 	}
 	
