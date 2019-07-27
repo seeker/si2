@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -42,8 +43,8 @@ import de.caluga.morphium.MorphiumConfig;
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
 	
-	private static final byte[] THUMBNAIL_ID = { 1, 2, 2, 45, 6, 4 };
-	private static final byte[] THUMBNAIL_ID_NEW = { 7, 3, 22, 48, 33, 87 };
+	private static final UUID THUMBNAIL_ID = UUID.randomUUID();
+	private static final UUID THUMBNAIL_ID_NEW = UUID.randomUUID();
 	
 	private static final String TEST_ANCHOR = "imAnAnchor";
 	private static final String HASH_NAME_SHA256 = "sha256";
