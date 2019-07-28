@@ -39,17 +39,24 @@ public class DBNode {
 	private final List<String> requiredHashes;
 	
 	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+		this(connectionProvider.getConsulClient(), connectionProvider.getMongoDbMapper(), connectionProvider.getRabbitMQConnection());
+	}
+	
+	public DBNode(ConsulClient consul, MongoDbMapper mapper, Connection rabbitMqConnection) throws IOException, TimeoutException, InterruptedException {
+		this(consul, mapper, rabbitMqConnection, new QueueConfiguration(rabbitMqConnection.createChannel(), consul));
+	}
+	
+	public DBNode(ConsulClient consul, MongoDbMapper mapper, Connection rabbitMqConnection, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", DBNode.class.getSimpleName());
 		
-		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
+		Connection conn = rabbitMqConnection;
 		channel = conn.createChannel();
 		channel.basicQos(100);
-
-		queueConfig = new QueueConfiguration(channel, consul);
+		
+		this.queueConfig = queueConfig;
+		this.mapper = mapper;
 		
 		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
-		mapper = connectionProvider.getMongoDbMapper();
 		
 		startConsumers();
 	}
@@ -85,6 +92,13 @@ class DBStore extends DefaultConsumer {
 		
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
 		
+		if(meta == null) {
+			LOGGER.warn("No metadata found in database for {} - {}", anchor, relativeAnchorPath);
+			meta = new ImageMetaData();
+			meta.setAnchor(anchor);
+			meta.setPath(relativeAnchorPath.toString());
+		}
+		
 		updateMetadata(meta, header);
 
 		mapper.storeDocument(meta);
@@ -98,8 +112,13 @@ class DBStore extends DefaultConsumer {
 		
 		Map<String, Hash> metaHashes = meta.getHashes();
 		
-		metaHashes.put("sha256", new Hash(header.get("sha256").toString().getBytes()));
-		metaHashes.put("phash", new Hash(Longs.toByteArray(Long.parseLong(header.get("phash").toString()))));
+		if(header.containsKey("sha256")) {
+			metaHashes.put("sha256", new Hash(header.get("sha256").toString().getBytes()));
+		}
+		
+		if(header.containsKey("phash")) {
+			metaHashes.put("phash", new Hash(Longs.toByteArray(Long.parseLong(header.get("phash").toString()))));
+		}
 		
 		mapper.storeDocument(meta);
 	}
