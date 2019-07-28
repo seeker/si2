@@ -25,16 +25,12 @@ import org.slf4j.LoggerFactory;
 
 import com.github.dozedoff.commonj.util.ImageUtil;
 import com.github.seeker.commonhash.helper.TransformHelper;
-import com.github.seeker.commonhash.perceptual.phash.ImagePHash;
-import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.ConsulClient.ConfiguredService;
-import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
@@ -52,28 +48,18 @@ public class FileProcessor {
 	private final int thumbnailSize;
 	
 	
-	public FileProcessor() throws IOException, TimeoutException, InterruptedException {
+	public FileProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
-		ConsulClient consul = new ConsulClient(new ConfigurationBuilder().getConsulConfiguration());
-		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-
-		String serverAddress = rabbitmqService.getNode().getAddress();
-		int serverPort = rabbitmqService.getService().getPort();
-
-		ConnectionFactory connFactory = new ConnectionFactory();
-		connFactory.setUsername("si2");
-		connFactory.setPassword(consul.getKvAsString("config/rabbitmq/users/si2"));
-		connFactory.setHost(serverAddress);
-		connFactory.setPort(serverPort);
-
+		
+		ConsulClient consul = connectionProvider.getConsulClient();
+		Connection conn = connectionProvider.getRabbitMQConnection();
+		
 		queueFileFeed = consul.getKvAsString("config/rabbitmq/queue/loader-file-feed");
 		queueThumbnails = consul.getKvAsString("config/rabbitmq/queue/thumbnail");
 		queueHashes = consul.getKvAsString("config/rabbitmq/queue/hash");
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
-		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
 
-		Connection conn = connFactory.newConnection();
 		channel = conn.createChannel();
 
 		LOGGER.info("Declaring queue {}", queueFileFeed);

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -42,25 +43,12 @@ public class FileLoader {
 	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
 	//TODO get file types from consul
 	
-	public FileLoader(String id) throws IOException, TimeoutException {
-		ConsulClient consul = new ConsulClient(new ConfigurationBuilder().getConsulConfiguration());
-		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-		
-		String serverAddress = rabbitmqService.getNode().getAddress();
-		int serverPort = rabbitmqService.getService().getPort();
-		
-		
-		ConnectionFactory connFactory = new ConnectionFactory();
-		connFactory.setUsername("si2");
-		connFactory.setPassword(consul.getKvAsString("config/rabbitmq/users/si2"));
-		connFactory.setHost(serverAddress);
-		connFactory.setPort(serverPort);
+	public FileLoader(String id, ConnectionProvider connectionProvider) throws IOException, TimeoutException {
+		ConsulClient consul = connectionProvider.getConsulClient();
+		Connection conn = connectionProvider.getRabbitMQConnection();
 		
 		queueFileFeed = consul.getKvAsString("config/rabbitmq/queue/loader-file-feed");
 		
-		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
-		
-		Connection conn = connFactory.newConnection();
 		channel = conn.createChannel();
 		
 		LOGGER.info("Creating queue {}", queueFileFeed);

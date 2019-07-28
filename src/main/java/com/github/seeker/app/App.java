@@ -4,6 +4,9 @@
  */
 package com.github.seeker.app;
 
+import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
+
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -42,28 +45,30 @@ public class App {
 	private static void processArgs(Namespace namespace) {
 		System.out.println(namespace);
 		
+		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
+		
 		if(LOADER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new FileLoader(namespace.getString("id"));
+				new FileLoader(namespace.getString("id"), connectionProvider);
 				System.exit(0);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else if(PROCESSOR_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new FileProcessor();
+				new FileProcessor(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else if(THUMBNAIL_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new ThumbnailNode();
+				new ThumbnailNode(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else if(DB_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new DBNode();
+				new DBNode(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

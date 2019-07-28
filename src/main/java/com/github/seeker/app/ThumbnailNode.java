@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -52,25 +53,14 @@ public class ThumbnailNode {
 	private final String queueThumbnails;
 	
 	
-	public ThumbnailNode() throws IOException, TimeoutException, InterruptedException {
+	public ThumbnailNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ThumbnailNode.class.getSimpleName());
-		ConsulClient consul = new ConsulClient(new ConfigurationBuilder().getConsulConfiguration());
-		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-
-		String serverAddress = rabbitmqService.getNode().getAddress();
-		int serverPort = rabbitmqService.getService().getPort();
-
-		ConnectionFactory connFactory = new ConnectionFactory();
-		connFactory.setUsername("si2");
-		connFactory.setPassword(consul.getKvAsString("config/rabbitmq/users/si2"));
-		connFactory.setHost(serverAddress);
-		connFactory.setPort(serverPort);
+		
+		ConsulClient consul = connectionProvider.getConsulClient();
 
 		queueThumbnails = consul.getKvAsString("config/rabbitmq/queue/thumbnail");
 
-		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
-
-		Connection conn = connFactory.newConnection();
+		Connection conn = connectionProvider.getRabbitMQConnection();
 		channel = conn.createChannel();
 		channel.basicQos(100);
 

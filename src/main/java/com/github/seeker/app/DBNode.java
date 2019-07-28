@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -23,7 +23,6 @@ import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
@@ -42,25 +41,14 @@ public class DBNode {
 	private final String queueHash;
 	private final List<String> requiredHashes;
 	
-	public DBNode() throws IOException, TimeoutException, InterruptedException {
+	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", DBNode.class.getSimpleName());
-		ConsulClient consul = new ConsulClient(new ConfigurationBuilder().getConsulConfiguration());
-		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-
-		String serverAddress = rabbitmqService.getNode().getAddress();
-		int serverPort = rabbitmqService.getService().getPort();
-
-		ConnectionFactory connFactory = new ConnectionFactory();
-		connFactory.setUsername("si2");
-		connFactory.setPassword(consul.getKvAsString("config/rabbitmq/users/si2"));
-		connFactory.setHost(serverAddress);
-		connFactory.setPort(serverPort);
-
+		
+		ConsulClient consul = connectionProvider.getConsulClient();
+		Connection conn = connectionProvider.getRabbitMQConnection();
+		
 		queueHash = consul.getKvAsString("config/rabbitmq/queue/hash");
 
-		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
-
-		Connection conn = connFactory.newConnection();
 		channel = conn.createChannel();
 		channel.basicQos(100);
 
