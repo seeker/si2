@@ -3,7 +3,7 @@ package com.github.seeker.persistence.document;
 import de.caluga.morphium.annotations.Entity;
 import de.caluga.morphium.annotations.Id;
 import de.caluga.morphium.annotations.Index;
-import de.caluga.morphium.driver.bson.MorphiumId;
+import de.caluga.morphium.driver.MorphiumId;
 
 /**
  * Simple container to store hash and related information.

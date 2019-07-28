@@ -13,7 +13,7 @@ import de.caluga.morphium.annotations.CreationTime;
 import de.caluga.morphium.annotations.Entity;
 import de.caluga.morphium.annotations.Id;
 import de.caluga.morphium.annotations.Index;
-import de.caluga.morphium.driver.bson.MorphiumId;
+import de.caluga.morphium.driver.MorphiumId;
 
 /**
  * Stores metadata for an image.
