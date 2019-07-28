@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,8 @@ public class MongoDbMapperIT {
 	private static final String HASH_NAME_PHASH = "phash";
 	private static final Path TEST_PATH = Paths.get("foo/bar/baz.jpg");
 
+	private static final byte[] HASH_DATA_SHA256 = new byte[]{1,2,3,5};
+	
 	private static MongoDbMapper mapper;
 
 	private static MorphiumConfig cfg;
@@ -89,7 +92,7 @@ public class MongoDbMapperIT {
 	@Before
 	public void setUp() throws Exception {
 		Map<String, Hash> hashes = new HashMap<>();
-		hashes.put(HASH_NAME_SHA256, new Hash(new byte[]{1,2,3,5}));
+		hashes.put(HASH_NAME_SHA256, new Hash(HASH_DATA_SHA256));
 		hashes.put(HASH_NAME_PHASH, new Hash(new byte[]{6,37,3,1,5,85,2}));
 		
 		metadataExisting = new ImageMetaData();
@@ -146,6 +149,14 @@ public class MongoDbMapperIT {
 		metadataNew.setThumbnailId(THUMBNAIL_ID);
 		
 		mapper.storeDocument(metadataNew);
+	}
+	
+	@Test
+	public void queryForHashByHashVAlue() throws Exception {
+		List<ImageMetaData> meta = mapper.getMetadataByHash(HASH_NAME_SHA256, HASH_DATA_SHA256);
+		
+		assertThat(meta.size(), is(1));
+		assertThat(meta.get(0).getPath(), is(metadataExisting.getPath()));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {
