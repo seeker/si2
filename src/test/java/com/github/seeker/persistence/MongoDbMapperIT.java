@@ -39,6 +39,7 @@ import com.orbitz.consul.model.health.ServiceHealth;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.MorphiumConfig;
+import de.caluga.morphium.driver.MorphiumDriverException;
 
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
@@ -137,6 +138,13 @@ public class MongoDbMapperIT {
 		ImageMetaData meta = mapper.getImageMetadata("none", TEST_PATH);
 		
 		assertThat(meta, is(nullValue()));
+	}
+	
+	@Test(expected=RuntimeException.class)
+	public void insertDuplicateThumbnailUUID() throws Exception {
+		metadataNew.setThumbnailId(THUMBNAIL_ID);
+		
+		mapper.storeDocument(metadataNew);
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {

@@ -52,7 +52,7 @@ public class ImageMetaData {
 	/**
 	 * Id of the thumbnail
 	 */
-	@Index(options={"unique:true"})
+	@Index(options={"unique:1"})
 	private UUID thumbnailId;
 	
 	/**
