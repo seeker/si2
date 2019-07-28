@@ -22,6 +22,9 @@ public class ConnectionProvider {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionProvider.class);
 	private final ConsulClient consul;
 	private final ConsulConfiguration consulConfig;
+	
+	private static final String PRODUCTION_DB_CONSUL_KEY = "config/mongodb/database/si2";
+	public static final String INTEGRATION_DB_CONSUL_KEY = "config/mongodb/database/integration";
 
 	public ConnectionProvider(ConsulConfiguration consulConfig) {
 		this.consul = new ConsulClient(consulConfig);
@@ -49,10 +52,18 @@ public class ConnectionProvider {
 		return connFactory.newConnection();
 	}
 	
+	public MongoDbMapper getIntegrationMongoDbMapper() {
+		return getMongoDbMapper(INTEGRATION_DB_CONSUL_KEY);
+	}
+	
 	public MongoDbMapper getMongoDbMapper() {
+		return getMongoDbMapper(PRODUCTION_DB_CONSUL_KEY);
+	}
+	
+	public Morphium getMorphiumClient(String databaseNameConsulKey) {
 		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
 		
-		String database = consul.getKvAsString("config/mongodb/database/si2");
+		String database = consul.getKvAsString(databaseNameConsulKey);
 		String mongoDBserverAddress = mongodbService.getNode().getAddress();
 
 		MorphiumConfig cfg = new MorphiumConfig();
@@ -60,7 +71,11 @@ public class ConnectionProvider {
 		cfg.setDatabase(database);
 		cfg.addHostToSeed(mongoDBserverAddress);
 				
-		Morphium morphium = new Morphium(cfg);
+		return new Morphium(cfg);
+	}
+	
+	public MongoDbMapper getMongoDbMapper(String databaseNameConsulKey) {
+		Morphium morphium = getMorphiumClient(databaseNameConsulKey);
 		return new MongoDbMapper(morphium);
 	}
 }

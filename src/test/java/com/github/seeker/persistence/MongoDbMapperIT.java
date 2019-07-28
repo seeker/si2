@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
+import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.configuration.ConsulConfiguration;
@@ -57,9 +58,7 @@ public class MongoDbMapperIT {
 	
 	private static MongoDbMapper mapper;
 
-	private static MorphiumConfig cfg;
 	private static Morphium morphium;
-	private static Consul client;
 	
 	private ImageMetaData metadataExisting;
 	private ImageMetaData metadataNew;
@@ -72,21 +71,10 @@ public class MongoDbMapperIT {
 	@BeforeClass
 	public static void setUpClass() {
 		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
-
-		ConsulClient consulClient = new ConsulClient(consulConfiguration);
-		
-		ServiceHealth mongodbService = consulClient.getFirstHealtyInstance(ConfiguredService.mongodb);
-		
-		String database = consulClient.getKvAsString("config/mongodb/database/integration");
-		String serverAddress = mongodbService.getNode().getAddress();
-		
-		cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
-		cfg.setDatabase(database);
-		cfg.addHostToSeed(serverAddress);
+		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfiguration);
 				
-		morphium = new Morphium(cfg);
-		mapper = new MongoDbMapper(morphium);
+		morphium = connectionProvider.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
+		mapper = connectionProvider.getMongoDbMapper(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 	}
 	
 	@Before
@@ -104,10 +92,9 @@ public class MongoDbMapperIT {
 		metadataNew = new ImageMetaData();
 		metadataNew.setThumbnailId(THUMBNAIL_ID_NEW);
 
-		Morphium dbClient = new Morphium(cfg);
-		dbClient.store(metadataExisting);
-		dbClient.clearCachefor(ImageMetaData.class);
-		dbClient.clearCachefor(Thumbnail.class);
+		morphium.store(metadataExisting);
+		morphium.clearCachefor(ImageMetaData.class);
+		morphium.clearCachefor(Thumbnail.class);
 	}
 
 	@After
@@ -142,13 +129,6 @@ public class MongoDbMapperIT {
 		ImageMetaData meta = mapper.getImageMetadata("none", TEST_PATH);
 		
 		assertThat(meta, is(nullValue()));
-	}
-	
-	@Test(expected=RuntimeException.class)
-	public void insertDuplicateThumbnailUUID() throws Exception {
-		metadataNew.setThumbnailId(THUMBNAIL_ID);
-		
-		mapper.storeDocument(metadataNew);
 	}
 	
 	@Test
