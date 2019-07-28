@@ -7,7 +7,7 @@ package com.github.seeker.persistence;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,6 +32,7 @@ import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
 import com.orbitz.consul.Consul;
@@ -39,7 +40,6 @@ import com.orbitz.consul.model.health.ServiceHealth;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.MorphiumConfig;
-import de.caluga.morphium.driver.MorphiumDriverException;
 
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
@@ -50,8 +50,11 @@ public class MongoDbMapperIT {
 	private static final String TEST_ANCHOR = "imAnAnchor";
 	private static final String HASH_NAME_SHA256 = "sha256";
 	private static final String HASH_NAME_SHA512 = "sha512";
+	private static final String HASH_NAME_PHASH = "phash";
 	private static final Path TEST_PATH = Paths.get("foo/bar/baz.jpg");
 
+	private static final byte[] HASH_DATA_SHA256 = new byte[]{1,2,3,5};
+	
 	private static MongoDbMapper mapper;
 
 	private static MorphiumConfig cfg;
@@ -88,8 +91,9 @@ public class MongoDbMapperIT {
 	
 	@Before
 	public void setUp() throws Exception {
-		Map<String, List<Byte>> hashes = new HashMap<>();
-		hashes.put(HASH_NAME_SHA256, Arrays.asList(new Byte[]{1,2,3,5}));
+		Map<String, Hash> hashes = new HashMap<>();
+		hashes.put(HASH_NAME_SHA256, new Hash(HASH_DATA_SHA256));
+		hashes.put(HASH_NAME_PHASH, new Hash(new byte[]{6,37,3,1,5,85,2}));
 		
 		metadataExisting = new ImageMetaData();
 		metadataExisting.setThumbnailId(THUMBNAIL_ID);
@@ -145,6 +149,14 @@ public class MongoDbMapperIT {
 		metadataNew.setThumbnailId(THUMBNAIL_ID);
 		
 		mapper.storeDocument(metadataNew);
+	}
+	
+	@Test
+	public void queryForHashByHashVAlue() throws Exception {
+		List<ImageMetaData> meta = mapper.getMetadataByHash(HASH_NAME_SHA256, HASH_DATA_SHA256);
+		
+		assertThat(meta.size(), is(1));
+		assertThat(meta.get(0).getPath(), is(metadataExisting.getPath()));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {

@@ -155,7 +155,7 @@ class FileMessageConsumer extends DefaultConsumer {
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
 		hashHeaders.put("anchor", header.get("anchor"));
 		hashHeaders.put("path", header.get("path"));
-		hashHeaders.put("pHash", pHash);
+		hashHeaders.put("phash", pHash);
 		hashHeaders.put("sha256", dis.getMessageDigest().digest());
 		
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();

@@ -4,9 +4,6 @@
  */
 package com.github.seeker.app;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -20,6 +17,7 @@ public class App {
 	private static final String LOADER_COMMAND = "loader";
 	private static final String PROCESSOR_COMMAND = "processor";
 	private static final String THUMBNAIL_COMMAND = "thumb";
+	private static final String DB_COMMAND = "db";
 
 	public static void main(String[] args) {
 		
@@ -31,6 +29,7 @@ public class App {
 		
 		subparsers.addParser("processor").description("Processes files from the queue").setDefault(COMMAND_ATTRIBUTE, PROCESSOR_COMMAND);
 		subparsers.addParser("thumb").description("Stores and retrieves thumbnails").setDefault(COMMAND_ATTRIBUTE, THUMBNAIL_COMMAND);
+		subparsers.addParser("db").description("Stores metadata entries in the database").setDefault(COMMAND_ATTRIBUTE, DB_COMMAND);
 
 		try {
 			processArgs(parser.parseArgs(args));
@@ -59,6 +58,12 @@ public class App {
 		} else if(THUMBNAIL_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
 				new ThumbnailNode();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if(DB_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
+			try {
+				new DBNode();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
