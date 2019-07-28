@@ -47,7 +47,7 @@ public class ImageMetaData {
 	 * Hashes of this file. Hash and the corresponding value.
 	 */
 	@Index
-	private Map<String, List<Byte>> hashes;
+	private Map<String, Hash> hashes;
 	
 	/**
 	 * Id of the thumbnail
@@ -61,11 +61,11 @@ public class ImageMetaData {
 	@Index
 	private List<String> tags;
 
-	public Map<String, List<Byte>> getHashes() {
+	public Map<String, Hash> getHashes() {
 		return hashes;
 	}
 
-	public void setHashes(Map<String, List<Byte>> hashes) {
+	public void setHashes(Map<String, Hash> hashes) {
 		this.hashes = hashes;
 	}
 

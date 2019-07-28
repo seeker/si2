@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
@@ -85,7 +86,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 			meta.setAnchor(anchor);
 			meta.setPath(relativeToAnchor.toString());
 			meta.setFileSize(attrs.size());
-			meta.setHashes(new HashMap<String, List<Byte>>());
+			meta.setHashes(new HashMap<String, Hash>());
 			mapper.storeDocument(meta);
 		}
 		
