@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -33,7 +35,7 @@ public class DBNode {
 
 	private final Channel channel;
 	private final MongoDbMapper mapper;
-	private final String queueHash;
+	private final QueueConfiguration queueConfig;
 	private final List<String> requiredHashes;
 	
 	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
@@ -41,14 +43,10 @@ public class DBNode {
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnection();
-		
-		queueHash = consul.getKvAsString("config/rabbitmq/queue/hash");
-
 		channel = conn.createChannel();
 		channel.basicQos(100);
 
-		LOGGER.info("Declaring queue {}", queueHash);
-		channel.queueDeclare(queueHash, false, false, false, null);
+		queueConfig = new QueueConfiguration(channel, consul);
 		
 		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
 		mapper = connectionProvider.getMongoDbMapper();
@@ -57,8 +55,9 @@ public class DBNode {
 	}
 
 	private void startConsumers() throws IOException {
-		LOGGER.info("Starting consumer on queue {}", queueHash);
-		channel.basicConsume(queueHash, new DBStore(channel, mapper, requiredHashes));
+		String queueName = queueConfig.getQueueName(ConfiguredQueues.hashes);
+		LOGGER.info("Starting consumer on queue {}", queueName);
+		channel.basicConsume(queueName, new DBStore(channel, mapper, requiredHashes));
 	}
 }
 

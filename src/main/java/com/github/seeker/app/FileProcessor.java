@@ -27,6 +27,8 @@ import com.github.dozedoff.commonj.util.ImageUtil;
 import com.github.seeker.commonhash.helper.TransformHelper;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -42,9 +44,8 @@ public class FileProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessor.class);
 
 	private final Channel channel;
-	private final String queueFileFeed;
-	private final String queueThumbnails;
-	private final String queueHashes;
+	private final QueueConfiguration queueConfig;
+	
 	private final int thumbnailSize;
 	
 	
@@ -53,31 +54,22 @@ public class FileProcessor {
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnection();
+		channel = conn.createChannel();
 		
-		queueFileFeed = consul.getKvAsString("config/rabbitmq/queue/loader-file-feed");
-		queueThumbnails = consul.getKvAsString("config/rabbitmq/queue/thumbnail");
-		queueHashes = consul.getKvAsString("config/rabbitmq/queue/hash");
+		queueConfig = new QueueConfiguration(channel, consul);
+		
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
-
-		channel = conn.createChannel();
-
-		LOGGER.info("Declaring queue {}", queueFileFeed);
-		channel.queueDeclare(queueFileFeed, false, false, false, null);
 		channel.basicQos(100);
 
-		LOGGER.info("Declaring queue {}", queueThumbnails);
-		channel.queueDeclare(queueThumbnails, false, false, false, null);
-		
-		LOGGER.info("Declaring queue {}", queueHashes);
-		channel.queueDeclare(queueHashes, false, false, false, null);
 		
 		processFiles();
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
-		LOGGER.info("Starting consumer on queue {}", queueFileFeed);
-		channel.basicConsume(queueFileFeed, new FileMessageConsumer(channel, thumbnailSize, queueThumbnails, queueHashes));
+		String queueName =  queueConfig.getQueueName(ConfiguredQueues.files);
+		LOGGER.info("Starting consumer on queue {}", queueName);
+		channel.basicConsume(queueName, new FileMessageConsumer(channel, thumbnailSize, queueConfig));
 	}
 }
 
@@ -90,15 +82,13 @@ class FileMessageConsumer extends DefaultConsumer {
 	private final DoubleDCT_2D jtransformDCT;
 	
 	private final int thumbnailSize;
-	private final String queueThumbnails;
-	private final String queueHashes;
+	private final QueueConfiguration queueConfig;
 	
-	public FileMessageConsumer(Channel channel, int thumbnailSize, String queueThumbnails, String queueHashes) {
+	public FileMessageConsumer(Channel channel, int thumbnailSize, QueueConfiguration queueConfig) {
 		super(channel);
 		
 		this.thumbnailSize = thumbnailSize;
-		this.queueThumbnails = queueThumbnails;
-		this.queueHashes = queueHashes;
+		this.queueConfig = queueConfig;
 		
 		this.jtransformDCT = new DoubleDCT_2D(IMAGE_SIZE, IMAGE_SIZE); 
 		
@@ -145,7 +135,7 @@ class FileMessageConsumer extends DefaultConsumer {
 		hashHeaders.put("sha256", dis.getMessageDigest().digest());
 		
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
-		getChannel().basicPublish("", queueHashes, hashProps, null);
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, null);
 		
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"),	header.get("missing-hash"));
 		
@@ -163,7 +153,7 @@ class FileMessageConsumer extends DefaultConsumer {
 		thumbnailHeaders.put("path", header.get("path"));
 		
 		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
-		getChannel().basicPublish("", queueThumbnails, thumbnailProps, os.toByteArray());
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnails), thumbnailProps, os.toByteArray());
 	}
 	
 	private long calculatePhash(BufferedImage originalImage) {

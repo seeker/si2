@@ -1,43 +1,27 @@
 package com.github.seeker.app;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.DigestInputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
-import javax.imageio.ImageIO;
-
-import org.imgscalr.Scalr;
-import org.imgscalr.Scalr.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.ConsulClient.ConfiguredService;
+import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.orbitz.consul.model.health.ServiceHealth;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import de.caluga.morphium.Morphium;
-import de.caluga.morphium.MorphiumConfig;
 
 /**
  * Loads files from the file system and sends them to the message broker with
@@ -50,31 +34,26 @@ public class ThumbnailNode {
 	
 	private final Channel channel;
 	private final MongoDbMapper mapper;
-	private final String queueThumbnails;
-	
+	private final QueueConfiguration queueConfig;
 	
 	public ThumbnailNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ThumbnailNode.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
-
-		queueThumbnails = consul.getKvAsString("config/rabbitmq/queue/thumbnail");
-
 		Connection conn = connectionProvider.getRabbitMQConnection();
 		channel = conn.createChannel();
 		channel.basicQos(100);
-
-		LOGGER.info("Declaring queue {}", queueThumbnails);
-		channel.queueDeclare(queueThumbnails, false, false, false, null);
-
+		
+		queueConfig = new QueueConfiguration(channel, consul);
 		mapper = connectionProvider.getMongoDbMapper();
 		
 		startConsumers();
 	}
 
 	private void startConsumers() throws IOException {
-		LOGGER.info("Starting consumer on queue {}", queueThumbnails);
-		channel.basicConsume(queueThumbnails, new ThumbnailStore(channel, mapper, THUMBNAIL_DIRECTORY));
+		String queueName = queueConfig.getQueueName(ConfiguredQueues.thumbnails);
+		LOGGER.info("Starting consumer on queue {}", queueName);
+		channel.basicConsume(queueName, new ThumbnailStore(channel, mapper, THUMBNAIL_DIRECTORY));
 	}
 }
 
