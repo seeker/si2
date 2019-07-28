@@ -7,9 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
+import com.github.seeker.persistence.MongoDbMapper;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
+import de.caluga.morphium.Morphium;
+import de.caluga.morphium.MorphiumConfig;
 
 /**
  * Provides configured connections for used services. 
@@ -43,5 +47,20 @@ public class ConnectionProvider {
 		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
 
 		return connFactory.newConnection();
+	}
+	
+	public MongoDbMapper getMongoDbMapper() {
+		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
+		
+		String database = consul.getKvAsString("config/mongodb/database/si2");
+		String mongoDBserverAddress = mongodbService.getNode().getAddress();
+
+		MorphiumConfig cfg = new MorphiumConfig();
+		LOGGER.info("Conneting to mongodb database {}", database);
+		cfg.setDatabase(database);
+		cfg.addHostToSeed(mongoDBserverAddress);
+				
+		Morphium morphium = new Morphium(cfg);
+		return new MongoDbMapper(morphium);
 	}
 }

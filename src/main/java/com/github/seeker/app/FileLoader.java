@@ -58,19 +58,8 @@ public class FileLoader {
 		LOGGER.info("Loading anchors for ID {}...", id);
 		String encodedAnchors = consul.getKvAsString("config/fileloader/anchors/" + id);
 		LOGGER.debug("Loaded encoded anchors {} for ID {}", encodedAnchors, id);
-		
-		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
-		
-		String database = consul.getKvAsString("config/mongodb/database/si2");
-		String mongoDBserverAddress = mongodbService.getNode().getAddress();
-		
-		MorphiumConfig cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
-		cfg.setDatabase(database);
-		cfg.addHostToSeed(mongoDBserverAddress);
-				
-		Morphium morphium = new Morphium(cfg);
-		mapper = new MongoDbMapper(morphium);
+						
+		mapper = connectionProvider.getMongoDbMapper();
 		
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
 		

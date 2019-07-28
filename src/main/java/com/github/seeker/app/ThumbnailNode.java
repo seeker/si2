@@ -66,19 +66,8 @@ public class ThumbnailNode {
 
 		LOGGER.info("Declaring queue {}", queueThumbnails);
 		channel.queueDeclare(queueThumbnails, false, false, false, null);
-		
-		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
-		
-		String database = consul.getKvAsString("config/mongodb/database/si2");
-		String mongoDBserverAddress = mongodbService.getNode().getAddress();
-		
-		MorphiumConfig cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
-		cfg.setDatabase(database);
-		cfg.addHostToSeed(mongoDBserverAddress);
-				
-		Morphium morphium = new Morphium(cfg);
-		mapper = new MongoDbMapper(morphium);
+
+		mapper = connectionProvider.getMongoDbMapper();
 		
 		startConsumers();
 	}

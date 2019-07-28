@@ -14,20 +14,15 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.primitives.Longs;
-import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import de.caluga.morphium.Morphium;
-import de.caluga.morphium.MorphiumConfig;
 
 /**
  * Loads files from the file system and sends them to the message broker with
@@ -55,20 +50,8 @@ public class DBNode {
 		LOGGER.info("Declaring queue {}", queueHash);
 		channel.queueDeclare(queueHash, false, false, false, null);
 		
-		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
-		
-		String database = consul.getKvAsString("config/mongodb/database/si2");
-		String mongoDBserverAddress = mongodbService.getNode().getAddress();
-
 		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
-
-		MorphiumConfig cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
-		cfg.setDatabase(database);
-		cfg.addHostToSeed(mongoDBserverAddress);
-				
-		Morphium morphium = new Morphium(cfg);
-		mapper = new MongoDbMapper(morphium);
+		mapper = connectionProvider.getMongoDbMapper();
 		
 		startConsumers();
 	}
