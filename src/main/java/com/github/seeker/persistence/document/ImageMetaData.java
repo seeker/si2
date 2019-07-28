@@ -5,9 +5,12 @@
 package com.github.seeker.persistence.document;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
 
 import de.caluga.morphium.annotations.CreationTime;
 import de.caluga.morphium.annotations.Entity;
@@ -60,6 +63,15 @@ public class ImageMetaData {
 	 */
 	@Index
 	private List<String> tags;
+	
+	/**
+	 * Create a new {@link ImageMetaData} with no hashes and an empty anchor and path.		
+	 */
+	public ImageMetaData() {
+		this.hashes = new HashMap<String, Hash>();
+		this.anchor = StringUtils.EMPTY;
+		this.path = StringUtils.EMPTY;
+	}
 
 	public Map<String, Hash> getHashes() {
 		return hashes;
