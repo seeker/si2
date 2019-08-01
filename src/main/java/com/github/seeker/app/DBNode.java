@@ -1,8 +1,6 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +14,8 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.messaging.HashMessage;
+import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -36,6 +36,7 @@ public class DBNode {
 	private final Channel channel;
 	private final MongoDbMapper mapper;
 	private final QueueConfiguration queueConfig;
+	private final HashMessageHelper hashMessageHelper;
 	private final List<String> requiredHashes;
 	
 	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
@@ -57,6 +58,7 @@ public class DBNode {
 		this.mapper = mapper;
 		
 		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
+		hashMessageHelper = new HashMessageHelper(channel, queueConfig);
 		
 		startConsumers();
 	}
@@ -64,7 +66,7 @@ public class DBNode {
 	private void startConsumers() throws IOException {
 		String queueName = queueConfig.getQueueName(ConfiguredQueues.hashes);
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new DBStore(channel, mapper, requiredHashes));
+		channel.basicConsume(queueName, new DBStore(channel, mapper, hashMessageHelper, requiredHashes));
 	}
 }
 
@@ -74,23 +76,24 @@ class DBStore extends DefaultConsumer {
 
 	private final MongoDbMapper mapper;
 	private final List<String> requiredHashes;
+	private final HashMessageHelper hashMessageHelper;
 	
-	
-	public DBStore(Channel channel, MongoDbMapper mapper, List<String> requiredHashes) {
+	public DBStore(Channel channel, MongoDbMapper mapper,HashMessageHelper hashMessageHelper ,List<String> requiredHashes) {
 		super(channel);
 		
 		this.mapper = mapper;
 		this.requiredHashes = requiredHashes;
+		this.hashMessageHelper = hashMessageHelper;
 	}
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		Map<String, Object> header = properties.getHeaders();
+		HashMessage message = hashMessageHelper.decodeHashMessage(properties.getHeaders(), body);
 		
-		String anchor = header.get("anchor").toString();
-		Path relativeAnchorPath = Paths.get(header.get("path").toString());
+		String anchor = message.getAnchor();
+		String relativeAnchorPath = message.getReltaivePath();
 		
-		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
+		ImageMetaData meta = mapper.getImageMetadata(message.getAnchor(), message.getReltaivePath());
 		
 		if(meta == null) {
 			LOGGER.warn("No metadata found in database for {} - {}", anchor, relativeAnchorPath);
@@ -99,7 +102,7 @@ class DBStore extends DefaultConsumer {
 			meta.setPath(relativeAnchorPath.toString());
 		}
 		
-		updateMetadata(meta, header);
+		updateMetadata(message, meta);
 
 		mapper.storeDocument(meta);
 		LOGGER.info("Updated database entry for {} - {}", anchor, relativeAnchorPath);
@@ -107,19 +110,13 @@ class DBStore extends DefaultConsumer {
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
 	
-	private void updateMetadata(ImageMetaData meta, Map<String, Object> header) {
+	private void updateMetadata(HashMessage message, ImageMetaData meta) {
 		//TODO use required hashes
 		
 		Map<String, Hash> metaHashes = meta.getHashes();
-		
-		if(header.containsKey("sha256")) {
-			metaHashes.put("sha256", new Hash(header.get("sha256").toString().getBytes()));
-		}
-		
-		if(header.containsKey("phash")) {
-			metaHashes.put("phash", new Hash(Longs.toByteArray(Long.parseLong(header.get("phash").toString()))));
-		}
-		
+		metaHashes.put("sha256", new Hash(message.getSha256()));
+		metaHashes.put("phash", new Hash(Longs.toByteArray(message.getPhash())));
+
 		mapper.storeDocument(meta);
 	}
 }

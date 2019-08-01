@@ -60,7 +60,17 @@ public class MongoDbMapper {
 	 * @return Image metadata if found, otherwise null
 	 */
 	public ImageMetaData getImageMetadata(String anchor, Path relativeAnchorPath) {
-		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).f("anchor").eq(anchor).f("path").eq(relativeAnchorPath.toString());
+		return getImageMetadata(anchor, relativeAnchorPath.toString());
+	}
+	
+	/**
+	 * Get metadata for an image
+	 * @param anchor anchor for the image
+	 * @param relativeAnchorPath relative path for the anchor to the image
+	 * @return Image metadata if found, otherwise null
+	 */
+	public ImageMetaData getImageMetadata(String anchor, String relativeAnchorPath) {
+		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).f("anchor").eq(anchor).f("path").eq(relativeAnchorPath);
 		return query.get();
 	}
 	
