@@ -37,8 +37,8 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 /**
- * Loads files from the file system and sends them to the message broker with
- * additional meta data.
+ * Fetches images from the queue and generates hashes and the thumbnail.
+ * The results are sent as a new message.
  */
 public class FileProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessor.class);
