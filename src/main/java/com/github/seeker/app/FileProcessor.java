@@ -29,6 +29,8 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.messaging.HashMessageHelper;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -83,12 +85,14 @@ class FileMessageConsumer extends DefaultConsumer {
 	
 	private final int thumbnailSize;
 	private final QueueConfiguration queueConfig;
+	private final HashMessageHelper hashMessageHelper;
 	
 	public FileMessageConsumer(Channel channel, int thumbnailSize, QueueConfiguration queueConfig) {
 		super(channel);
 		
 		this.thumbnailSize = thumbnailSize;
 		this.queueConfig = queueConfig;
+		this.hashMessageHelper = new HashMessageHelper(channel, queueConfig);
 		
 		this.jtransformDCT = new DoubleDCT_2D(IMAGE_SIZE, IMAGE_SIZE); 
 		
@@ -114,7 +118,7 @@ class FileMessageConsumer extends DefaultConsumer {
 		
 		if (originalImage == null) {
 			//TODO send an error message
-			LOGGER.warn("Was unable to read image data for {} - {} ", header.get("anchor"), header.get("path"));
+			LOGGER.warn("Was unable to read image data for {} - {} ", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
@@ -129,13 +133,10 @@ class FileMessageConsumer extends DefaultConsumer {
 		originalImage.flush();
 		
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
-		hashHeaders.put("anchor", header.get("anchor"));
-		hashHeaders.put("path", header.get("path"));
-		hashHeaders.put("phash", pHash);
-		hashHeaders.put("sha256", dis.getMessageDigest().digest());
-		
-		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
-		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, null);
+		hashHeaders.put(MessageHeaderKeys.ANCHOR, header.get(MessageHeaderKeys.ANCHOR));
+		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
+
+		hashMessageHelper.sendMessage(hashHeaders, dis.getMessageDigest().digest(), pHash);
 		
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"),	header.get("missing-hash"));
 		
