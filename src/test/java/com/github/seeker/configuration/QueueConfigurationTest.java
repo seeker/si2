@@ -1,9 +1,12 @@
 package com.github.seeker.configuration;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.CoreMatchers.endsWith;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -70,17 +73,32 @@ public class QueueConfigurationTest {
 	
 	@Test
 	public void queueNameForHashIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.hashes), is(prefixWithIntegration(HASH_QUEUE_NAME)));
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.hashes), is(startsWith(prefixWithIntegration(HASH_QUEUE_NAME))));
 	}
 	
 	@Test
 	public void queueNameForThumbnailIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.thumbnails), is(prefixWithIntegration(THUMBNAIL_QUEUE_NAME)));
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.thumbnails), is(startsWith(prefixWithIntegration(THUMBNAIL_QUEUE_NAME))));
 	}
 	
 	@Test
 	public void queueNameForFilesIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.files), is(prefixWithIntegration(FILE_QUEUE_NAME)));
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.files), is(startsWith(prefixWithIntegration(FILE_QUEUE_NAME))));
+	}
+	
+	@Test
+	public void queueNameForHashIntegrationWithUUIDsuffix() throws Exception {
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.hashes), is(not(endsWith(HASH_QUEUE_NAME))));
+	}
+	
+	@Test
+	public void queueNameForThumbnailIntegrationUUIDsuffix() throws Exception {
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.thumbnails), is(not(endsWith(THUMBNAIL_QUEUE_NAME))));
+	}
+	
+	@Test
+	public void queueNameForFilesIntegrationUUIDsuffix() throws Exception {
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.files), is(not(endsWith(FILE_QUEUE_NAME))));
 	}
 	
 	@Test(expected=IllegalStateException.class)

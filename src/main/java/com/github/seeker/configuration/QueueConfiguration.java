@@ -3,6 +3,7 @@ package com.github.seeker.configuration;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +98,7 @@ public class QueueConfiguration {
 			String queueName = consulClient.getKvAsString(keyToQueues.get(queue));
 			
 			if(integration) {
-				queueName = "integration-" + queueName;
+				queueName = "integration-" + queueName + "-" + UUID.randomUUID().toString();
 			}
 			
 			queueNames.put(queue, queueName);
