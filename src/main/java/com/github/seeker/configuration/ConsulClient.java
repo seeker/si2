@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.HostAndPort;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.HealthClient;
+import com.orbitz.consul.cache.KVCache;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.orbitz.consul.option.QueryOptions;
 
@@ -47,5 +48,22 @@ public class ConsulClient {
 	
 	public String getKvAsString(String key) {
 		return client.keyValueClient().getValue(key).get().getValueAsString().get();
+	}
+	
+	public long getKvAsLong(String key) {
+		String value = client.keyValueClient().getValue(key).get().getValueAsString().get();
+		return Long.parseLong(value); 
+	}
+	
+	/**
+	 * Return a {@link KVCache} for the given root path.
+	 * Listeners must still be added to the cache and it needs to be started.
+	 * 
+	 * @param rootPath the root path key for changes to monitor
+	 * 
+	 * @return a cache configured for the path
+	 */
+	public KVCache getKVCache(String rootPath) {
+		return KVCache.newCache(client.keyValueClient(), rootPath);
 	}
 }

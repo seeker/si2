@@ -24,6 +24,7 @@ import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.google.common.util.concurrent.RateLimiter;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -42,14 +43,16 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final String loadedFileQueue;
 	private final String anchor;
 	private final Path anchorPath;
+	private final RateLimiter fileLoadRateLimiter;
 	
-	public FileToQueueVistor(Channel channel, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String loadedFileQueue) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String loadedFileQueue) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.anchor = anchor;
 		this.anchorPath = anchorPath;
 		this.requiredHashes = requiredHashes;
 		this.loadedFileQueue = loadedFileQueue;
+		this.fileLoadRateLimiter = fileLoadRateLimiter;
 	}
 
 	@Override
@@ -75,6 +78,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	}
 	
 	private void loadFileIntoQueue(Path file, BasicFileAttributes attrs) throws IOException {
+		fileLoadRateLimiter.acquire();
 		Path relativeToAnchor = anchorPath.relativize(file);
 		
 		LOGGER.trace("Fetching meta data for {} {}", anchor, relativeToAnchor);
