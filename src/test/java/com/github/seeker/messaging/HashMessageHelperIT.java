@@ -4,14 +4,15 @@
  */
 package com.github.seeker.messaging;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -30,7 +31,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.GetResponse;
 
 public class HashMessageHelperIT {
-
 	private static final String ANCHOR = "anchorman";
 	private static final Path RELATIVE_ANCHOR_PATH = Paths.get("foo/bar/baz/boo.jpg");
 	private static final byte[] SHA256 = {-29, -80, -60, 66, -104, -4, 28, 20, -102, -5, -12, -56, -103, 111, -71, 36, 39, -82, 65, -28, 100, -101, -109, 76, -92, -107, -103, 27, 120, 82, -72, 85};
@@ -40,72 +40,103 @@ public class HashMessageHelperIT {
 	
 	private HashMessageHelper cut;
 	private Channel channelForTests;
-	private Connection rabbitConn;
+	private static Connection rabbitConn;
+	private QueueConfiguration queueConfig;
 	
 	private Map<String, Object> headers;
-	private HashMessage response;
+	private HashMessage message;
+	
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig);
+		rabbitConn = connectionProvider.getRabbitMQConnection();
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		rabbitConn.close();
 	}
 
 	@Before
 	public void setUp() throws Exception {
-		rabbitConn = connectionProvider.getRabbitMQConnection();
+		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		
 		Channel channel = rabbitConn.createChannel();
 		channelForTests = rabbitConn.createChannel();
 		
-		QueueConfiguration queueConfig = new QueueConfiguration(channel, consul, true);
+		queueConfig = new QueueConfiguration(channel, consul, true);
 		assertThat(queueConfig.isIntegrationConfig(), is(true));
 		
 		cut = new HashMessageHelper(channel, queueConfig);
 		
 		headers = createTestHeaders();
 		cut.sendMessage(headers, SHA256, PHASH);
+		
+		message = waitForMessage(); 
+	}
 
-		GetResponse responseMessage = channelForTests.basicGet(queueConfig.getQueueName(ConfiguredQueues.hashes), true);
-		response = cut.decodeHashMessage(responseMessage.getProps().getHeaders(), responseMessage.getBody());
+	/**
+	 * Keeps polling until a message is received or the timeout is reached.
+	 * @return a received message
+	 * @throws IOException
+	 * @throws InterruptedException if the call is interrupted while waiting for a message
+	 * @throws TimeoutException if the timeout is reached
+	 */
+	private HashMessage waitForMessage() throws IOException, InterruptedException, TimeoutException {
+		GetResponse responseMessage;
+		int abortCount = 60;
+		
+		do {
+			responseMessage = channelForTests.basicGet(queueConfig.getQueueName(ConfiguredQueues.hashes), false);
+			Thread.sleep(50);
+			abortCount--;
+			
+			if (abortCount == 0) {
+				throw new TimeoutException("Did not get a message in time");
+			}
+		} while(responseMessage == null);
+		
+		return cut.decodeHashMessage(responseMessage.getProps().getHeaders(), responseMessage.getBody());
+		
 	}
 	
 	private Map<String, Object> createTestHeaders() {
 		Map<String, Object> newHeaders = new HashMap<String, Object>();
 		
-		newHeaders.put("anchor", ANCHOR);
-		newHeaders.put("path", RELATIVE_ANCHOR_PATH.toString());
+		newHeaders.put(MessageHeaderKeys.ANCHOR, ANCHOR);
+		newHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, RELATIVE_ANCHOR_PATH.toString());
 		
 		return newHeaders;
 	}
+	
 
 	@After
 	public void tearDown() throws Exception {
-		rabbitConn.close();
+		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
+			channelForTests.queueDelete(queueConfig.getQueueName(queue));
+		}
 	}
 	
 	@Test
 	public void checkReceivedAnchor() throws Exception {
-		assertThat(response.getAnchor(), is(ANCHOR));
+		assertThat(message.getAnchor(), is(ANCHOR));
 	}
 	
 	@Test
 	public void checkReceivedRelativePath() throws Exception {
-		assertThat(response.getReltaivePath(), is(RELATIVE_ANCHOR_PATH.toString()));
+		assertThat(message.getReltaivePath(), is(RELATIVE_ANCHOR_PATH.toString()));
 	}
 	
 	@Test
 	public void checkReceivedPhash() throws Exception {
-		assertThat(response.getPhash(), is(PHASH));
+		assertThat(message.getPhash(), is(PHASH));
 	}
 	
 	@Test
 	public void checkReceivedSha256() throws Exception {
-		assertThat(response.getSha256(), is(SHA256));
+		assertThat(message.getSha256(), is(SHA256));
 	}
 }

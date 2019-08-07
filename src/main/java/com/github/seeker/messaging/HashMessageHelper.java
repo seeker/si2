@@ -21,6 +21,7 @@ import com.rabbitmq.client.Channel;
  * Packs and unpacks hash messages.
  */
 public class HashMessageHelper {
+	private static final String DEFAULT_EXCHANGE = "";
 	private static final int EXPECTED_BODY_SIZE = 40;
 	private static final int SHA256_NUMBER_OF_BYTES = 32;
 	
@@ -34,8 +35,8 @@ public class HashMessageHelper {
 	
 	public void sendMessage(Map<String, Object> originalMessageHeaders, byte[] sha256, long phash) throws IOException {
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
-		hashHeaders.put("anchor", originalMessageHeaders.get("anchor"));
-		hashHeaders.put("path", originalMessageHeaders.get("path"));
+		hashHeaders.put(MessageHeaderKeys.ANCHOR, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR));
+		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
 		
 		ByteArrayDataOutput data = ByteStreams.newDataOutput(EXPECTED_BODY_SIZE);
 		data.writeLong(phash);
@@ -44,7 +45,7 @@ public class HashMessageHelper {
 		byte[] body = data.toByteArray();
 		
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
-		channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, body);
+		channel.basicPublish(DEFAULT_EXCHANGE, queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, body);
 	}
 	
 	public HashMessage decodeHashMessage(Map<String, Object> headers, byte[] body) throws IOException {
