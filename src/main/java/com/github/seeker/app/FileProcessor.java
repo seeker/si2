@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 
 import org.imgscalr.Scalr;
@@ -114,7 +115,15 @@ class FileMessageConsumer extends DefaultConsumer {
 		InputStream is =  new ByteArrayInputStream(body);
 		DigestInputStream dis =  new DigestInputStream(is, md);
 		
-		BufferedImage originalImage = ImageIO.read(dis);
+		BufferedImage originalImage;
+		
+		try {
+			originalImage = ImageIO.read(dis);
+		}catch (IIOException e) {
+			LOGGER.warn("Failed to read image format: {}", e.getMessage());
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
+		}
 		
 		if (originalImage == null) {
 			//TODO send an error message
