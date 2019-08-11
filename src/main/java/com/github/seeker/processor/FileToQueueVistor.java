@@ -78,7 +78,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	}
 	
 	private void loadFileIntoQueue(Path file, BasicFileAttributes attrs) throws IOException {
-		fileLoadRateLimiter.acquire();
 		Path relativeToAnchor = anchorPath.relativize(file);
 		
 		LOGGER.trace("Fetching meta data for {} {}", anchor, relativeToAnchor);
@@ -114,6 +113,8 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		headers.put("path", relativeToAnchor.toString());
 		headers.put("thumb", Boolean.toString(meta.hasThumbnail()));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+		
+		fileLoadRateLimiter.acquire();
 		
 		channel.basicPublish("", loadedFileQueue, props, rawImageData);
 	}
