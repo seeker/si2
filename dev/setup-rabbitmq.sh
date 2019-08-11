@@ -35,5 +35,6 @@ consul kv put config/rabbitmq/queue/loader-file-feed loaded-files
 consul kv put config/rabbitmq/queue/thumbnail thumbnails
 consul kv put config/rabbitmq/queue/hash hashes
 consul kv put config/general/required-hashes sha256,sha512
+consul kv put config/fileloader/load-rate-limit 50
 
 sudo rabbitmq-plugins enable rabbitmq_management

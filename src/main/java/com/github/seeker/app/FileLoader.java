@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
@@ -21,6 +23,9 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.processor.FileToQueueVistor;
+import com.google.common.util.concurrent.RateLimiter;
+import com.orbitz.consul.cache.KVCache;
+import com.orbitz.consul.model.kv.Value;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
@@ -34,6 +39,8 @@ public class FileLoader {
 	private final MongoDbMapper mapper;
 	private final List<String> requriedHashes;
 	private final QueueConfiguration queueConfig;
+	private final RateLimiter fileLoadRateLimiter;
+	private final KVCache rateLimitCache;
 	
 	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
 	//TODO get file types from consul
@@ -47,7 +54,27 @@ public class FileLoader {
 		LOGGER.info("Loading anchors for ID {}...", id);
 		String encodedAnchors = consul.getKvAsString("config/fileloader/anchors/" + id);
 		LOGGER.debug("Loaded encoded anchors {} for ID {}", encodedAnchors, id);
-						
+		
+		long rateLimit = consul.getKvAsLong("config/fileloader/load-rate-limit");
+		fileLoadRateLimiter = RateLimiter.create(rateLimit, 5, TimeUnit.SECONDS);
+		LOGGER.info("Rate limiting messages to {}/s", rateLimit);
+		
+		rateLimitCache = consul.getKVCache("config/fileloader/load-rate-limit");
+		rateLimitCache.addListener(newValues -> {
+				Optional<Value> newValue = newValues.values().stream().filter(value -> value.getKey().equals("config/fileloader/load-rate-limit")).findAny();
+				
+				newValue.ifPresent(value -> {
+					Optional<String> decodedLoadRateLimit = newValue.get().getValueAsString();
+					decodedLoadRateLimit.ifPresent(rate -> {
+						fileLoadRateLimiter.setRate(Double.parseDouble(rate));
+						LOGGER.info("Ratelimit updated to {}", rate);
+					});
+					
+				});
+		});
+		
+		rateLimitCache.start();
+		
 		mapper = connectionProvider.getMongoDbMapper();
 		
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
@@ -57,20 +84,23 @@ public class FileLoader {
 	
 	public void loadFiles(String encodedAnchors) {
 		Map<String, String> anchors = new AnchorParser().parse(encodedAnchors);
-		LOGGER.info("Loaded {} anchors}", anchors.size());
+		LOGGER.info("Loaded {} anchors", anchors.size());
 		
 		for (Entry<String, String> entry : anchors.entrySet()) {
 			Path anchorAbsolutePath = Paths.get(entry.getValue());
 			
 			loadFilesForAnchor(entry.getKey(), anchorAbsolutePath);
 		}
+
+		rateLimitCache.stop();
+		LOGGER.info("Finished walking anchors, terminating...");
 	}
 	
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath) {
 		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
 		
 		try {
-			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getQueueName(ConfiguredQueues.files)));
+			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getQueueName(ConfiguredQueues.files)));
 		} catch (IOException e) {
 			LOGGER.warn("Failed to walk file tree for {}: {}", anchorAbsolutePath, e.getMessage());
 		}
