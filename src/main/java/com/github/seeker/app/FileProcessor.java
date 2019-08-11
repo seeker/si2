@@ -120,7 +120,7 @@ class FileMessageConsumer extends DefaultConsumer {
 		try {
 			originalImage = ImageIO.read(dis);
 		}catch (IIOException e) {
-			LOGGER.warn("Failed to read image format: {}", e.getMessage());
+			LOGGER.warn("Failed to read image {} - {}: {}", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH),e.getMessage());
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
