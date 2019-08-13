@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
@@ -17,6 +18,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<dagger-version>2.8</dagger-version>
+		<logback-version>1.1.7</logback-version>
 	</properties>
 
 	<modules>
@@ -55,25 +57,25 @@
 				<artifactId>mongo-java-driver</artifactId>
 				<version>3.5.0</version>
 			</dependency>
-		    <dependency>
-			    <groupId>com.github.seeker.commonhash</groupId>
-			    <artifactId>common-hash</artifactId>
-			    <version>1.0.0</version>
-		    </dependency>
 			<dependency>
-		        <groupId>com.orbitz.consul</groupId>
-		        <artifactId>consul-client</artifactId>
-		        <version>1.3.6</version>
-		    </dependency>
-		    <dependency>
-			  <groupId>com.rabbitmq</groupId>
-			  <artifactId>amqp-client</artifactId>
-			  <version>5.7.2</version>
+				<groupId>com.github.seeker.commonhash</groupId>
+				<artifactId>common-hash</artifactId>
+				<version>1.0.0</version>
 			</dependency>
 			<dependency>
-			  <groupId>net.sourceforge.argparse4j</groupId>
-			  <artifactId>argparse4j</artifactId>
-			  <version>0.8.1</version>
+				<groupId>com.orbitz.consul</groupId>
+				<artifactId>consul-client</artifactId>
+				<version>1.3.6</version>
+			</dependency>
+			<dependency>
+				<groupId>com.rabbitmq</groupId>
+				<artifactId>amqp-client</artifactId>
+				<version>5.7.2</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.argparse4j</groupId>
+				<artifactId>argparse4j</artifactId>
+				<version>0.8.1</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.jimfs</groupId>
@@ -86,11 +88,51 @@
 				<version>4.2</version>
 			</dependency>
 			<dependency>
-			    <groupId>com.github.wendykierp</groupId>
-			    <artifactId>JTransforms</artifactId>
-			    <version>3.1</version>
-			    <classifier>with-dependencies</classifier>
-			 </dependency>
+				<groupId>com.github.wendykierp</groupId>
+				<artifactId>JTransforms</artifactId>
+				<version>3.1</version>
+				<classifier>with-dependencies</classifier>
+			</dependency>
+			<dependency>
+				<groupId>org.awaitility</groupId>
+				<artifactId>awaitility-groovy</artifactId>
+				<version>2.0.0</version>
+			</dependency>
+			<dependency>
+				<groupId>nl.jqno.equalsverifier</groupId>
+				<artifactId>equalsverifier</artifactId>
+				<version>1.7.5</version>
+			</dependency>
+			<dependency>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-classic</artifactId>
+				<version>${logback-version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-core</artifactId>
+				<version>${logback-version}</version>
+			</dependency>
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>4.11</version>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>1.9.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest</artifactId>
+				<version>2.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.googlecode.junit-toolbox</groupId>
+				<artifactId>junit-toolbox</artifactId>
+				<version>2.2</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -247,97 +289,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
-	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.11</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>1.9.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.hamcrest</groupId>
-		    <artifactId>hamcrest</artifactId>
-		    <version>2.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-			<version>1.1.7</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-core</artifactId>
-			<version>1.1.7</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>nl.jqno.equalsverifier</groupId>
-			<artifactId>equalsverifier</artifactId>
-			<version>1.7.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.googlecode.junit-toolbox</groupId>
-			<artifactId>junit-toolbox</artifactId>
-			<version>2.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.awaitility</groupId>
-			<artifactId>awaitility-groovy</artifactId>
-			<version>2.0.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.cfg4j</groupId>
-			<artifactId>cfg4j-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>de.caluga</groupId>
-			<artifactId>morphium</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongo-java-driver</artifactId>
-		</dependency>
-	   <dependency>
-			<groupId>com.github.seeker.commonhash</groupId>
-		  	<artifactId>common-hash</artifactId>
-		</dependency>
-		<dependency>
-	        <groupId>com.orbitz.consul</groupId>
-	        <artifactId>consul-client</artifactId>
-	    </dependency>
-    	<dependency>
-		  <groupId>com.rabbitmq</groupId>
-		  <artifactId>amqp-client</artifactId>
-		</dependency>
-		<dependency>
-		  <groupId>net.sourceforge.argparse4j</groupId>
-		  <artifactId>argparse4j</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.imgscalr</groupId>
-			<artifactId>imgscalr-lib</artifactId>
-		</dependency>
-		<dependency>
-		    <groupId>com.github.wendykierp</groupId>
-		    <artifactId>JTransforms</artifactId>
-		    <classifier>with-dependencies</classifier>
-		</dependency>
-		<dependency>
-				<groupId>com.google.jimfs</groupId>
-				<artifactId>jimfs</artifactId>
-				<scope>test</scope>
-		</dependency>
-	</dependencies>
 </project>
