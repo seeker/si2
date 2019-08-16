@@ -197,11 +197,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
 			<scope>test</scope>
@@ -222,11 +217,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.awaitility</groupId>
-			<artifactId>awaitility-groovy</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.cfg4j</groupId>
 			<artifactId>cfg4j-core</artifactId>
 		</dependency>
@@ -239,34 +229,12 @@
 			<artifactId>mongo-java-driver</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.github.seeker.commonhash</groupId>
-			<artifactId>common-hash</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>com.orbitz.consul</groupId>
 			<artifactId>consul-client</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>net.sourceforge.argparse4j</groupId>
-			<artifactId>argparse4j</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.imgscalr</groupId>
-			<artifactId>imgscalr-lib</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.github.wendykierp</groupId>
-			<artifactId>JTransforms</artifactId>
-			<classifier>with-dependencies</classifier>
-		</dependency>
-		<dependency>
-			<groupId>com.google.jimfs</groupId>
-			<artifactId>jimfs</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
