@@ -1,14 +1,14 @@
 # vagrant releated files
 \.vagrant
 *.log
-/target/
 
 # eclipse IDE files
-/.settings/
+.settings/
 .project
 .classpath
 /.apt_generated/
 /.apt_generated_tests/
+target/
 /target\generated-sources\annotations/
 
 # configuration files that should not be made public
