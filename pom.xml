@@ -19,6 +19,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<dagger-version>2.8</dagger-version>
 		<logback-version>1.1.7</logback-version>
+		<javafx-version>11.0.2</javafx-version>
 	</properties>
 
 	<modules>
@@ -78,6 +79,16 @@
 				<groupId>net.sourceforge.argparse4j</groupId>
 				<artifactId>argparse4j</artifactId>
 				<version>0.8.1</version>
+			</dependency>
+			<dependency>
+			  <groupId>org.openjfx</groupId>
+			  <artifactId>javafx-controls</artifactId>
+			  <version>${javafx-version}</version>
+			</dependency>
+			<dependency>
+			  <groupId>org.openjfx</groupId>
+			  <artifactId>javafx-base</artifactId>
+			  <version>${javafx-version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.jimfs</groupId>
@@ -185,6 +196,11 @@
 						</execution>
 					</executions>
 				</plugin>
+			    <plugin>
+			        <groupId>org.openjfx</groupId>
+			        <artifactId>javafx-maven-plugin</artifactId>
+			        <version>0.0.3</version>
+			    </plugin>
 			</plugins>
 		</pluginManagement>
 
