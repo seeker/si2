@@ -6,25 +6,25 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.seeker.si2</groupId>
-	<artifactId>si2</artifactId>
+	<artifactId>node</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>pom</packaging>
+	<packaging>jar</packaging>
 
-	<name>similarImage2</name>
-	<description>Programm for finding visually similar images</description>
+	<name>similarImage2-node</name>
+	<description>Nodes that perform data processing in SimilarImage2</description>
 	<url>https://github.com/dozedoff/si2</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<dagger-version>2.8</dagger-version>
-		<logback-version>1.1.7</logback-version>
 	</properties>
 
-	<modules>
-		<module>core</module>
-		<module>node</module>
-	</modules>
+	<parent>
+		<groupId>com.github.seeker.si2</groupId>
+		<artifactId>si2</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
 
 	<reporting>
 		<plugins>
@@ -35,107 +35,6 @@
 			</plugin>
 		</plugins>
 	</reporting>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.google.guava</groupId>
-				<artifactId>guava</artifactId>
-				<version>27.1-jre</version>
-			</dependency>
-			<dependency>
-				<groupId>org.cfg4j</groupId>
-				<artifactId>cfg4j-core</artifactId>
-				<version>4.4.0</version>
-			</dependency>
-			<dependency>
-				<groupId>de.caluga</groupId>
-				<artifactId>morphium</artifactId>
-				<version>4.0.6</version>
-			</dependency>
-			<dependency>
-				<groupId>org.mongodb</groupId>
-				<artifactId>mongo-java-driver</artifactId>
-				<version>3.5.0</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.seeker.commonhash</groupId>
-				<artifactId>common-hash</artifactId>
-				<version>1.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>com.orbitz.consul</groupId>
-				<artifactId>consul-client</artifactId>
-				<version>1.3.6</version>
-			</dependency>
-			<dependency>
-				<groupId>com.rabbitmq</groupId>
-				<artifactId>amqp-client</artifactId>
-				<version>5.7.2</version>
-			</dependency>
-			<dependency>
-				<groupId>net.sourceforge.argparse4j</groupId>
-				<artifactId>argparse4j</artifactId>
-				<version>0.8.1</version>
-			</dependency>
-			<dependency>
-				<groupId>com.google.jimfs</groupId>
-				<artifactId>jimfs</artifactId>
-				<version>1.1</version>
-			</dependency>
-			<dependency>
-				<groupId>org.imgscalr</groupId>
-				<artifactId>imgscalr-lib</artifactId>
-				<version>4.2</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.wendykierp</groupId>
-				<artifactId>JTransforms</artifactId>
-				<version>3.1</version>
-				<classifier>with-dependencies</classifier>
-			</dependency>
-			<dependency>
-				<groupId>org.awaitility</groupId>
-				<artifactId>awaitility-groovy</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>nl.jqno.equalsverifier</groupId>
-				<artifactId>equalsverifier</artifactId>
-				<version>1.7.5</version>
-			</dependency>
-			<dependency>
-				<groupId>ch.qos.logback</groupId>
-				<artifactId>logback-classic</artifactId>
-				<version>${logback-version}</version>
-			</dependency>
-			<dependency>
-				<groupId>ch.qos.logback</groupId>
-				<artifactId>logback-core</artifactId>
-				<version>${logback-version}</version>
-			</dependency>
-			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.11</version>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-core</artifactId>
-				<version>1.9.5</version>
-			</dependency>
-			<dependency>
-				<groupId>org.hamcrest</groupId>
-				<artifactId>hamcrest</artifactId>
-				<version>2.1</version>
-			</dependency>
-			<dependency>
-				<groupId>com.googlecode.junit-toolbox</groupId>
-				<artifactId>junit-toolbox</artifactId>
-				<version>2.2</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<build>
 		<pluginManagement>
@@ -290,4 +189,89 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<dependencies>
+	<dependency>
+		<groupId>com.github.seeker.si2</groupId>
+		<artifactId>core</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.googlecode.junit-toolbox</groupId>
+			<artifactId>junit-toolbox</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility-groovy</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.cfg4j</groupId>
+			<artifactId>cfg4j-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>de.caluga</groupId>
+			<artifactId>morphium</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongo-java-driver</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.seeker.commonhash</groupId>
+			<artifactId>common-hash</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.orbitz.consul</groupId>
+			<artifactId>consul-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.rabbitmq</groupId>
+			<artifactId>amqp-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.argparse4j</groupId>
+			<artifactId>argparse4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.imgscalr</groupId>
+			<artifactId>imgscalr-lib</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.wendykierp</groupId>
+			<artifactId>JTransforms</artifactId>
+			<classifier>with-dependencies</classifier>
+		</dependency>
+		<dependency>
+			<groupId>com.google.jimfs</groupId>
+			<artifactId>jimfs</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 </project>
