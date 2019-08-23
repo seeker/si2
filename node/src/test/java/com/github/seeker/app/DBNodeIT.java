@@ -65,14 +65,14 @@ public class DBNodeIT {
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
 		HashMessageHelper hashMessage = new HashMessageHelper(channel, queueConfig);
-		hashMessage.sendMessage(createTestHeaders(), SHA256, PHASH);
+		hashMessage.sendMessage(createTestHeaders(RELATIVE_ANCHOR_PATH), SHA256, PHASH);
 	}
 	
-	private Map<String, Object> createTestHeaders() {
+	private Map<String, Object> createTestHeaders(Path releativeAnchorPath) {
 		Map<String, Object> newHeaders = new HashMap<String, Object>();
 		
 		newHeaders.put("anchor", ANCHOR);
-		newHeaders.put("path", RELATIVE_ANCHOR_PATH.toString());
+		newHeaders.put("path", releativeAnchorPath.toString());
 		
 		return newHeaders;
 	}
