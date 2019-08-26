@@ -33,6 +33,7 @@ import de.caluga.morphium.Morphium;
 public class DBNodeIT {
 	private static final String ANCHOR = "anchorman";
 	private static final Path RELATIVE_ANCHOR_PATH = Paths.get("foo/bar/baz/boo.jpg");
+	private static final Path RELATIVE_ANCHOR_PATH_WITH_UMLAUT = Paths.get("foo/bar/bäz/böö.jpg");
 	private static final byte[] SHA256 = {-29, -80, -60, 66, -104, -4, 28, 20, -102, -5, -12, -56, -103, 111, -71, 36, 39, -82, 65, -28, 100, -101, -109, 76, -92, -107, -103, 27, 120, 82, -72, 85};
 	private static final long PHASH = 348759L;
 	
@@ -41,6 +42,7 @@ public class DBNodeIT {
 	private DBNode cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
+	private HashMessageHelper hashMessage;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -64,7 +66,7 @@ public class DBNodeIT {
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
-		HashMessageHelper hashMessage = new HashMessageHelper(channel, queueConfig);
+		hashMessage = new HashMessageHelper(channel, queueConfig);
 		hashMessage.sendMessage(createTestHeaders(RELATIVE_ANCHOR_PATH), SHA256, PHASH);
 	}
 	
@@ -89,5 +91,12 @@ public class DBNodeIT {
 	@Test
 	public void messageIsAddedToDatabase() throws Exception {
 		Awaitility.await().atMost(5, TimeUnit.MINUTES).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH), is(notNullValue()));
+	}
+	
+	@Test
+	public void pathWithUmlatusIsCorrectlyReceived() throws Exception {
+		hashMessage.sendMessage(createTestHeaders(RELATIVE_ANCHOR_PATH_WITH_UMLAUT), SHA256, PHASH);
+		
+		Awaitility.await().atMost(5, TimeUnit.MINUTES).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH_WITH_UMLAUT), is(notNullValue()));
 	}
 }
