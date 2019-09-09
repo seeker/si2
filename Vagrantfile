@@ -16,7 +16,15 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "consul", primary: true do |consul|
 	consul.vm.network "private_network", ip: "192.168.42.10"
-	consul.vm.provision "shell", path: "dev/setup-consul.sh"
+	consul.vm.provision "ansible" do |ansible|
+		ansible.playbook = "ansible/site.yml"
+		ansible.groups = {
+			"consul_server" => ["consul"],
+			"vagrant" => ["consul"],
+			"vagrant:vars" => {"consul_server" => "192.168.42.10"}
+		}
+	end
+
 	consul.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
 		vb.cpus = 2

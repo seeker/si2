@@ -1,0 +1,10 @@
+---
+- hosts: consul_server
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  vars:
+    server: yes
+
