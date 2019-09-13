@@ -7,5 +7,5 @@ After=network.target
 {% if server %}
 ExecStart=/usr/local/bin/consul agent -server -bootstrap-expect=1 -data-dir=/var/consul/ -ui -node={{ inventory_hostname }} -datacenter={{ datacenter }} -bind {{ consul_server }} -client {{ consul_server }}
 {% else %}
-ExecStart=/usr/local/bin/consul agent -data-dir=/var/consul/ -node={{ inventory_hostname }} -datacenter={{ datacenter }} -bind '{{ consul_server }}' -join {{ consul_server }} -config-dir="/etc/consul.d"
+ExecStart=/usr/local/bin/consul agent -data-dir=/var/consul/ -node={{ inventory_hostname }} -datacenter={{ datacenter }} -bind '{{ bind_ip }}' -join {{ consul_server }} -config-dir="/etc/consul.d"
 {% endif %}
