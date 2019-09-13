@@ -8,3 +8,11 @@
   vars:
     server: yes
 
+- hosts: mongodb
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  vars:
+    consul_server: 192.168.42.10   

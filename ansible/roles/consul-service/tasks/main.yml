@@ -1,4 +1,9 @@
 ---
+- name: Install python Consul
+  apt:
+    name: python3-consul
+    state: present
+
 - name: Create Systemd unit for Consul
   template:
     src: systemd-unit.j2
@@ -11,3 +16,10 @@
     state: started
     enabled: yes
 
+- name: Register Consul service with the local consul agent
+  consul:
+    service_name: mongodb
+    service_port: 27017
+    tags:
+      - database
+      - mongodb
