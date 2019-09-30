@@ -6,5 +6,17 @@
   - consul-binary
   - consul-service
   vars:
-    server: yes
+    - server: yes
+    - consul_server: 192.168.42.10
+
+- hosts: mongodb
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  - mongodb-server
+  vars:
+    - consul_server: 192.168.42.10
+    - bind_ip: 192.168.42.11
 

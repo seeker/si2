@@ -33,7 +33,15 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "mongodb" do |mongodb|
 	mongodb.vm.network "private_network", ip: "192.168.42.11"
-	mongodb.vm.provision "shell", path: "dev/setup-mongodb.sh"
+
+        mongodb.vm.provision "ansible" do |ansible|
+                ansible.playbook = "ansible/site.yml"
+                ansible.groups = {
+                        "mongodb" => ["mongodb"],
+                        "vagrant" => ["mongodb"],
+                }
+        end
+
 	mongodb.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
