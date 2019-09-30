@@ -15,6 +15,7 @@
   roles:
   - consul-binary
   - consul-service
+  - mongodb-server
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.11
