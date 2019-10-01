@@ -1,0 +1,6 @@
+---
+- name: Register RabbitMQ service with consul
+  consul:
+    service_name: rabbitmq
+    service_port: 5672
+    tags: message-broker,rabbitmq

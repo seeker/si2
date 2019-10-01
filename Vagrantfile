@@ -50,7 +50,15 @@ Vagrant.configure("2") do |config|
   
   config.vm.define "rabbitmq" do |rabbitmq|
 	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
-	rabbitmq.vm.provision "shell", path: "dev/setup-rabbitmq.sh"
+
+        rabbitmq.vm.provision "ansible" do |ansible|
+                ansible.playbook = "ansible/site.yml"
+                ansible.groups = {
+                        "rabbitmq" => ["rabbitmq"],
+			"rabbitmq:vars" => {"ansible_python_interpreter" => "python3"}
+                }
+        end
+
 	rabbitmq.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
