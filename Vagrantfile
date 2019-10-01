@@ -55,7 +55,6 @@ Vagrant.configure("2") do |config|
                 ansible.playbook = "ansible/site.yml"
                 ansible.groups = {
                         "rabbitmq" => ["rabbitmq"],
-			"rabbitmq:vars" => {"ansible_python_interpreter" => "python3"}
                 }
         end
 
