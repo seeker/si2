@@ -1,7 +1,7 @@
 ---
 - name: Install zip
   apt:
-    cache_valid_time: 3600
+    cache_valid_time: 7200
     name: zip
 
 - name: Removing consul binary
