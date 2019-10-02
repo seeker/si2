@@ -1,6 +1,7 @@
 ---
 - name: Install python Consul
   apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
     name: python3-consul
     state: present
 
