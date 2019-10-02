@@ -27,5 +27,7 @@
     service_port: 27017
     tags: database,mongodb
 
-#TODO put consul KV setup into own role
-#consul kv put config/mongodb/database/integration mongodbintegration
+- name: Set value for integration database name
+  consul_kv:
+    key: config/mongodb/database/integration
+    value: "mongodbintegration"

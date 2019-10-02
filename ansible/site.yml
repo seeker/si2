@@ -5,6 +5,7 @@
   roles:
   - consul-binary
   - consul-service
+  - consul-kv-config
   vars:
     - server: yes
     - consul_server: 192.168.42.10

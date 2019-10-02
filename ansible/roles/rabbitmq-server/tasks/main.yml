@@ -55,8 +55,17 @@
     state: enabled
 #TODO use prompt param for si2 password
 
-#consul kv put config/rabbitmq/queue/loader-file-feed loaded-files
-#consul kv put config/rabbitmq/queue/thumbnail thumbnails
-#consul kv put config/rabbitmq/queue/hash hashes
-#consul kv put config/general/required-hashes sha256,sha512
-#consul kv put config/fileloader/load-rate-limit 50
+- name: Set queue name for loader file queue
+  consul_kv:
+    key: config/rabbitmq/queue/loader-file-feed
+    value: "loaded-files"
+
+- name: Set queue name for thumbnails
+  consul_kv:
+    key: config/rabbitmq/queue/thumbnail
+    value: "thumbnails"
+
+- name: Set queue name for hash
+  consul_kv:
+    key: config/rabbitmq/queue/hash
+    value: "hashes"
