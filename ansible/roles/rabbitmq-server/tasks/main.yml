@@ -1,6 +1,62 @@
 ---
+- name: Install RabbitMQ server and ansible dependencies
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: rabbitmq-server
+
+- name: Fix RabbitMQ stop bug
+  replace:
+    path: /lib/systemd/system/rabbitmq-server.service
+    regexp: "rabbitmqctl stop"
+    replace: "rabbitmqctl shutdown"
+
+- name: Enable and start RabbitMQ server
+  systemd:
+    daemon_reload: yes
+    name: rabbitmq-server
+    enabled: yes
+    state: started    
+
 - name: Register RabbitMQ service with consul
   consul:
     service_name: rabbitmq
     service_port: 5672
     tags: message-broker,rabbitmq
+
+- name: Remove RabbitMQ guest user
+  rabbitmq_user:
+    name: guest
+    state: absent
+
+- name: Create RabbitMQ integration user
+  rabbitmq_user:
+    user: integration
+    password: "{{integration_pwd}}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
+    state: present
+
+- name: Create rabbitmq si2 user
+  rabbitmq_user:
+    user: si2
+    password: "m6dtSqijKqldu6zHE9hK"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    state: present
+
+- name: Enable rabbitmq management plugin
+  rabbitmq_plugin:
+    names: rabbitmq_management
+    state: enabled
+#TODO use prompt param for si2 password
+
+#consul kv put config/rabbitmq/queue/loader-file-feed loaded-files
+#consul kv put config/rabbitmq/queue/thumbnail thumbnails
+#consul kv put config/rabbitmq/queue/hash hashes
+#consul kv put config/general/required-hashes sha256,sha512
+#consul kv put config/fileloader/load-rate-limit 50
