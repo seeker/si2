@@ -17,10 +17,3 @@
     state: started
     enabled: yes
 
-- name: Register Consul service with the local consul agent
-  consul:
-    service_name: mongodb
-    service_port: 27017
-    tags:
-      - database
-      - mongodb
