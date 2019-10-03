@@ -55,6 +55,11 @@
     state: enabled
 #TODO use prompt param for si2 password
 
+- name: Store password for si2 user in consul
+  consul_kv:
+    key: config/rabbitmq/users/si2
+    value: "{{si2_pwd}}"
+
 - name: Set queue name for loader file queue
   consul_kv:
     key: config/rabbitmq/queue/loader-file-feed
