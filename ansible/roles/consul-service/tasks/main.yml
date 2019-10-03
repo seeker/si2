@@ -17,3 +17,6 @@
     state: started
     enabled: yes
 
+- name: Wait for consul agent to start up
+  wait_for:
+    timeout: 5
