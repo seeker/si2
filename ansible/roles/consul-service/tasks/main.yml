@@ -1,0 +1,22 @@
+---
+- name: Install python Consul
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: python3-consul
+    state: present
+
+- name: Create Systemd unit for Consul
+  template:
+    src: systemd-unit.j2
+    dest: /etc/systemd/system/consul.service    
+
+- name: Enable and start Consul agent
+  systemd:
+    name: consul
+    daemon_reload: yes
+    state: started
+    enabled: yes
+
+- name: Wait for consul agent to start up
+  wait_for:
+    timeout: 5

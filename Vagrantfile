@@ -16,7 +16,15 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "consul", primary: true do |consul|
 	consul.vm.network "private_network", ip: "192.168.42.10"
-	consul.vm.provision "shell", path: "dev/setup-consul.sh"
+	consul.vm.provision "ansible" do |ansible|
+		ansible.playbook = "ansible/site.yml"
+		ansible.groups = {
+			"consul_server" => ["consul"],
+			"vagrant" => ["consul"],
+			"vagrant:vars" => {"consul_server" => "192.168.42.10"}
+		}
+	end
+
 	consul.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
 		vb.cpus = 2
@@ -25,7 +33,15 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "mongodb" do |mongodb|
 	mongodb.vm.network "private_network", ip: "192.168.42.11"
-	mongodb.vm.provision "shell", path: "dev/setup-mongodb.sh"
+
+        mongodb.vm.provision "ansible" do |ansible|
+                ansible.playbook = "ansible/site.yml"
+                ansible.groups = {
+                        "mongodb" => ["mongodb"],
+                        "vagrant" => ["mongodb"],
+                }
+        end
+
 	mongodb.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
@@ -34,7 +50,14 @@ Vagrant.configure("2") do |config|
   
   config.vm.define "rabbitmq" do |rabbitmq|
 	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
-	rabbitmq.vm.provision "shell", path: "dev/setup-rabbitmq.sh"
+
+        rabbitmq.vm.provision "ansible" do |ansible|
+                ansible.playbook = "ansible/site.yml"
+                ansible.groups = {
+                        "rabbitmq" => ["rabbitmq"],
+                }
+        end
+
 	rabbitmq.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2

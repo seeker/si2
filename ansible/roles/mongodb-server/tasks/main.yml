@@ -1,0 +1,33 @@
+---
+- name: Install Mongodb server
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: mongodb
+
+# WARNING! 0.0.0.0 is dangerous as the server has no authentication set up!
+- name: Create mongodb configuration
+  vars:
+    mongodb_bind_ip: '0.0.0.0'
+  template:
+    src: mongodb.conf.j2
+    dest: /etc/mongodb.conf
+    owner: root
+    group: root
+    mode: 'u=rw,g=rw,o=r'
+  
+- name: Enable and restart the Mongodb server
+  systemd:
+    name: mongodb
+    enabled: yes
+    state: restarted
+
+- name: Register mongodb service with consul
+  consul:
+    service_name: mongodb
+    service_port: 27017
+    tags: database,mongodb
+
+- name: Set value for integration database name
+  consul_kv:
+    key: config/mongodb/database/integration
+    value: "mongodbintegration"

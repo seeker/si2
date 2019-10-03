@@ -1,0 +1,34 @@
+---
+- hosts: consul_server
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  - consul-kv-config
+  vars:
+    - server: yes
+    - consul_server: 192.168.42.10
+
+- hosts: mongodb
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  - mongodb-server
+  vars:
+    - consul_server: 192.168.42.10
+    - bind_ip: 192.168.42.11
+
+- hosts: rabbitmq
+  become_user: root
+  become: yes
+  roles:
+  - consul-binary
+  - consul-service
+  - rabbitmq-server
+  vars:
+    - consul_server: 192.168.42.10
+    - bind_ip: 192.168.42.12
+

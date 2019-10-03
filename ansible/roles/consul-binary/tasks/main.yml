@@ -1,0 +1,42 @@
+---
+- name: Install zip
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: zip
+
+- name: Removing consul binary
+  when: force
+  file:
+    path: temp_consul
+    state: absent
+
+- name: Download consul tarball
+  get_url:
+    url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
+    dest: "{{ temp_consul }}"
+    force: "{{ force }}"
+
+- name: Remove exisitng binary
+  when: force
+  file:
+    path: "{{ consul_binary }}"
+    state: absent
+
+- name: Unpack consul
+  unarchive:
+    src: "{{ temp_consul }}"
+    remote_src: yes
+    dest: /usr/local/bin/
+    creates: "{{ consul_binary }}"
+    owner: root
+
+- name: Create Consul configuration  directory
+  file:
+    state: directory
+    path: /etc/consul.d/
+
+- name: Create Consul data directory
+  file:
+    state: directory
+    path: /var/consul/
+

@@ -1,0 +1,76 @@
+---
+- name: Install RabbitMQ server and ansible dependencies
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: rabbitmq-server
+
+- name: Fix RabbitMQ stop bug
+  replace:
+    path: /lib/systemd/system/rabbitmq-server.service
+    regexp: "rabbitmqctl stop"
+    replace: "rabbitmqctl shutdown"
+
+- name: Enable and start RabbitMQ server
+  systemd:
+    daemon_reload: yes
+    name: rabbitmq-server
+    enabled: yes
+    state: started    
+
+- name: Register RabbitMQ service with consul
+  consul:
+    service_name: rabbitmq
+    service_port: 5672
+    tags: message-broker,rabbitmq
+
+- name: Remove RabbitMQ guest user
+  rabbitmq_user:
+    name: guest
+    state: absent
+
+- name: Create RabbitMQ integration user
+  rabbitmq_user:
+    user: integration
+    password: "{{integration_pwd}}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
+    state: present
+
+- name: Create rabbitmq si2 user
+  rabbitmq_user:
+    user: si2
+    password: "m6dtSqijKqldu6zHE9hK"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    state: present
+
+- name: Enable rabbitmq management plugin
+  rabbitmq_plugin:
+    names: rabbitmq_management
+    state: enabled
+#TODO use prompt param for si2 password
+
+- name: Store password for si2 user in consul
+  consul_kv:
+    key: config/rabbitmq/users/si2
+    value: "{{si2_pwd}}"
+
+- name: Set queue name for loader file queue
+  consul_kv:
+    key: config/rabbitmq/queue/loader-file-feed
+    value: "loaded-files"
+
+- name: Set queue name for thumbnails
+  consul_kv:
+    key: config/rabbitmq/queue/thumbnail
+    value: "thumbnails"
+
+- name: Set queue name for hash
+  consul_kv:
+    key: config/rabbitmq/queue/hash
+    value: "hashes"
