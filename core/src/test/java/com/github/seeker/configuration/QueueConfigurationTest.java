@@ -21,6 +21,7 @@ import com.rabbitmq.client.Channel;
 public class QueueConfigurationTest {
 	private static final String HASH_QUEUE_NAME = "foo";
 	private static final String THUMBNAIL_QUEUE_NAME = "bar";
+	private static final String THUMBNAIL_REQ_QUEUE_NAME = "boo";
 	private static final String FILE_QUEUE_NAME = "baz";
 	
 	@Mock
@@ -40,6 +41,7 @@ public class QueueConfigurationTest {
 	public void setUp() throws Exception {
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/hash"))).thenReturn(HASH_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail"))).thenReturn(THUMBNAIL_QUEUE_NAME);
+		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail-request"))).thenReturn(THUMBNAIL_REQ_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/loader-file-feed"))).thenReturn(FILE_QUEUE_NAME);
 		
 		cut = new QueueConfiguration(channel, consulClient);
@@ -64,6 +66,11 @@ public class QueueConfigurationTest {
 	@Test
 	public void queueNameForThumbnail() throws Exception {
 		assertThat(cut.getQueueName(ConfiguredQueues.thumbnails), is(THUMBNAIL_QUEUE_NAME));
+	}
+	
+	@Test
+	public void queueNameForThumbnailRequest() throws Exception {
+		assertThat(cut.getQueueName(ConfiguredQueues.thumbnailRequests), is(THUMBNAIL_REQ_QUEUE_NAME));
 	}
 	
 	@Test

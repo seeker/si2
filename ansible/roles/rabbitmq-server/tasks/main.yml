@@ -74,3 +74,9 @@
   consul_kv:
     key: config/rabbitmq/queue/hash
     value: "hashes"
+
+- name: Set queue name for thumbnail requests
+  consul_kv:
+    key: config/rabbitmq/queue/thumbnail-request
+    value: "thumbnail-request"
+    
