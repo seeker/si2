@@ -70,6 +70,8 @@ public class ConnectionProvider {
 		LOGGER.info("Conneting to mongodb database {}", database);
 		cfg.setDatabase(database);
 		cfg.addHostToSeed(mongoDBserverAddress);
+		//TODO use replica sets at some point, disabled to prevent exception spam
+		cfg.setReplicasetMonitoring(false);
 				
 		return new Morphium(cfg);
 	}
