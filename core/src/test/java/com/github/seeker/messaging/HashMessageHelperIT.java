@@ -15,61 +15,28 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.github.seeker.configuration.ConfigurationBuilder;
-import com.github.seeker.configuration.ConnectionProvider;
-import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.ConsulConfiguration;
-import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.GetResponse;
 
-public class HashMessageHelperIT {
+public class HashMessageHelperIT extends MessageITBase {
 	private static final String ANCHOR = "anchorman";
 	private static final Path RELATIVE_ANCHOR_PATH = Paths.get("foo/bar/baz/boo.jpg");
 	private static final byte[] SHA256 = {-29, -80, -60, 66, -104, -4, 28, 20, -102, -5, -12, -56, -103, 111, -71, 36, 39, -82, 65, -28, 100, -101, -109, 76, -92, -107, -103, 27, 120, 82, -72, 85};
 	private static final long PHASH = 348759L;
 	
-	private static ConnectionProvider connectionProvider;
-	
 	private HashMessageHelper cut;
 	private Channel channelForTests;
-	private static Connection rabbitConn;
-	private QueueConfiguration queueConfig;
 	
 	private Map<String, Object> headers;
 	private HashMessage message;
 	
-	
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
-		connectionProvider = new ConnectionProvider(consulConfig);
-		rabbitConn = connectionProvider.getRabbitMQConnection();
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-		rabbitConn.close();
-	}
-
 	@Before
 	public void setUp() throws Exception {
-		
-		ConsulClient consul = connectionProvider.getConsulClient();
-		
-		Channel channel = rabbitConn.createChannel();
 		channelForTests = rabbitConn.createChannel();
-		
-		queueConfig = new QueueConfiguration(channel, consul, true);
-		assertThat(queueConfig.isIntegrationConfig(), is(true));
-		
 		cut = new HashMessageHelper(channel, queueConfig);
 		
 		headers = createTestHeaders();
