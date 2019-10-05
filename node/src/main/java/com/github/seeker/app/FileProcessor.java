@@ -63,7 +63,7 @@ public class FileProcessor {
 		
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
-		channel.basicQos(100);
+		channel.basicQos(20);
 
 		
 		processFiles();
