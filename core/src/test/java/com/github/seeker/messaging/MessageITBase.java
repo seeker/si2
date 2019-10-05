@@ -15,6 +15,8 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
+//TODO importing test code into other projects is tricky, separate project may work - but that may cause cyclic dependencies
+
 /**
  * Shared code for messaging  integration tests. 
  */
