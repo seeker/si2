@@ -1,7 +1,11 @@
 package com.github.seeker.gui;
 
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
+import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.persistence.MongoDbMapper;
 
 import javafx.application.Application;
@@ -21,15 +25,19 @@ import javafx.stage.Stage;
 public class MainWindow extends Application{
 	private MongoDbMapper mapper;
 	private MetaDataExplorer metaDataExplorer;
+	private QueueConfiguration queueConfig;
 	
 	public static void main(String[] args) {
 		launch(args);
 	}
 
-	private void setUpVars() {
+	private void setUpVars() throws IOException, TimeoutException {
 		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
+		
+		queueConfig = new QueueConfiguration(connectionProvider.getRabbitMQConnection().createChannel(), connectionProvider.getConsulClient());
+		
 		mapper = connectionProvider.getMongoDbMapper();
-		metaDataExplorer = new MetaDataExplorer(mapper);
+		metaDataExplorer = new MetaDataExplorer(mapper, connectionProvider.getRabbitMQConnection(), queueConfig);
 	}
 	
 	private MenuBar buildMenuBar() {

@@ -1,10 +1,25 @@
 package com.github.seeker.gui;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -12,25 +27,63 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.StackPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 public class MetaDataExplorer extends Stage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MetaDataExplorer.class);
 	private final MongoDbMapper mapper;
+	private final Channel channel;
+	private final String replyQueue;
+	private final QueueConfiguration queueConfig;
+	private final ImageView imageView;
 	
-	public MetaDataExplorer(MongoDbMapper mapper) {
+	public MetaDataExplorer(MongoDbMapper mapper, Connection rabbitConn, QueueConfiguration queueConfig) throws IOException {
 		this.mapper = mapper;
+		this.queueConfig = queueConfig;
 		
+		this.channel = rabbitConn.createChannel();
+		this.replyQueue = channel.queueDeclare().getQueue();
 		
 		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList(mapper.getImageMetadata(100));
         ListView<ImageMetaData> l = new ListView<ImageMetaData>(ol);
         l.setCellFactory(new ImageMetaDataCellFactory());
         listenToChanges(l);
 		
-		Scene scene = new Scene(new StackPane(l), 640, 480);
+        imageView = new ImageView();
+        imageView.setFitWidth(200);
+        imageView.setFitHeight(200);
+        imageView.setPreserveRatio(true);
+        imageView.setVisible(true);
+        
+        BorderPane border = new BorderPane();
+        border.setLeft(l);
+        border.setCenter(imageView);
+        
+		Scene scene = new Scene(border, 640, 480);
 		setTitle("Metadata Exporer");
 		setScene(scene);
+		
+		channel.basicConsume(replyQueue, true, new DefaultConsumer(channel) {
+			@Override
+			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
+					throws IOException {
+				String thumbnailFound = properties.getHeaders().get(MessageHeaderKeys.THUMBNAIL_FOUND).toString();
+				
+				if(! Boolean.parseBoolean(thumbnailFound)) {
+					LOGGER.warn("No thumbnail found for image");
+					return;
+				}
+				
+				ByteArrayInputStream bais = new ByteArrayInputStream(body);
+				Image image = new Image(bais);
+				imageView.setImage(image);
+				
+				LOGGER.debug("Consumed message with correlation ID {}", properties.getCorrelationId());
+			}
+		});
 	}
 	
 	private void listenToChanges(ListView<ImageMetaData> listView) {
@@ -41,6 +94,25 @@ public class MetaDataExplorer extends Stage {
 					ImageMetaData newValue) {
 				LOGGER.debug("Selected {}:{}", newValue.getAnchor(), newValue.getPath());
 				
+				final String correlationId = UUID.randomUUID().toString();
+				
+				AMQP.BasicProperties props = new AMQP.BasicProperties().builder().correlationId(correlationId).replyTo(replyQueue).build();
+				
+				UUID thumbnailID = newValue.getThumbnailId();
+				
+				ByteArrayDataOutput data = ByteStreams.newDataOutput(16);
+				data.writeLong(thumbnailID.getMostSignificantBits());
+				data.writeLong(thumbnailID.getLeastSignificantBits());
+				
+				byte[] raw = data.toByteArray();
+				
+				try {
+					LOGGER.debug("Requesting thumbnail with ID {}", thumbnailID);
+					channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnailRequests), props, raw);
+				} catch (IOException e) {
+					LOGGER.warn("Failed to send thumbnail request for {}: {}", newValue.getThumbnailId(), e);
+					e.printStackTrace();
+				}
 			}
 		});
 	}

@@ -9,6 +9,7 @@ public class MessageHeaderKeys {
 	public static final String ANCHOR_RELATIVE_PATH = "path";
 	public static final String HASH_SHA256 = "sha256";
 	public static final String HASH_PHASH = "phash";
+	public static final String THUMBNAIL_FOUND = "thumbnail-found";	
 	
 	private MessageHeaderKeys() {
 	}
