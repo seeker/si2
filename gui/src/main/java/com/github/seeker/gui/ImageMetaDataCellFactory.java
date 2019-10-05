@@ -12,6 +12,7 @@ public class ImageMetaDataCellFactory implements Callback<ListView<ImageMetaData
 	public ListCell<ImageMetaData> call(ListView<ImageMetaData> param) {
 		ListCell<ImageMetaData> cell = new ListCell<ImageMetaData>() {
 			protected void updateItem(ImageMetaData item, boolean empty) {
+				super.updateItem(item, empty);
 			     if (empty || item == null) {
 			         setText(null);
 			         setGraphic(null);
@@ -23,5 +24,4 @@ public class ImageMetaDataCellFactory implements Callback<ListView<ImageMetaData
 		
 		return cell;
 	}
-
 }
