@@ -35,15 +35,18 @@ import com.rabbitmq.client.Envelope;
 public class ThumbnailNode {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ThumbnailNode.class);
 
-	private static final String THUMBNAIL_DIRECTORY = "thumbs";
+	private String thumbnailDirectory = "thumbs";
 	
 	private final Channel channel;
 	private final Channel channelThumbRequ;
 	private final MongoDbMapper mapper;
 	private final QueueConfiguration queueConfig;
 	
-	public ThumbnailNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+	public ThumbnailNode(ConnectionProvider connectionProvider, String thumbnailDirectory) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ThumbnailNode.class.getSimpleName());
+		LOGGER.info("Using thumbnail directory {}", Paths.get(thumbnailDirectory).toAbsolutePath());
+		
+		this.thumbnailDirectory = thumbnailDirectory;
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnection();
@@ -64,10 +67,10 @@ public class ThumbnailNode {
 		String thumbnailRequestQueue = queueConfig.getQueueName(ConfiguredQueues.thumbnailRequests);
 		
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new ThumbnailStore(channel, mapper, THUMBNAIL_DIRECTORY));
+		channel.basicConsume(queueName, new ThumbnailStore(channel, mapper, thumbnailDirectory));
 		
 		LOGGER.info("Starting consumer on queue {}", thumbnailRequestQueue);
-		channelThumbRequ.basicConsume(thumbnailRequestQueue, new ThumbnailLoad(channelThumbRequ,THUMBNAIL_DIRECTORY));
+		channelThumbRequ.basicConsume(thumbnailRequestQueue, new ThumbnailLoad(channelThumbRequ,thumbnailDirectory));
 	}
 }
 
