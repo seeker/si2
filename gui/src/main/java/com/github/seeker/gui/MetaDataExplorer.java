@@ -120,6 +120,11 @@ public class MetaDataExplorer extends Stage {
 			@Override
 			public void changed(ObservableValue<? extends ImageMetaData> observable, ImageMetaData oldValue,
 					ImageMetaData newValue) {
+				if(! newValue.hasThumbnail()) {
+					LOGGER.warn("No thumbnail available for {}:{}", newValue.getAnchor(), newValue.getPath());
+					return;
+				}
+				
 				LOGGER.debug("Selected {}:{}", newValue.getAnchor(), newValue.getPath());
 				
 				final String correlationId = UUID.randomUUID().toString();
