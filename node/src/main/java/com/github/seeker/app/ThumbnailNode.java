@@ -99,7 +99,7 @@ class ThumbnailLoad extends DefaultConsumer {
 		Path absoluteThumbnail = thumbnailDirectory.resolve(uuid.toString()).toAbsolutePath();
 		
 		if(! Files.exists(absoluteThumbnail)) {
-			LOGGER.warn("Thumbnail {} not found at {}", uuid, absoluteThumbnail);
+			LOGGER.error("Thumbnail {} not found at {}", uuid, absoluteThumbnail);
 			noThumbnailFound(properties);
 		}else {
 			byte[] imageData = loadThumbnail(absoluteThumbnail);

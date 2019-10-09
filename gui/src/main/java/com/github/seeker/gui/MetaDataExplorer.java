@@ -21,16 +21,20 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
-import javafx.scene.control.ListView;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.scene.control.TableView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 public class MetaDataExplorer extends Stage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MetaDataExplorer.class);
@@ -48,9 +52,11 @@ public class MetaDataExplorer extends Stage {
 		this.replyQueue = channel.queueDeclare().getQueue();
 		
 		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList(mapper.getImageMetadata(100));
-        ListView<ImageMetaData> l = new ListView<ImageMetaData>(ol);
-        l.setCellFactory(new ImageMetaDataCellFactory());
-        listenToChanges(l);
+        TableView<ImageMetaData> table = new TableView<ImageMetaData>(ol);
+  
+        setUpTable(table);
+        
+        listenToChanges(table);
 		
         imageView = new ImageView();
         imageView.setFitWidth(200);
@@ -59,7 +65,7 @@ public class MetaDataExplorer extends Stage {
         imageView.setVisible(true);
         
         BorderPane border = new BorderPane();
-        border.setLeft(l);
+        border.setLeft(table);
         border.setCenter(imageView);
         
 		Scene scene = new Scene(border, 640, 480);
@@ -86,12 +92,47 @@ public class MetaDataExplorer extends Stage {
 		});
 	}
 	
-	private void listenToChanges(ListView<ImageMetaData> listView) {
-		listView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<ImageMetaData>() {
+	private void setUpTable(TableView<ImageMetaData> table) {
+        TableColumn<ImageMetaData, String> anchor = new TableColumn<ImageMetaData, String>("Anchor");
+        TableColumn<ImageMetaData, String> relativePath = new TableColumn<ImageMetaData, String>("Relative Path");
+        TableColumn<ImageMetaData, String> fileSize = new TableColumn<ImageMetaData, String>("File Size");
+        
+        anchor.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ImageMetaData,String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(CellDataFeatures<ImageMetaData, String> param) {
+				return new SimpleStringProperty(param.getValue().getAnchor());
+			}
+		});
+
+        relativePath.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ImageMetaData,String>, ObservableValue<String>>() {
+        	@Override
+        	public ObservableValue<String> call(CellDataFeatures<ImageMetaData, String> param) {
+        		return new SimpleStringProperty(param.getValue().getPath());
+        	}
+        });
+        
+        fileSize.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ImageMetaData,String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(CellDataFeatures<ImageMetaData, String> param) {
+				return new SimpleStringProperty(Long.toString(param.getValue().getFileSize()));
+			}
+		});
+        
+        
+        table.getColumns().setAll(anchor, relativePath, fileSize);
+	}
+	
+	private void listenToChanges(TableView<ImageMetaData> tableView) {
+		tableView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<ImageMetaData>() {
 
 			@Override
 			public void changed(ObservableValue<? extends ImageMetaData> observable, ImageMetaData oldValue,
 					ImageMetaData newValue) {
+				if(! newValue.hasThumbnail()) {
+					LOGGER.warn("No thumbnail available for {}:{}", newValue.getAnchor(), newValue.getPath());
+					return;
+				}
+				
 				LOGGER.debug("Selected {}:{}", newValue.getAnchor(), newValue.getPath());
 				
 				final String correlationId = UUID.randomUUID().toString();
