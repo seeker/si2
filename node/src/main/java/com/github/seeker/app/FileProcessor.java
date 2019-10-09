@@ -135,7 +135,12 @@ class FileMessageConsumer extends DefaultConsumer {
 		boolean hasThumbnail = Boolean.parseBoolean(header.get("thumb").toString());
 		
 		if(!hasThumbnail) {
-			createThumbnail(header, originalImage);
+			try {
+				createThumbnail(header, originalImage);
+			} catch (IllegalArgumentException iae) {
+				//TODO send a error message
+				LOGGER.warn("Failed to create thumbnail due to {}", iae);
+			}
 		}
 		
 		long pHash = calculatePhash(originalImage);
