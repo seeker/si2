@@ -95,6 +95,7 @@ public class MetaDataExplorer extends Stage {
 	private void setUpTable(TableView<ImageMetaData> table) {
         TableColumn<ImageMetaData, String> anchor = new TableColumn<ImageMetaData, String>("Anchor");
         TableColumn<ImageMetaData, String> relativePath = new TableColumn<ImageMetaData, String>("Relative Path");
+        TableColumn<ImageMetaData, String> fileSize = new TableColumn<ImageMetaData, String>("File Size");
         
         anchor.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ImageMetaData,String>, ObservableValue<String>>() {
 			@Override
@@ -110,8 +111,15 @@ public class MetaDataExplorer extends Stage {
         	}
         });
         
+        fileSize.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ImageMetaData,String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(CellDataFeatures<ImageMetaData, String> param) {
+				return new SimpleStringProperty(Long.toString(param.getValue().getFileSize()));
+			}
+		});
         
-        table.getColumns().setAll(anchor, relativePath);
+        
+        table.getColumns().setAll(anchor, relativePath, fileSize);
 	}
 	
 	private void listenToChanges(TableView<ImageMetaData> tableView) {
