@@ -5,6 +5,8 @@ import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
 import static org.hamcrest.text.IsEmptyString.emptyString;
 import static org.junit.Assert.assertThat;
 
+import java.util.UUID;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,5 +31,17 @@ public class ImageMetaDataTest {
 	@Test
 	public void pathOnNewInstanceIsEmpty() throws Exception {
 		assertThat(cut.getPath(), is(emptyString()));
+	}
+
+	@Test
+	public void doesNotHaveThumbnail() throws Exception {
+		assertThat(cut.hasThumbnail(), is(false));
+	}
+	
+	@Test
+	public void hasThumbnail() throws Exception {
+		cut.setThumbnailId(UUID.randomUUID());
+		
+		assertThat(cut.hasThumbnail(), is(true));
 	}
 }
