@@ -27,6 +27,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.Pagination;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
@@ -43,6 +44,7 @@ public class MetaDataExplorer extends Stage {
 	private final String replyQueue;
 	private final QueueConfiguration queueConfig;
 	private final ImageView imageView;
+	private final Pagination listPager;
 	
 	public MetaDataExplorer(MongoDbMapper mapper, Connection rabbitConn, QueueConfiguration queueConfig) throws IOException {
 		this.mapper = mapper;
@@ -53,8 +55,18 @@ public class MetaDataExplorer extends Stage {
 		
 		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList(mapper.getImageMetadata(100));
         TableView<ImageMetaData> table = new TableView<ImageMetaData>(ol);
-  
+        
         setUpTable(table);
+
+        long metadataCount = mapper.getImageMetadataCount();
+        LOGGER.debug("Database has {} metadata records", metadataCount);
+        
+        int numberOfPages = (int)((metadataCount / 100) + 1);
+        
+        LOGGER.debug("Creating paginator with {} pages", numberOfPages);
+        
+        listPager = new Pagination(numberOfPages);
+        listPager.setPageFactory(new MetadataPageFactory(mapper, ol));
         
         listenToChanges(table);
 		
@@ -67,6 +79,7 @@ public class MetaDataExplorer extends Stage {
         BorderPane border = new BorderPane();
         border.setLeft(table);
         border.setCenter(imageView);
+        border.setBottom(listPager);
         
 		Scene scene = new Scene(border, 640, 480);
 		setTitle("Metadata Exporer");
@@ -128,6 +141,10 @@ public class MetaDataExplorer extends Stage {
 			@Override
 			public void changed(ObservableValue<? extends ImageMetaData> observable, ImageMetaData oldValue,
 					ImageMetaData newValue) {
+				if (newValue == null) {
+					return;
+				}
+				
 				if(! newValue.hasThumbnail()) {
 					LOGGER.warn("No thumbnail available for {}:{}", newValue.getAnchor(), newValue.getPath());
 					return;

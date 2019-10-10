@@ -69,6 +69,16 @@ public class MongoDbMapper {
 		return query.asList(); 
 	}
 	
+	public List<ImageMetaData> getImageMetadata(int skip, int limit) {
+		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).skip(skip).limit(limit);
+		
+		return query.asList(); 
+	}
+	
+	public long getImageMetadataCount() {
+		return client.createQueryFor(ImageMetaData.class).countAll();
+	}
+	
 	/**
 	 * Get metadata for an image
 	 * @param anchor anchor for the image
