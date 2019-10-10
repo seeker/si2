@@ -23,17 +23,9 @@ public class MetadataPageFactory implements Callback<Integer, Node>{
 		this.list = list;
 	}
 
-	private long entryCount() {
-		long count = mapper.getImageMetadataCount();
-		LOGGER.debug("Entry count: {}", count);
-		
-		return count;
-	}
-	
 	@Override
 	public Node call(Integer paginationIndex) {
 		LOGGER.debug("Setting list contents for page index {}", paginationIndex);
-		entryCount();
 		
 		list.clear();
 		list.addAll(mapper.getImageMetadata(paginationIndex*ENTRIES_PER_PAGE, ENTRIES_PER_PAGE));
