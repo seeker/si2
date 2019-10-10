@@ -3,6 +3,7 @@ package com.github.seeker.app;
 import java.io.DataInput;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -159,7 +160,13 @@ class ThumbnailStore extends DefaultConsumer {
 		Map<String, Object> header = properties.getHeaders();
 		
 		String anchor = header.get("anchor").toString();
-		Path relativeAnchorPath = Paths.get(header.get("path").toString());
+		Path relativeAnchorPath = null;
+		try {
+			relativeAnchorPath = Paths.get(header.get("path").toString());
+		} catch (InvalidPathException e) {
+			LOGGER.warn("Invalid path {}", e);
+			return;
+		}
 		
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
 		
