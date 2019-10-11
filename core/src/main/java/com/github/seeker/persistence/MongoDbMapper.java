@@ -6,6 +6,8 @@ package com.github.seeker.persistence;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +69,16 @@ public class MongoDbMapper {
 		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).limit(limit);
 		
 		return query.asList(); 
+	}
+	
+	public List<ImageMetaData> getImageMetadata(Map<String, Object> searchParameters) {
+		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class);
+		
+		for (Entry<String,Object> e: searchParameters.entrySet()) {
+			query = query.f(e.getKey()).eq(e.getValue());
+		}
+		
+		return query.asList();
 	}
 	
 	public List<ImageMetaData> getImageMetadata(int skip, int limit) {

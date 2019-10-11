@@ -11,7 +11,6 @@ import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -30,17 +29,12 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
-import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
-import com.orbitz.consul.Consul;
-import com.orbitz.consul.model.health.ServiceHealth;
 
 import de.caluga.morphium.Morphium;
-import de.caluga.morphium.MorphiumConfig;
 
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
@@ -100,6 +94,9 @@ public class MongoDbMapperIT {
 	@After
 	public void tearDown() {
 		cleanUpCollection(ImageMetaData.class);
+		morphium.clearCachefor(ImageMetaData.class);
+		
+		assertThat(mapper.getImageMetadataCount(), is(0L));
 	}
 	
 	@Test
@@ -137,6 +134,32 @@ public class MongoDbMapperIT {
 		
 		assertThat(meta.size(), is(1));
 		assertThat(meta.get(0).getPath(), is(metadataExisting.getPath()));
+	}
+	
+	@Test
+	public void queryForMetadataWithAnchor() throws Exception {
+		morphium.store(metadataNew);
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("anchor", TEST_ANCHOR);
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(params);
+		
+		assertThat(result.get(0).getAnchor(), is(metadataExisting.getAnchor()));
+		assertThat(result.get(0).getPath(), is(metadataExisting.getPath()));
+		assertThat(result.size(), is(1));
+	}
+
+	@Test
+	public void queryForMetadataWithInvalidAnchor() throws Exception {
+		morphium.store(metadataNew);
+		
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("anchor", "echo");
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(params);
+		
+		assertThat(result.size(), is(0));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {
