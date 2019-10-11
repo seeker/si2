@@ -53,7 +53,7 @@ public class MetaDataExplorer extends Stage {
 		this.channel = rabbitConn.createChannel();
 		this.replyQueue = channel.queueDeclare().getQueue();
 		
-		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList(mapper.getImageMetadata(100));
+		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList();
         TableView<ImageMetaData> table = new TableView<ImageMetaData>(ol);
         
         setUpTable(table);
@@ -61,13 +61,12 @@ public class MetaDataExplorer extends Stage {
         long metadataCount = mapper.getImageMetadataCount();
         LOGGER.debug("Database has {} metadata records", metadataCount);
         
-        int numberOfPages = (int)((metadataCount / 100) + 1);
+        int numberOfPages = numberOfPages(metadataCount);
         
         LOGGER.debug("Creating paginator with {} pages", numberOfPages);
         
         listPager = new Pagination(numberOfPages);
         listPager.setPageFactory(new MetadataPageFactory(mapper, ol));
-        
         listenToChanges(table);
 		
         imageView = new ImageView();
@@ -75,7 +74,6 @@ public class MetaDataExplorer extends Stage {
         imageView.setFitHeight(200);
         imageView.setPreserveRatio(true);
         imageView.setVisible(true);
-        
         BorderPane border = new BorderPane();
         border.setLeft(table);
         border.setCenter(imageView);
@@ -103,6 +101,10 @@ public class MetaDataExplorer extends Stage {
 				LOGGER.debug("Consumed message with correlation ID {}", properties.getCorrelationId());
 			}
 		});
+	}
+	
+	private int numberOfPages(long metadataCount) {
+		return (int)((metadataCount / 100) + 1);
 	}
 	
 	private void setUpTable(TableView<ImageMetaData> table) {
