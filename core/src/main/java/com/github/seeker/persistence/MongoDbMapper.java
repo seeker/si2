@@ -71,14 +71,37 @@ public class MongoDbMapper {
 		return query.asList(); 
 	}
 	
-	public List<ImageMetaData> getImageMetadata(Map<String, Object> searchParameters) {
+	private Query<ImageMetaData> filterQuery(Map<String, Object> searchParameters) {
 		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class);
 		
 		for (Entry<String,Object> e: searchParameters.entrySet()) {
 			query = query.f(e.getKey()).eq(e.getValue());
 		}
 		
-		return query.asList();
+		return query;
+	}
+	
+	public long getFilteredImageMetadataCount(Map<String, Object> searchParameters) {
+		Query<ImageMetaData> query = filterQuery(searchParameters);
+		
+		return query.countAll();
+	}
+	
+	public List<ImageMetaData> getImageMetadata(Map<String, Object> searchParameters, int skip, int limit) {
+		Query<ImageMetaData> query = filterQuery(searchParameters);
+		
+		return query.skip(skip).limit(limit).asList();
+	}
+	
+	/**
+	 * Return all entries that match the given filter. 
+	 * @param searchParameters field / value pairs for filtering results, all fields are combined with AND
+	 * @return all entries that match
+	 */
+	public List<ImageMetaData> getImageMetadata(Map<String, Object> searchParameters) {
+		Query<ImageMetaData> query = filterQuery(searchParameters);
+		
+		return query.skip(0).limit(0).asList();
 	}
 	
 	public List<ImageMetaData> getImageMetadata(int skip, int limit) {
