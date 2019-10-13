@@ -60,14 +60,15 @@ public class MetaDataExplorer extends Stage {
 
         long metadataCount = mapper.getImageMetadataCount();
         LOGGER.debug("Database has {} metadata records", metadataCount);
+
         
-        int numberOfPages = numberOfPages(metadataCount);
+        listPager = new Pagination();
+        MetadataPageFactory pageFactory = new MetadataPageFactory(mapper,listPager, ol);
+        listPager.setPageFactory(pageFactory);
         
-        LOGGER.debug("Creating paginator with {} pages", numberOfPages);
-        
-        listPager = new Pagination(numberOfPages);
-        listPager.setPageFactory(new MetadataPageFactory(mapper, ol));
         listenToChanges(table);
+        
+        pageFactory.updatePaginator();
 		
         imageView = new ImageView();
         imageView.setFitWidth(200);
@@ -103,9 +104,7 @@ public class MetaDataExplorer extends Stage {
 		});
 	}
 	
-	private int numberOfPages(long metadataCount) {
-		return (int)((metadataCount / 100) + 1);
-	}
+
 	
 	private void setUpTable(TableView<ImageMetaData> table) {
         TableColumn<ImageMetaData, String> anchor = new TableColumn<ImageMetaData, String>("Anchor");
