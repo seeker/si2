@@ -120,7 +120,8 @@ public class MetaDataExplorer extends Stage {
 		TextField anchorFilter = new TextField();
 		TextField pathFilter = new TextField();
 		Button filter = new Button("Filter");
-		filter.setOnAction(new EventHandler<ActionEvent>() {
+		
+		EventHandler<ActionEvent> updateFilterAction = new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				LOGGER.debug("User triggered metadata update");
@@ -132,8 +133,13 @@ public class MetaDataExplorer extends Stage {
 				pageFactory.setFilterParameters(filterParameter);
 				pageFactory.updatePaginator();
 			}
-		});
-
+		}; 
+		
+		filter.setOnAction(updateFilterAction);
+		anchorFilter.setOnAction(updateFilterAction);
+		pathFilter.setOnAction(updateFilterAction);
+		
+		
 		HBox filterPane = new HBox(anchorFilter, pathFilter, filter);
 		
 		return filterPane;
