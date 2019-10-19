@@ -1,6 +1,7 @@
 package com.github.seeker.gui;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class MetadataPageFactory implements Callback<Integer, Node>{
 	private final MongoDbMapper mapper;
 	private final ObservableList<ImageMetaData> list;
 	private final Pagination parent;
-	private HashMap<String, Object> filterParameters = new HashMap<String, Object>();
+	private Map<String, Object> filterParameters = new HashMap<String, Object>();
 	
 	public MetadataPageFactory(MongoDbMapper mapper,Pagination parent, ObservableList<ImageMetaData> list) {
 		this.mapper = mapper;
@@ -34,17 +35,17 @@ public class MetadataPageFactory implements Callback<Integer, Node>{
 		LOGGER.debug("Setting list contents for page index {}", paginationIndex);
 		
 		list.clear();
-		list.addAll(mapper.getImageMetadata(paginationIndex*ENTRIES_PER_PAGE, ENTRIES_PER_PAGE));
+		list.addAll(mapper.getImageMetadata(filterParameters, paginationIndex*ENTRIES_PER_PAGE, ENTRIES_PER_PAGE));
 		LOGGER.debug("Loaded {} entries...", list.size());
 		
 		return new VBox();
 	}
 
-	public HashMap<String, Object> getFilterParameters() {
+	public Map<String, Object> getFilterParameters() {
 		return filterParameters;
 	}
 
-	public void setFilterParameters(HashMap<String, Object> filterParameters) {
+	public void setFilterParameters(Map<String, Object> filterParameters) {
 		this.filterParameters = filterParameters;
 	}
 

@@ -75,7 +75,7 @@ public class MongoDbMapper {
 		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class);
 		
 		for (Entry<String,Object> e: searchParameters.entrySet()) {
-			query = query.f(e.getKey()).eq(e.getValue());
+			query = query.f(e.getKey()).matches("^.*" + e.getValue() + ".*$");
 		}
 		
 		return query;

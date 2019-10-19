@@ -2,6 +2,7 @@ package com.github.seeker.gui;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -26,14 +27,19 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Pagination;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
@@ -75,11 +81,15 @@ public class MetaDataExplorer extends Stage {
         imageView.setFitHeight(200);
         imageView.setPreserveRatio(true);
         imageView.setVisible(true);
+        
+        HBox filterPane = createFilterPane(pageFactory);
+        
         BorderPane border = new BorderPane();
+        border.setTop(filterPane);
         border.setLeft(table);
         border.setCenter(imageView);
         border.setBottom(listPager);
-        
+
 		Scene scene = new Scene(border, 640, 480);
 		setTitle("Metadata Exporer");
 		setScene(scene);
@@ -106,6 +116,31 @@ public class MetaDataExplorer extends Stage {
 	
 
 	
+	private HBox createFilterPane(MetadataPageFactory pageFactory) {
+		TextField anchorFilter = new TextField();
+		TextField pathFilter = new TextField();
+		Button filter = new Button("Filter");
+		filter.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				LOGGER.debug("User triggered metadata update");
+			
+				HashMap<String, Object> filterParameter = new HashMap<String, Object>();
+				filterParameter.put("anchor", anchorFilter.getText());
+				filterParameter.put("path", pathFilter.getText());
+
+				pageFactory.setFilterParameters(filterParameter);
+				pageFactory.updatePaginator();
+			}
+		});
+
+		HBox filterPane = new HBox(anchorFilter, pathFilter, filter);
+		
+		return filterPane;
+	}
+
+
+
 	private void setUpTable(TableView<ImageMetaData> table) {
         TableColumn<ImageMetaData, String> anchor = new TableColumn<ImageMetaData, String>("Anchor");
         TableColumn<ImageMetaData, String> relativePath = new TableColumn<ImageMetaData, String>("Relative Path");
