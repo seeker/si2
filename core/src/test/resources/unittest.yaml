@@ -1,0 +1,3 @@
+consul.ip: "localhost"
+consul.port: 42
+consul.datacenter: "unittest"
