@@ -31,3 +31,8 @@
   consul_kv:
     key: config/mongodb/database/integration
     value: "mongodbintegration"
+
+- name: Set value for production database name
+  consul_kv:
+    key: config/mongodb/database/si2
+    value: "si2"

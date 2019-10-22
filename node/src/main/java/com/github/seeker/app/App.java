@@ -31,7 +31,8 @@ public class App {
 		loader.addArgument("--id").required(true).action(Arguments.store()).help("The id of this loader, used to get anchors from consul");
 		
 		subparsers.addParser("processor").description("Processes files from the queue").setDefault(COMMAND_ATTRIBUTE, PROCESSOR_COMMAND);
-		subparsers.addParser("thumb").description("Stores and retrieves thumbnails").setDefault(COMMAND_ATTRIBUTE, THUMBNAIL_COMMAND);
+		Subparser thumb = subparsers.addParser("thumb").description("Stores and retrieves thumbnails").setDefault(COMMAND_ATTRIBUTE, THUMBNAIL_COMMAND);
+		thumb.addArgument("--thumb-dir").setDefault("thumbs").required(false).action(Arguments.store()).help("The directory to store thumbnails, defaults to the relative directory 'thumbs'");
 		subparsers.addParser("db").description("Stores metadata entries in the database").setDefault(COMMAND_ATTRIBUTE, DB_COMMAND);
 
 		try {
@@ -62,7 +63,7 @@ public class App {
 			}
 		} else if(THUMBNAIL_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new ThumbnailNode(connectionProvider);
+				new ThumbnailNode(connectionProvider, namespace.getString("thumb_dir"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

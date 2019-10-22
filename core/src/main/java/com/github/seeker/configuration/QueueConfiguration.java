@@ -34,7 +34,12 @@ public class QueueConfiguration {
 		/**
 		 * Queue for generated thumbnails
 		 */
-		thumbnails
+		thumbnails,
+		
+		/**
+		 * Queue for requesting / loading stored thumbnails
+		 */
+		thumbnailRequests
 	};
 
 	/**
@@ -84,6 +89,7 @@ public class QueueConfiguration {
 		
 		keyToQueues.put(ConfiguredQueues.hashes, "config/rabbitmq/queue/hash");
 		keyToQueues.put(ConfiguredQueues.thumbnails, "config/rabbitmq/queue/thumbnail");
+		keyToQueues.put(ConfiguredQueues.thumbnailRequests, "config/rabbitmq/queue/thumbnail-request");		
 		keyToQueues.put(ConfiguredQueues.files, "config/rabbitmq/queue/loader-file-feed");
 		
 		return keyToQueues;

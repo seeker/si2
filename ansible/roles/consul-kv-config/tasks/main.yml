@@ -10,3 +10,15 @@
     host: "{{host}}"
     key: config/fileloader/load-rate-limit
     value: "50"
+
+- name: Set value for thumbnail size
+  consul_kv:
+    host: "{{host}}"
+    key: config/general/thumbnail-size
+    value: "200"
+
+- name: Set empty anchors for vagrant
+  consul_kv:
+    host: "{{host}}"
+    key: config/fileloader/anchors/vagrant
+    value: ""
