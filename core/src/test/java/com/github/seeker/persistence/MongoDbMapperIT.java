@@ -7,7 +7,10 @@ package com.github.seeker.persistence;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
+
+import static org.junit.Assert.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.hamcrest.collection.IsCollectionWithSize;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -42,12 +46,28 @@ public class MongoDbMapperIT {
 	private static final UUID THUMBNAIL_ID = UUID.randomUUID();
 	private static final UUID THUMBNAIL_ID_NEW = UUID.randomUUID();
 	
+	private static final String FIELD_NAME_ANCHOR = "anchor";
+	private static final String FIELD_NAME_PATH = "path";
+	
+	
 	private static final String TEST_ANCHOR = "imAnAnchor";
+	private static final String TEST_ANCHOR_FRUIT = "fruit";
+	private static final String TEST_ANCHOR_ANIMAL = "animal";
+	
 	private static final String HASH_NAME_SHA256 = "sha256";
 	private static final String HASH_NAME_SHA512 = "sha512";
 	private static final String HASH_NAME_PHASH = "phash";
+	
 	private static final Path TEST_PATH = Paths.get("foo/bar/baz.jpg");
+	private static final Path TEST_PATH_NEW = Paths.get("foo/boo.jpg");
 
+	private static final Path TEST_PATH_APPLE = Paths.get("red/apple.jpg");
+	private static final Path TEST_PATH_BANANA = Paths.get("yellow/banana.png");
+
+	private static final Path TEST_PATH_CAT = Paths.get("four/cat.jpg");
+	private static final Path TEST_PATH_DOG = Paths.get("four/dog.png");
+	private static final Path TEST_PATH_BIRD = Paths.get("two/bird.jpg");
+	
 	private static final byte[] HASH_DATA_SHA256 = new byte[]{1,2,3,5};
 	
 	private static MongoDbMapper mapper;
@@ -58,6 +78,8 @@ public class MongoDbMapperIT {
 	private ImageMetaData metadataNew;
 	private Thumbnail thumbnailExisting;
 	private Thumbnail thumbnailNew;
+	
+	private Map<Path, ImageMetaData> metaInstances;
 	
 	@Rule
 	public Timeout testCaseTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(10, TimeUnit.SECONDS));
@@ -86,9 +108,33 @@ public class MongoDbMapperIT {
 		metadataNew = new ImageMetaData();
 		metadataNew.setThumbnailId(THUMBNAIL_ID_NEW);
 
+		
+		setUpTestData();
+		
 		morphium.store(metadataExisting);
 		morphium.clearCachefor(ImageMetaData.class);
 		morphium.clearCachefor(Thumbnail.class);
+	}
+	
+	private void setUpTestData() {
+		metaInstances = new HashMap<Path, ImageMetaData>();
+		
+		morphium.store(createNewMetadata(TEST_ANCHOR_FRUIT, TEST_PATH_APPLE));
+		morphium.store(createNewMetadata(TEST_ANCHOR_FRUIT, TEST_PATH_BANANA));
+		morphium.store(createNewMetadata(TEST_ANCHOR_ANIMAL, TEST_PATH_CAT));
+		morphium.store(createNewMetadata(TEST_ANCHOR_ANIMAL, TEST_PATH_DOG));
+		morphium.store(createNewMetadata(TEST_ANCHOR_ANIMAL, TEST_PATH_BIRD));
+	}
+	
+	private ImageMetaData createNewMetadata(String Anchor, Path path) {
+		ImageMetaData meta = new ImageMetaData();
+		
+		meta.setAnchor(Anchor);
+		meta.setPath(path.toString());
+		
+		metaInstances.put(path, meta);
+		
+		return meta;
 	}
 
 	@After
@@ -112,6 +158,11 @@ public class MongoDbMapperIT {
 	@Test
 	public void doesNotHaveSha512Hash() throws Exception {
 		assertThat(mapper.hasHash(TEST_ANCHOR, TEST_PATH, HASH_NAME_SHA512), is(false));
+	}
+
+	@Test
+	public void queryForNonExistingMetadata() throws Exception {
+		assertThat(mapper.hasHash(TEST_ANCHOR, TEST_PATH_NEW, HASH_NAME_SHA256), is(false));
 	}
 	
 	@Test
@@ -160,6 +211,87 @@ public class MongoDbMapperIT {
 		List<ImageMetaData> result = mapper.getImageMetadata(params);
 		
 		assertThat(result.size(), is(0));
+	}
+	
+	@Test
+	public void filterMetadataByAnchor() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		filterParameters.put(FIELD_NAME_ANCHOR, TEST_ANCHOR_FRUIT);
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(filterParameters);
+		
+		assertThat(result, is(containsInAnyOrder(
+				metaInstances.get(TEST_PATH_BANANA),
+				metaInstances.get(TEST_PATH_APPLE)
+				)));
+	}
+
+	@Test
+	public void filterMetadataByAnchorCount() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		filterParameters.put(FIELD_NAME_ANCHOR, TEST_ANCHOR_ANIMAL);
+		
+		long result = mapper.getFilteredImageMetadataCount(filterParameters);
+		
+		assertThat(result, is(3L));
+	}
+
+	@Test
+	public void filterMetadataByPath() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		filterParameters.put(FIELD_NAME_PATH, "four");
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(filterParameters);
+		
+		assertThat(result, is(containsInAnyOrder(
+				metaInstances.get(TEST_PATH_CAT),
+				metaInstances.get(TEST_PATH_DOG)
+				)));
+	}
+
+	@Test
+	public void filterMetadataByPathAndReturnFirst() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		filterParameters.put(FIELD_NAME_PATH, "four");
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(filterParameters,0,1);
+		
+		assertThat(result, is(containsInAnyOrder(
+				metaInstances.get(TEST_PATH_CAT)
+				)));
+	}
+
+	@Test
+	public void filterMetadataByPathAndReturnLast() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		filterParameters.put(FIELD_NAME_PATH, "four");
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(filterParameters,1,1);
+		
+		assertThat(result, is(containsInAnyOrder(
+				metaInstances.get(TEST_PATH_DOG)
+				)));
+	}
+
+	@Test
+	public void filterMetadataBlankReturnsAll() throws Exception {
+		Map<String, Object> filterParameters = new HashMap<String, Object>();
+		
+		List<ImageMetaData> result = mapper.getImageMetadata(filterParameters);
+		
+		assertThat(result, is(containsInAnyOrder(
+				metaInstances.get(TEST_PATH_CAT),
+				metaInstances.get(TEST_PATH_DOG),
+				metaInstances.get(TEST_PATH_BIRD),
+				metaInstances.get(TEST_PATH_BANANA),
+				metaInstances.get(TEST_PATH_APPLE),
+				metadataExisting
+				)));
 	}
 	
 	private void cleanUpCollection(Class<? extends Object> clazz) {
