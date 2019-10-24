@@ -65,12 +65,6 @@ public class MongoDbMapper {
 		return getImageMetadata(anchor, relativeAnchorPath.toString());
 	}
 	
-	public List<ImageMetaData> getImageMetadata(int limit) {
-		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).limit(limit);
-		
-		return query.asList(); 
-	}
-	
 	private Query<ImageMetaData> filterQuery(Map<String, Object> searchParameters) {
 		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class);
 		
@@ -102,12 +96,6 @@ public class MongoDbMapper {
 		Query<ImageMetaData> query = filterQuery(searchParameters);
 		
 		return query.skip(0).limit(0).asList();
-	}
-	
-	public List<ImageMetaData> getImageMetadata(int skip, int limit) {
-		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).skip(skip).limit(limit);
-		
-		return query.asList(); 
 	}
 	
 	public long getImageMetadataCount() {
