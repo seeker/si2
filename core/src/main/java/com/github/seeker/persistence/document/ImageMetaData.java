@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -119,5 +120,20 @@ public class ImageMetaData {
 	 */
 	public boolean hasThumbnail() {
 		return this.thumbnailId != null;
+	}
+	
+	@Override
+	final public boolean equals(Object obj) {
+		if(obj instanceof ImageMetaData) {
+			ImageMetaData other = (ImageMetaData) obj;
+			return Objects.equals(this.anchor, other.anchor) && Objects.equals(this.path, other.path);
+		}
+		
+		return false;
+	}
+	
+	@Override
+	final public int hashCode() {
+		return Objects.hash(this.anchor, this.path);
 	}
 }
