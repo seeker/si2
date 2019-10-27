@@ -52,6 +52,19 @@ public class FileProcessor {
 	private final int thumbnailSize;
 	
 	
+	public FileProcessor(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
+		
+		this.channel = channel;
+		this.queueConfig = queueConfig;
+		
+		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
+
+		channel.basicQos(20);
+		
+		processFiles();
+	}
+	
 	public FileProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
 		
@@ -104,6 +117,9 @@ class FileMessageConsumer extends DefaultConsumer {
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 		Map<String, Object> header = properties.getHeaders();
 		
+		String anchor = header.get(MessageHeaderKeys.ANCHOR).toString();
+		String relativePath = header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH).toString();
+		
 		MessageDigest md = null;
 		try {
 			md = MessageDigest.getInstance("SHA-256");
@@ -120,14 +136,14 @@ class FileMessageConsumer extends DefaultConsumer {
 		try {
 			originalImage = ImageIO.read(dis);
 		}catch (IIOException e) {
-			LOGGER.warn("Failed to read image {} - {}: {}", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH),e.getMessage());
+			LOGGER.warn("Failed to read image {} - {}: {}", anchor, relativePath,e.getMessage());
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
 		
 		if (originalImage == null) {
 			//TODO send an error message
-			LOGGER.warn("Was unable to read image data for {} - {} ", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
+			LOGGER.warn("Was unable to read image data for {} - {} ", anchor, relativePath);
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
@@ -135,12 +151,15 @@ class FileMessageConsumer extends DefaultConsumer {
 		boolean hasThumbnail = Boolean.parseBoolean(header.get("thumb").toString());
 		
 		if(!hasThumbnail) {
+			LOGGER.debug("{}{} does not have a thumbnail, creating...");
 			try {
 				createThumbnail(header, originalImage);
 			} catch (IllegalArgumentException iae) {
 				//TODO send a error message
 				LOGGER.warn("Failed to create thumbnail due to {}", iae);
 			}
+		}else {
+			LOGGER.debug("{}{} already has a thumbnail, skipping...", anchor, relativePath);
 		}
 		
 		long pHash = calculatePhash(originalImage);
