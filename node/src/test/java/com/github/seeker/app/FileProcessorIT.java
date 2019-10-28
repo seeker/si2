@@ -2,6 +2,7 @@ package com.github.seeker.app;
 
 import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -10,12 +11,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -25,6 +26,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -55,7 +58,7 @@ public class FileProcessorIT {
 	
 	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
 	private static final long AUTUMN_PHASH = -4012083468873271947L;
-	private static final String IMAGE_AUTUMN_THUMB_HASH = "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
+	private static final byte[] IMAGE_AUTUMN_THUMB_HASH = {-29, -80, -60, 66, -104, -4, 28, 20, -102, -5, -12, -56, -103, 111, -71, 36, 39, -82, 65, -28, 100, -101, -109, 76, -92, -107, -103, 27, 120, 82, -72, 85};
 	
 	private static ConnectionProvider connectionProvider;
 
@@ -67,7 +70,7 @@ public class FileProcessorIT {
 	private QueueConfiguration queueConfig;
 	
 	private LinkedBlockingQueue<HashMessage> hashMessages;
-	private LinkedBlockingQueue<String> thumbMessages;
+	private LinkedBlockingQueue<Byte[]> thumbMessage;
 	
     @Rule
     public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
@@ -97,7 +100,7 @@ public class FileProcessorIT {
 		cut = new FileProcessor(channel, consul, queueConfig);
 		
 		hashMessages = new LinkedBlockingQueue<HashMessage>();
-		thumbMessages = new LinkedBlockingQueue<String>();
+		thumbMessage = new LinkedBlockingQueue<Byte[]>();
 		
 		MessageDigest md =  MessageDigest.getInstance("SHA-256");
 		
@@ -115,10 +118,16 @@ public class FileProcessorIT {
 			@Override
 			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
 					throws IOException {
-				md.reset();
-				md.digest(body);
+				md.reset(); 
+		
+				byte[] digest = md.digest();
+				Byte[] boxedDigest = new Byte[digest.length];
 				
-				thumbMessages.add(DatatypeConverter.printHexBinary(md.digest()));
+				for (int i = 0; i < digest.length; i++) {
+					boxedDigest[i] = digest[i];
+				}
+				
+				thumbMessage.add(boxedDigest);
 			}
 		});
 		
@@ -176,8 +185,9 @@ public class FileProcessorIT {
 	@Test
 	public void thumbnailIsCorrect() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), false);
-		String imageDataHash = thumbMessages.take();
 		
-		assertThat(imageDataHash, is(IMAGE_AUTUMN_THUMB_HASH));
+		Byte[] thumbnailHash = thumbMessage.take();
+		
+		assertThat(thumbnailHash, is(IMAGE_AUTUMN_THUMB_HASH));
 	}
 }
