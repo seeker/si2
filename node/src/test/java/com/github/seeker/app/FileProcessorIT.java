@@ -147,7 +147,7 @@ public class FileProcessorIT {
 		headers.put("thumb", Boolean.toString(hasThumbnail));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.files), props, rawImageData);
+		channelForTest.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
 	}
 
 	@After

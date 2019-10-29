@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 
 /**
@@ -15,6 +16,8 @@ import com.rabbitmq.client.Channel;
  */
 public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
+	
+	public static final String FILE_LOADER_EXCHANGE = "loader";
 	
 	private Channel channel;
 	private ConsulClient consulClient;
@@ -70,6 +73,7 @@ public class QueueConfiguration {
 		this.integration = integration;
 		
 		setupQueueNames(setupConsulKeys());
+		declareExchanges();
 		declareQueues();
 	}
 	
@@ -111,13 +115,20 @@ public class QueueConfiguration {
 		}
 	}
 	
+	private void declareExchanges() throws IOException {
+		LOGGER.info("Declaring exchanges...");
+		
+		channel.exchangeDeclare("loader", BuiltinExchangeType.FANOUT);
+	}
+	
 	private void declareQueues() throws IOException {
 		LOGGER.info("Declaring {} queues...", queueNames.size());
-		
 		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
 			LOGGER.debug("Declaring queue {} ...", getQueueName(queue));
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
+		
+		channel.queueBind(getQueueName(ConfiguredQueues.files), FILE_LOADER_EXCHANGE, "");
 	}
 	
 	/**

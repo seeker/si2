@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
@@ -116,6 +117,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		
 		fileLoadRateLimiter.acquire();
 		
-		channel.basicPublish("", loadedFileQueue, props, rawImageData);
+		channel.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
 	}
 }
