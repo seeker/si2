@@ -83,7 +83,7 @@ public class FileProcessor {
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
-		String queueName =  queueConfig.getQueueName(ConfiguredQueues.files);
+		String queueName =  queueConfig.getQueueName(ConfiguredQueues.fileDigest);
 		LOGGER.info("Starting consumer on queue {}", queueName);
 		channel.basicConsume(queueName, new FileMessageConsumer(channel, thumbnailSize, queueConfig));
 	}

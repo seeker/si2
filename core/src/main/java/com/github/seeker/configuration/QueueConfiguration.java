@@ -27,9 +27,15 @@ public class QueueConfiguration {
 	public enum ConfiguredQueues 
 	{
 		/**
-		 * Queue containing files to process
+		 * Files in this queue will be processed directly, using the raw data
 		 */
-		files,
+		fileDigest,
+		
+		/**
+		 * Files in this queue will be resized
+		 */
+		fileResize,
+		
 		/**
 		 * Queue for computed hashes
 		 */
@@ -94,7 +100,8 @@ public class QueueConfiguration {
 		keyToQueues.put(ConfiguredQueues.hashes, "config/rabbitmq/queue/hash");
 		keyToQueues.put(ConfiguredQueues.thumbnails, "config/rabbitmq/queue/thumbnail");
 		keyToQueues.put(ConfiguredQueues.thumbnailRequests, "config/rabbitmq/queue/thumbnail-request");		
-		keyToQueues.put(ConfiguredQueues.files, "config/rabbitmq/queue/loader-file-feed");
+		keyToQueues.put(ConfiguredQueues.fileDigest, "config/rabbitmq/queue/file-digest");
+		keyToQueues.put(ConfiguredQueues.fileResize, "config/rabbitmq/queue/file-resize");
 		
 		return keyToQueues;
 	}
@@ -128,7 +135,8 @@ public class QueueConfiguration {
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
 		
-		channel.queueBind(getQueueName(ConfiguredQueues.files), FILE_LOADER_EXCHANGE, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), FILE_LOADER_EXCHANGE, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), FILE_LOADER_EXCHANGE, "");
 	}
 	
 	/**
