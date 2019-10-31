@@ -85,7 +85,7 @@ public class HashMessageBuilder {
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
 		hashHeaders.put(MessageHeaderKeys.ANCHOR, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR));
 		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-		hashHeaders.put(MessageHeaderKeys.HASH_ALGORITHMS, hashHeaders);
+		hashHeaders.put(MessageHeaderKeys.HASH_ALGORITHMS, originalMessageHeaders.get(MessageHeaderKeys.HASH_ALGORITHMS));
 		
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
 		channel.basicPublish(DEFAULT_EXCHANGE, queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());

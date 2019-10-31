@@ -2,7 +2,6 @@ package com.github.seeker.app;
 
 import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -11,10 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.util.Arrays;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -26,8 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -35,10 +31,10 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
-import com.github.seeker.messaging.HashMessage;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -57,19 +53,17 @@ public class FileProcessorIT {
 	private static final String IMAGE_ROAD_FAR = "road-far.jpg";
 	
 	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
-	private static final long AUTUMN_PHASH = -4012083468873271947L;
-	private static final byte[] IMAGE_AUTUMN_THUMB_HASH = {-29, -80, -60, 66, -104, -4, 28, 20, -102, -5, -12, -56, -103, 111, -71, 36, 39, -82, 65, -28, 100, -101, -109, 76, -92, -107, -103, 27, 120, 82, -72, 85};
 	
 	private static ConnectionProvider connectionProvider;
 
 	private FileProcessor cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
-	private HashMessageHelper hashMessage;
 	private Channel channelForTest;
 	private QueueConfiguration queueConfig;
 	
-	private LinkedBlockingQueue<HashMessage> hashMessages;
+	private LinkedBlockingQueue<Map<String, Hash>> hashMessages;
+	private LinkedBlockingQueue<Map<String, Object>> messageHeaders;
 	private LinkedBlockingQueue<Byte[]> thumbMessage;
 	
     @Rule
@@ -99,8 +93,9 @@ public class FileProcessorIT {
 		
 		cut = new FileProcessor(channel, consul, queueConfig);
 		
-		hashMessages = new LinkedBlockingQueue<HashMessage>();
+		hashMessages = new LinkedBlockingQueue<Map<String, Hash>>();
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();
+		messageHeaders = new LinkedBlockingQueue<Map<String,Object>>();
 		
 		MessageDigest md =  MessageDigest.getInstance("SHA-256");
 		
@@ -109,8 +104,15 @@ public class FileProcessorIT {
 			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
 					throws IOException {
 				
-				HashMessageHelper hmh = new HashMessageHelper(channel, queueConfig);
-				hashMessages.add(hmh.decodeHashMessage(properties.getHeaders(), body));
+				HashMessageHelper hmh = new HashMessageHelper();
+				
+				try {
+					hashMessages.add(hmh.decodeHashMessage(properties.getHeaders(), body));
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				}
+
+				messageHeaders.add(properties.getHeaders());
 			}
 		});
 		
@@ -145,6 +147,7 @@ public class FileProcessorIT {
 		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, image.toString());
 		headers.put("thumb", Boolean.toString(hasThumbnail));
+		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256");
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		channelForTest.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
@@ -167,27 +170,10 @@ public class FileProcessorIT {
 	}
 	
 	@Test
-	public void phashIsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
-		HashMessage message = hashMessages.take();
-		
-		assertThat(message.getPhash(), is(AUTUMN_PHASH));
-	}
-	
-	@Test
 	public void sha256IsCorrect() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
-		HashMessage message = hashMessages.take();
+		Map<String, Hash> message = hashMessages.take();
 		
-		assertThat(message.getSha256(), is(AUTUMN_SHA256));
-	}
-	
-	@Test
-	public void thumbnailIsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), false);
-		
-		Byte[] thumbnailHash = thumbMessage.take();
-		
-		assertThat(thumbnailHash, is(IMAGE_AUTUMN_THUMB_HASH));
+		assertThat(message.get("SHA-256").getHash(), is(AUTUMN_SHA256));
 	}
 }

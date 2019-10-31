@@ -22,6 +22,7 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -42,7 +43,7 @@ public class DBNodeIT {
 	private DBNode cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
-	private HashMessageHelper hashMessage;
+	private HashMessageBuilder hashMessage;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -66,8 +67,8 @@ public class DBNodeIT {
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
-		hashMessage = new HashMessageHelper(channel, queueConfig);
-		hashMessage.sendMessage(createTestHeaders(RELATIVE_ANCHOR_PATH), SHA256, PHASH);
+		hashMessage = new HashMessageBuilder(channel, queueConfig);
+		hashMessage.addHash("SHA-256", SHA256).send(createTestHeaders(RELATIVE_ANCHOR_PATH));
 	}
 	
 	private Map<String, Object> createTestHeaders(Path releativeAnchorPath) {
@@ -95,7 +96,7 @@ public class DBNodeIT {
 	
 	@Test
 	public void pathWithUmlatusIsCorrectlyReceived() throws Exception {
-		hashMessage.sendMessage(createTestHeaders(RELATIVE_ANCHOR_PATH_WITH_UMLAUT), SHA256, PHASH);
+		hashMessage.addHash("SHA-256", SHA256).send(createTestHeaders(RELATIVE_ANCHOR_PATH_WITH_UMLAUT));
 		
 		Awaitility.await().atMost(5, TimeUnit.MINUTES).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH_WITH_UMLAUT), is(notNullValue()));
 	}
