@@ -4,6 +4,7 @@
  */
 package com.github.seeker.messaging;
 
+import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,8 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 
 public class HashMessageBuilder {
@@ -76,11 +79,18 @@ public class HashMessageBuilder {
 	
 	/**
 	 * Sends the hash message and resets the builder
+	 * @throws IOException if there is an error sending the message
 	 */
-	public void send() {
-		//TODO implement me
+	public void send(Map<String, Object> originalMessageHeaders) throws IOException {
+		Map<String, Object> hashHeaders = new HashMap<String, Object>();
+		hashHeaders.put(MessageHeaderKeys.ANCHOR, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR));
+		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
+		hashHeaders.put(MessageHeaderKeys.HASH_ALGORITHMS, hashHeaders);
+		
+		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
+		channel.basicPublish(DEFAULT_EXCHANGE, queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());
+		
 		reset();
-		throw new UnsupportedOperationException("Not implemented yet.");
 	}
 	
 	/**

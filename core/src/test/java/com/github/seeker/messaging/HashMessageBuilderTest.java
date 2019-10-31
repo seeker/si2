@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -31,6 +33,9 @@ import com.rabbitmq.client.Channel;
 
 
 public class HashMessageBuilderTest {
+	private static final String ANCHOR = "testimages";
+	private static final String RELATIVE_IMAGE_PATH = "nyan/cat.jpg";
+
 	private static final int SHA256_NUMBER_OF_BYTES = 32;
 	private static final int SHA512_NUMBER_OF_BYTES = 64;
 	
@@ -142,5 +147,29 @@ public class HashMessageBuilderTest {
 		thrown.expectMessage(containsString("digest cannot be null!"));
 		
 		cut.addHash(SHA256_ALGORITHM_NAME, null);
+	}
+	
+	@Test
+	public void sendingMessageClearsMessageBodyBuffer() throws Exception {
+		Map<String, Object> headers = new HashMap<String, Object>();
+		
+		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
+		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, RELATIVE_IMAGE_PATH);
+		
+		cut.addHash(SHA256_ALGORITHM_NAME, QUICK_FOX_SHA256).addHash(SHA512_ALGORITHM_NAME, QUICK_FOX_SHA512).send(headers);
+		
+		assertThat(cut.getMessageBody().length, is(0));
+	}
+
+	@Test
+	public void sendingMessageClearsHeaderBuffer() throws Exception {
+		Map<String, Object> headers = new HashMap<String, Object>();
+		
+		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
+		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, RELATIVE_IMAGE_PATH);
+		
+		cut.addHash(SHA256_ALGORITHM_NAME, QUICK_FOX_SHA256).addHash(SHA512_ALGORITHM_NAME, QUICK_FOX_SHA512).send(headers);
+		
+		assertThat(cut.getHashHeader(), is(emptyString()));
 	}
 }
