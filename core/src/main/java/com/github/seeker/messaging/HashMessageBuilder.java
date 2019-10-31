@@ -29,7 +29,7 @@ public class HashMessageBuilder {
 	private final Channel channel;
 	private final QueueConfiguration queueConfig;
 
-	private StringBuffer hashHeader;
+	private StringBuffer addedHashAlgorithms;
 	private ByteArrayDataOutput messageBody;
 
 	private Map<String, Integer> digestLengthCache;
@@ -44,7 +44,7 @@ public class HashMessageBuilder {
 	}
 	
 	private void reset() {
-		hashHeader = new StringBuffer();
+		addedHashAlgorithms = new StringBuffer();
 		messageBody = ByteStreams.newDataOutput();
 	}
 
@@ -65,8 +65,8 @@ public class HashMessageBuilder {
 	}
 	
 	public HashMessageBuilder addHash(String algorithm, byte[] digest) throws NoSuchAlgorithmException {
-		hashHeader.append(Objects.requireNonNull(algorithm, "Algorithm cannot be null!"));
-		hashHeader.append(",");
+		addedHashAlgorithms.append(Objects.requireNonNull(algorithm, "Algorithm cannot be null!"));
+		addedHashAlgorithms.append(",");
 		
 		if(getDigestLength(algorithm) != Objects.requireNonNull(digest, "The digest cannot be null!").length) {
 			throw new InvalidParameterException("Unexpected digest length for algorithm!");
@@ -85,7 +85,7 @@ public class HashMessageBuilder {
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
 		hashHeaders.put(MessageHeaderKeys.ANCHOR, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR));
 		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, originalMessageHeaders.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-		hashHeaders.put(MessageHeaderKeys.HASH_ALGORITHMS, originalMessageHeaders.get(MessageHeaderKeys.HASH_ALGORITHMS));
+		hashHeaders.put(MessageHeaderKeys.HASH_ALGORITHMS, addedHashAlgorithms.toString());
 		
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
 		channel.basicPublish(DEFAULT_EXCHANGE, queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());
@@ -98,7 +98,7 @@ public class HashMessageBuilder {
 	 * @return the current header
 	 */
 	public String getHashHeader() {
-		return hashHeader.toString();
+		return addedHashAlgorithms.toString();
 	}
 	
 	/**
