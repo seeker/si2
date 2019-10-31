@@ -23,17 +23,17 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 /**
- * Fetches images from the queue and generates hashes and the thumbnail.
+ * Fetches images from the queue and generates hashes based on the requested Algorithms using {@link MessageDigest}.
  * The results are sent as a new message.
  */
-public class FileProcessor {
-	private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessor.class);
+public class MessageDigestHasher {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHasher.class);
 
 	private final Channel channel;
 	private final QueueConfiguration queueConfig;
 	
-	public FileProcessor(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
-		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
+	public MessageDigestHasher(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
 		
 		this.channel = channel;
 		this.queueConfig = queueConfig;
@@ -44,8 +44,8 @@ public class FileProcessor {
 		processFiles();
 	}
 	
-	public FileProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
-		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
+	public MessageDigestHasher(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnection();
@@ -61,17 +61,17 @@ public class FileProcessor {
 	public void processFiles() throws IOException, InterruptedException {
 		String queueName =  queueConfig.getQueueName(ConfiguredQueues.fileDigest);
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new FileMessageConsumer(channel, queueConfig));
+		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, queueConfig));
 	}
 }
 
-class FileMessageConsumer extends DefaultConsumer {
-	private static final Logger LOGGER = LoggerFactory.getLogger(FileMessageConsumer.class);
+class MessageDigestHashConsumer extends DefaultConsumer {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHashConsumer.class);
 
 	private final HashMessageBuilder hashMessageBuilder;
 	private final HashMessageHelper hashMessageHelper;
 	
-	public FileMessageConsumer(Channel channel, QueueConfiguration queueConfig) {
+	public MessageDigestHashConsumer(Channel channel, QueueConfiguration queueConfig) {
 		super(channel);
 		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
 		

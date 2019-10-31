@@ -45,7 +45,7 @@ import com.rabbitmq.client.Envelope;
 
 import de.caluga.morphium.Morphium;
 
-public class FileProcessorIT {
+public class MessageDigestHasherIT {
 
 	private static final String ANCHOR = "testimages";
 	
@@ -56,7 +56,7 @@ public class FileProcessorIT {
 	
 	private static ConnectionProvider connectionProvider;
 
-	private FileProcessor cut;
+	private MessageDigestHasher cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
 	private Channel channelForTest;
@@ -91,7 +91,7 @@ public class FileProcessorIT {
 		
 		queueConfig = new QueueConfiguration(channel, consul, true);
 		
-		cut = new FileProcessor(channel, consul, queueConfig);
+		cut = new MessageDigestHasher(channel, consul, queueConfig);
 		
 		hashMessages = new LinkedBlockingQueue<Map<String, Hash>>();
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();

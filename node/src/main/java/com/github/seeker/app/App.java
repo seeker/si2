@@ -57,7 +57,7 @@ public class App {
 			}
 		} else if(PROCESSOR_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new FileProcessor(connectionProvider);
+				new MessageDigestHasher(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
