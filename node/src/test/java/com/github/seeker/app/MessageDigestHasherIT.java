@@ -91,7 +91,7 @@ public class MessageDigestHasherIT {
 		
 		queueConfig = new QueueConfiguration(channel, consul, true);
 		
-		cut = new MessageDigestHasher(channel, consul, queueConfig);
+		cut = new MessageDigestHasher(rabbitConn, consul, queueConfig);
 		
 		hashMessages = new LinkedBlockingQueue<Map<String, Hash>>();
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();

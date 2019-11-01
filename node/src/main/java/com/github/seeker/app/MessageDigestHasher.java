@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,42 +30,57 @@ import com.rabbitmq.client.Envelope;
 public class MessageDigestHasher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHasher.class);
 
-	private final Channel channel;
+	private final Connection rabbitMqConnection;
 	private final QueueConfiguration queueConfig;
 	
-	public MessageDigestHasher(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+	public MessageDigestHasher(Connection rabbitMqConnection, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
 		
-		this.channel = channel;
+		this.rabbitMqConnection = rabbitMqConnection;
 		this.queueConfig = queueConfig;
-		
-
-		channel.basicQos(20);
 		
 		processFiles();
 	}
 	
 	public MessageDigestHasher(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
-		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
-		
-		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
-		channel = conn.createChannel();
-		
-		queueConfig = new QueueConfiguration(channel, consul);
-		
-		channel.basicQos(20);
-		
-		processFiles();
+		this(
+				connectionProvider.getRabbitMQConnection(),
+				connectionProvider.getConsulClient(),
+				new QueueConfiguration(connectionProvider.getRabbitMQConnection().createChannel(),
+				connectionProvider.getConsulClient())
+		);
 	}
-
+	
 	public void processFiles() throws IOException, InterruptedException {
 		int processorCount = Runtime.getRuntime().availableProcessors();
 		LOGGER.info("System has {} processors", processorCount);
 		
 		String queueName =  queueConfig.getQueueName(ConfiguredQueues.fileDigest);
-		LOGGER.info("Starting consumer on queue {}", queueName);
+		
+		LOGGER.info("Starting {} message consumers...", processorCount);
+		IntStream.range(0, processorCount).forEach(counter -> {
+			try {
+				createMessageConsumer(queueName);
+			} catch (IOException e) {
+				LOGGER.warn("Failed to start message digest consumer: {}", e);
+				// TODO Send message with error
+				e.printStackTrace();
+			}
+		});
+		
+		LOGGER.info("Started message digest consumers");
+	}
+	
+	private void createMessageConsumer(String queueName) throws IOException {
+		Channel channel = createChannel();
 		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, queueConfig));
+	}
+
+	private Channel createChannel() throws IOException {
+		Channel channel = rabbitMqConnection.createChannel();
+		channel.basicQos(20);
+		
+		return channel;
 	}
 }
 
