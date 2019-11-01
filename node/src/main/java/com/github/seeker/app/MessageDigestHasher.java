@@ -101,11 +101,19 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 		Map<String, Object> originalHeader = properties.getHeaders();
 		
+		String anchor = hashMessageHelper.getAnchor(originalHeader);
+		String relativePath = hashMessageHelper.getRelativePath(originalHeader);
 		
 		String requiredHashes = originalHeader.get(MessageHeaderKeys.HASH_ALGORITHMS).toString();
 		String[] hashes = requiredHashes.split(",");
 		
-		LOGGER.debug("File {}:{} hash request for algorithms: {}", hashMessageHelper.getAnchor(originalHeader), hashMessageHelper.getRelativePath(originalHeader), hashes);
+		if (hashes.length == 1 && "".equals(hashes[0])) {
+			LOGGER.debug("No hashes requested for {}:{}, discarding message...", anchor, relativePath);
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
+		}
+		
+		LOGGER.debug("File {}:{} hash request for algorithms: {}", anchor, relativePath, hashes);
 		
 		for (String hash : hashes) {
 			try {
