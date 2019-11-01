@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.io.ImageFileFilter;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -109,10 +110,10 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		byte[] rawImageData = Files.readAllBytes(file); 
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put("missing-hash", String.join(",", missingHashes));
-		headers.put("anchor", anchor);
-		headers.put("path", relativeToAnchor.toString());
-		headers.put("thumb", Boolean.toString(meta.hasThumbnail()));
+		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
+		headers.put(MessageHeaderKeys.ANCHOR, anchor);
+		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
+		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(meta.hasThumbnail()));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		fileLoadRateLimiter.acquire();

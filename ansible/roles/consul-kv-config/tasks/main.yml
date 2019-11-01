@@ -3,7 +3,7 @@
   consul_kv:
     host: "{{host}}"
     key: config/general/required-hashes
-    value: "sha256,sha512"
+    value: "SHA-256,SHA-512"
 
 - name: Set value for load rate limit
   consul_kv:
