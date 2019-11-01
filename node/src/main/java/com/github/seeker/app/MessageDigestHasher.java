@@ -109,7 +109,7 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		
 		for (String hash : hashes) {
 			try {
-				MessageDigest md = MessageDigest.getInstance("SHA-256");
+				MessageDigest md = MessageDigest.getInstance(hash);
 				hashMessageBuilder.addHash(hash, md.digest(body));
 			} catch (NoSuchAlgorithmException e) {
 				// TODO send a error message back

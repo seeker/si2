@@ -53,6 +53,10 @@ public class MessageDigestHasherIT {
 	private static final String IMAGE_ROAD_FAR = "road-far.jpg";
 	
 	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
+	private static final byte[] AUTUMN_SHA512 = {32, -119, 47, -64, -97, -72, -41, -5, 106, 112, -38, -113, -115, -107, 25, 59, -38, -1, 22, -71, -63, 88, 119, -54, 91, 25, 124, 3, 17, 60, -57, 79, -87, -127, 89, -91, 27, -52, 10, -4, 102, -99, -69, -19, 42, -13, 17, -51, -93, -60, -128, -96, 88, -126, -21, 38, 14, 71, 105, 63, 100, 4, 92, -72};
+	
+	private static final String ALGORITHM_NAME_SHA256 = "SHA-256";
+	private static final String ALGORITHM_NAME_SHA512 = "SHA-512";
 	
 	private static ConnectionProvider connectionProvider;
 
@@ -147,7 +151,7 @@ public class MessageDigestHasherIT {
 		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, image.toString());
 		headers.put("thumb", Boolean.toString(hasThumbnail));
-		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256");
+		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		channelForTest.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
@@ -174,6 +178,14 @@ public class MessageDigestHasherIT {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
 		Map<String, Hash> message = hashMessages.take();
 		
-		assertThat(message.get("SHA-256").getHash(), is(AUTUMN_SHA256));
+		assertThat(message.get(ALGORITHM_NAME_SHA256).getHash(), is(AUTUMN_SHA256));
+	}
+
+	@Test
+	public void sha512IsCorrect() throws Exception {
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
+		Map<String, Hash> message = hashMessages.take();
+
+		assertThat(message.get(ALGORITHM_NAME_SHA512).getHash(), is(AUTUMN_SHA512));
 	}
 }
