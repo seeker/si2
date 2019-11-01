@@ -24,6 +24,7 @@ public class QueueConfigurationTest {
 	private static final String THUMBNAIL_REQ_QUEUE_NAME = "boo";
 	private static final String FILE_QUEUE_NAME = "baz";
 	private static final String FILE_RESIZE_NAME = "resize";
+	private static final String FILE_PREPROCESS_NAME = "preprocess";
 	
 	@Mock
 	private Channel channel;
@@ -45,6 +46,7 @@ public class QueueConfigurationTest {
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail-request"))).thenReturn(THUMBNAIL_REQ_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-digest"))).thenReturn(FILE_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-resize"))).thenReturn(FILE_RESIZE_NAME);
+		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-pre-processed"))).thenReturn(FILE_PREPROCESS_NAME);
 		
 		cut = new QueueConfiguration(channel, consulClient);
 		cutIntegration = new QueueConfiguration(channel, consulClient, true);

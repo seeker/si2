@@ -38,6 +38,11 @@ public class QueueConfiguration {
 		 */
 		fileResize,
 		
+		
+		/**
+		 * Messages in this queue are pre-processed files. They need to be further processed to yield a usable hash.
+		 */
+		filePreProcessed,
 		/**
 		 * Queue for computed hashes
 		 */
@@ -104,6 +109,7 @@ public class QueueConfiguration {
 		keyToQueues.put(ConfiguredQueues.thumbnailRequests, "config/rabbitmq/queue/thumbnail-request");		
 		keyToQueues.put(ConfiguredQueues.fileDigest, "config/rabbitmq/queue/file-digest");
 		keyToQueues.put(ConfiguredQueues.fileResize, "config/rabbitmq/queue/file-resize");
+		keyToQueues.put(ConfiguredQueues.filePreProcessed, "config/rabbitmq/queue/file-pre-processed");
 		
 		return keyToQueues;
 	}

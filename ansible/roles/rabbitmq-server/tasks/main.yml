@@ -84,4 +84,10 @@
   consul_kv:
     key: config/rabbitmq/queue/thumbnail-request
     value: "thumbnail-request"
+
+- name: Set queue name for pre processed files
+  consul_kv:
+    key: config/rabbitmq/queue/file-pre-processed
+    value: "file-pre-processed"
     
+
