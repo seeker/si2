@@ -42,18 +42,18 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final Channel channel;
 	private final MongoDbMapper mapper;
 	private final List<String> requiredHashes;
-	private final String loadedFileQueue;
+	private final String fileLoadExchange;
 	private final String anchor;
 	private final Path anchorPath;
 	private final RateLimiter fileLoadRateLimiter;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String loadedFileQueue) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.anchor = anchor;
 		this.anchorPath = anchorPath;
 		this.requiredHashes = requiredHashes;
-		this.loadedFileQueue = loadedFileQueue;
+		this.fileLoadExchange = fileLoadExchange;
 		this.fileLoadRateLimiter = fileLoadRateLimiter;
 	}
 
@@ -118,6 +118,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		
 		fileLoadRateLimiter.acquire();
 		
-		channel.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
+		channel.basicPublish(fileLoadExchange, "", props, rawImageData);
 	}
 }

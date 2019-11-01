@@ -17,12 +17,14 @@ import com.rabbitmq.client.Channel;
 public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
 	
-	public static final String FILE_LOADER_EXCHANGE = "loader";
+	private static final String FILE_LOADER_EXCHANGE = "loader";
+	private static final String FILE_LOADER_INTEGRATION_EXCHANGE = "integration-loader";
 	
 	private Channel channel;
 	private ConsulClient consulClient;
 	private boolean integration;
 	private Map<ConfiguredQueues, String> queueNames;
+	private String fileLoaderExchangeName;
 	
 	public enum ConfiguredQueues 
 	{
@@ -125,7 +127,13 @@ public class QueueConfiguration {
 	private void declareExchanges() throws IOException {
 		LOGGER.info("Declaring exchanges...");
 		
-		channel.exchangeDeclare("loader", BuiltinExchangeType.FANOUT);
+		fileLoaderExchangeName = FILE_LOADER_EXCHANGE;
+		
+		if(integration) {
+			fileLoaderExchangeName = FILE_LOADER_INTEGRATION_EXCHANGE;
+		}
+		
+		channel.exchangeDeclare(fileLoaderExchangeName, BuiltinExchangeType.FANOUT);
 	}
 	
 	private void declareQueues() throws IOException {
@@ -135,8 +143,8 @@ public class QueueConfiguration {
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
 		
-		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), FILE_LOADER_EXCHANGE, "");
-		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), FILE_LOADER_EXCHANGE, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), fileLoaderExchangeName, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), fileLoaderExchangeName, "");
 	}
 	
 	/**
@@ -154,5 +162,15 @@ public class QueueConfiguration {
 		}
 		
 		return queueNames.get(queue);
+	}
+	
+	/**
+	 * Get the name of the exchange for file loading.
+	 * This is a fanout exchange that sends messages to the digest hasher and resizer.
+	 * 
+	 * @return the name of the exchange
+	 */
+	public String getFileLoaderExchangeName() {
+		return fileLoaderExchangeName;
 	}
 }

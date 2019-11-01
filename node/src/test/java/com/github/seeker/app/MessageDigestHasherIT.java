@@ -154,7 +154,7 @@ public class MessageDigestHasherIT {
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish(QueueConfiguration.FILE_LOADER_EXCHANGE, "", props, rawImageData);
+		channelForTest.basicPublish(queueConfig.getFileLoaderExchangeName(), "", props, rawImageData);
 	}
 
 	@After
