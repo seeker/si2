@@ -14,13 +14,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -28,9 +25,7 @@ import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.util.concurrent.RateLimiter;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.impl.AMQBasicProperties;
 
 /**
  * Visits and loads files into the queue.
@@ -38,10 +33,13 @@ import com.rabbitmq.client.impl.AMQBasicProperties;
 public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FileToQueueVistor.class);
 
+	private static final String PHASH_CUSTOM_HASH_ALGORITHM_NAME = "phash";
+	
 	private final ImageFileFilter fileFilter = new ImageFileFilter();
 	private final Channel channel;
 	private final MongoDbMapper mapper;
 	private final List<String> requiredHashes;
+	private final List<String> requiredCustomHashes;
 	private final String fileLoadExchange;
 	private final String anchor;
 	private final Path anchorPath;
@@ -55,6 +53,10 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;
 		this.fileLoadRateLimiter = fileLoadRateLimiter;
+		
+		//TODO get required custom hashes from Consul
+		requiredCustomHashes = new ArrayList<String>();
+		requiredCustomHashes.add(PHASH_CUSTOM_HASH_ALGORITHM_NAME);
 	}
 
 	@Override
@@ -96,14 +98,24 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		}
 		
 		List<String> missingHashes = new ArrayList<String>();
+		List<String> missingCustomHashes = new ArrayList<String>();
+		
+		
 		
 		for(String hash : requiredHashes) {
-			if(!meta.getHashes().containsKey(hash)) {
+			if(! meta.getHashes().containsKey(hash)) {
 				missingHashes.add(hash);
 			}
 		}
-
-		if(missingHashes.isEmpty() && meta.hasThumbnail()) {
+		
+		for(String hash :requiredCustomHashes) {
+			if(! meta.getHashes().containsKey(hash)) {
+				missingCustomHashes.add(hash);
+			}
+		}
+		
+		if(missingHashes.isEmpty() && missingCustomHashes.isEmpty() && meta.hasThumbnail()) {
+			LOGGER.debug("Nothing to do for {}:{}, skipping message", anchor, relativeToAnchor);
 			return;
 		}
 		
@@ -111,6 +123,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
+		headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
 		headers.put(MessageHeaderKeys.ANCHOR, anchor);
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
 		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(meta.hasThumbnail()));
