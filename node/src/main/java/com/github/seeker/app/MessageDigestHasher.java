@@ -59,6 +59,9 @@ public class MessageDigestHasher {
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
+		int processorCount = Runtime.getRuntime().availableProcessors();
+		LOGGER.info("System has {} processors", processorCount);
+		
 		String queueName =  queueConfig.getQueueName(ConfiguredQueues.fileDigest);
 		LOGGER.info("Starting consumer on queue {}", queueName);
 		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, queueConfig));
@@ -99,7 +102,7 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		}
 		
 		hashMessageBuilder.send(originalHeader);
-		LOGGER.debug("Consumed message for {} - {} > hashes: {}", originalHeader.get("anchor"), originalHeader.get("path"),	originalHeader.get("missing-hash"));
+		LOGGER.debug("Consumed message for {} - {} > hashes: {}", originalHeader.get("anchor"), originalHeader.get("path"),	hashes);
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
