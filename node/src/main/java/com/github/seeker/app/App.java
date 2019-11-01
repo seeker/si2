@@ -19,6 +19,7 @@ public class App {
 	private static final String COMMAND_ATTRIBUTE = "command";
 	private static final String LOADER_COMMAND = "loader";
 	private static final String PROCESSOR_COMMAND = "processor";
+	private static final String RESIZER_COMMAND = "resizer";
 	private static final String THUMBNAIL_COMMAND = "thumb";
 	private static final String DB_COMMAND = "db";
 
@@ -34,6 +35,7 @@ public class App {
 		Subparser thumb = subparsers.addParser("thumb").description("Stores and retrieves thumbnails").setDefault(COMMAND_ATTRIBUTE, THUMBNAIL_COMMAND);
 		thumb.addArgument("--thumb-dir").setDefault("thumbs").required(false).action(Arguments.store()).help("The directory to store thumbnails, defaults to the relative directory 'thumbs'");
 		subparsers.addParser("db").description("Stores metadata entries in the database").setDefault(COMMAND_ATTRIBUTE, DB_COMMAND);
+		subparsers.addParser("resizer").description("Resizes images for thumbnails and further processing").setDefault(COMMAND_ATTRIBUTE, RESIZER_COMMAND);
 
 		try {
 			processArgs(parser.parseArgs(args));
@@ -70,6 +72,12 @@ public class App {
 		} else if(DB_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
 				new DBNode(connectionProvider);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if(RESIZER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
+			try {
+				new ImageResizer(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

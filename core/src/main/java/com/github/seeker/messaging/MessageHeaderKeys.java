@@ -14,6 +14,11 @@ public class MessageHeaderKeys {
 	 * Hash algorithms that the body should be hashed with, or the resulting hashes are contained in the body.
 	 */
 	public static final String HASH_ALGORITHMS = "hash-algo";
+
+	/**
+	 * Custom hash algorithms that the body should be hashed with, or the resulting hashes are contained in the body.
+	 */
+	public static final String CUSTOM_HASH_ALGORITHMS = "cust-hash-algo";
 	
 	
 	private MessageHeaderKeys() {
