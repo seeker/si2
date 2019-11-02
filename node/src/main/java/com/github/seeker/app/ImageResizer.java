@@ -7,19 +7,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
@@ -27,17 +22,13 @@ import javax.imageio.ImageIO;
 import org.imgscalr.Scalr;
 import org.imgscalr.Scalr.Method;
 import org.imgscalr.Scalr.Mode;
-import org.jtransforms.dct.DoubleDCT_2D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.dozedoff.commonj.util.ImageUtil;
-import com.github.seeker.commonhash.helper.TransformHelper;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
-import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.rabbitmq.client.AMQP;
@@ -54,23 +45,21 @@ import com.rabbitmq.client.Envelope;
 public class ImageResizer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ImageResizer.class);
 
-	private final Channel channel;
+	private final Connection rabbitMqConnection;
 	private final QueueConfiguration queueConfig;
 	
 	private final int thumbnailSize;
 	private final HashMessageHelper hashMessageHelper;
 	
-	public ImageResizer(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+	public ImageResizer(Connection channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
-		this.channel = channel;
+		this.rabbitMqConnection = channel;
 		this.queueConfig = queueConfig;
 
 		hashMessageHelper = new HashMessageHelper();
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
-		this.channel.basicQos(20);
-		
 		processFiles();
 	}
 	
@@ -78,24 +67,33 @@ public class ImageResizer {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
-		channel = conn.createChannel();
+		rabbitMqConnection = connectionProvider.getRabbitMQConnection();
 		
-		queueConfig = new QueueConfiguration(channel, consul);
+		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel(), consul);
 		
 		hashMessageHelper = new HashMessageHelper();
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
-		channel.basicQos(20);
-
-		
 		processFiles();
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
-		String queueName =  queueConfig.getQueueName(ConfiguredQueues.fileResize);
-		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new ImageFileMessageConsumer(channel, thumbnailSize, queueConfig));
+		int processorCount = Runtime.getRuntime().availableProcessors();
+		LOGGER.info("Starting {} message consumers", processorCount);
+		String queueName = queueConfig.getQueueName(ConfiguredQueues.fileResize);
+		
+		IntStream.range(0, processorCount).forEach(count -> {
+			try {
+				Channel channel = rabbitMqConnection.createChannel();
+				channel.basicQos(20);
+				LOGGER.info("Starting consumer on queue {}", queueName);
+				channel.basicConsume(queueName, new ImageFileMessageConsumer(channel, thumbnailSize, queueConfig));
+			} catch (IOException e) {
+				// TODO send message
+				LOGGER.warn("Failed to start consumer: {}", e);
+				e.printStackTrace();
+			}
+		});
 	}
 }
 
