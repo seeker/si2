@@ -19,6 +19,7 @@ public class App {
 	private static final String COMMAND_ATTRIBUTE = "command";
 	private static final String LOADER_COMMAND = "loader";
 	private static final String PROCESSOR_COMMAND = "processor";
+	private static final String CUSTOM_HASH_COMMAND = "custom-hash";
 	private static final String RESIZER_COMMAND = "resizer";
 	private static final String THUMBNAIL_COMMAND = "thumb";
 	private static final String DB_COMMAND = "db";
@@ -32,6 +33,7 @@ public class App {
 		loader.addArgument("--id").required(true).action(Arguments.store()).help("The id of this loader, used to get anchors from consul");
 		
 		subparsers.addParser("processor").description("Processes files from the queue").setDefault(COMMAND_ATTRIBUTE, PROCESSOR_COMMAND);
+		subparsers.addParser("custom-hash").description("Processes pre-proceesed files from the queue").setDefault(COMMAND_ATTRIBUTE, CUSTOM_HASH_COMMAND);
 		Subparser thumb = subparsers.addParser("thumb").description("Stores and retrieves thumbnails").setDefault(COMMAND_ATTRIBUTE, THUMBNAIL_COMMAND);
 		thumb.addArgument("--thumb-dir").setDefault("thumbs").required(false).action(Arguments.store()).help("The directory to store thumbnails, defaults to the relative directory 'thumbs'");
 		subparsers.addParser("db").description("Stores metadata entries in the database").setDefault(COMMAND_ATTRIBUTE, DB_COMMAND);
@@ -60,6 +62,12 @@ public class App {
 		} else if(PROCESSOR_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
 				new MessageDigestHasher(connectionProvider);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if(CUSTOM_HASH_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
+			try {
+				new CustomHashProcessor(connectionProvider);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

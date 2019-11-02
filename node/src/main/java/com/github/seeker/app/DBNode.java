@@ -17,6 +17,7 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.messaging.HashMessage;
 import com.github.seeker.messaging.HashMessageHelper;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -104,7 +105,13 @@ class DBStore extends DefaultConsumer {
 		}
 		
 		try {
-			meta.getHashes().putAll(hashMessageHelper.decodeHashMessage(headers, body));
+			//TODO this will be replaced with hash message helper
+			if(headers.containsKey(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS)) {
+				meta.getHashes().put("phash", new Hash(body));
+			}else {
+				meta.getHashes().putAll(hashMessageHelper.decodeHashMessage(headers, body));
+			}
+			
 			mapper.storeDocument(meta);
 			LOGGER.info("Updated database entry for {} - {}", anchor, relativeAnchorPath);
 		} catch (NoSuchAlgorithmException e) {
