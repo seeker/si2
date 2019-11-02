@@ -23,6 +23,8 @@ public class QueueConfigurationTest {
 	private static final String THUMBNAIL_QUEUE_NAME = "bar";
 	private static final String THUMBNAIL_REQ_QUEUE_NAME = "boo";
 	private static final String FILE_QUEUE_NAME = "baz";
+	private static final String FILE_RESIZE_NAME = "resize";
+	private static final String FILE_PREPROCESS_NAME = "preprocess";
 	
 	@Mock
 	private Channel channel;
@@ -42,7 +44,9 @@ public class QueueConfigurationTest {
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/hash"))).thenReturn(HASH_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail"))).thenReturn(THUMBNAIL_QUEUE_NAME);
 		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail-request"))).thenReturn(THUMBNAIL_REQ_QUEUE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/loader-file-feed"))).thenReturn(FILE_QUEUE_NAME);
+		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-digest"))).thenReturn(FILE_QUEUE_NAME);
+		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-resize"))).thenReturn(FILE_RESIZE_NAME);
+		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-pre-processed"))).thenReturn(FILE_PREPROCESS_NAME);
 		
 		cut = new QueueConfiguration(channel, consulClient);
 		cutIntegration = new QueueConfiguration(channel, consulClient, true);
@@ -75,7 +79,12 @@ public class QueueConfigurationTest {
 	
 	@Test
 	public void queueNameForFiles() throws Exception {
-		assertThat(cut.getQueueName(ConfiguredQueues.files), is(FILE_QUEUE_NAME));
+		assertThat(cut.getQueueName(ConfiguredQueues.fileDigest), is(FILE_QUEUE_NAME));
+	}
+
+	@Test
+	public void queueNameForResize() throws Exception {
+		assertThat(cut.getQueueName(ConfiguredQueues.fileResize), is(FILE_RESIZE_NAME));
 	}
 	
 	@Test
@@ -90,7 +99,7 @@ public class QueueConfigurationTest {
 	
 	@Test
 	public void queueNameForFilesIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.files), is(startsWith(prefixWithIntegration(FILE_QUEUE_NAME))));
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileDigest), is(startsWith(prefixWithIntegration(FILE_QUEUE_NAME))));
 	}
 	
 	@Test
@@ -105,7 +114,12 @@ public class QueueConfigurationTest {
 	
 	@Test
 	public void queueNameForFilesIntegrationUUIDsuffix() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.files), is(not(endsWith(FILE_QUEUE_NAME))));
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileDigest), is(not(endsWith(FILE_QUEUE_NAME))));
+	}
+
+	@Test
+	public void queueNameForResizeIntegrationUUIDsuffix() throws Exception {
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileResize), is(not(endsWith(FILE_RESIZE_NAME))));
 	}
 	
 	@Test(expected=IllegalStateException.class)

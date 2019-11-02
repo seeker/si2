@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
 import javax.imageio.IIOException;
@@ -30,8 +31,11 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -43,17 +47,25 @@ import com.rabbitmq.client.Envelope;
  * Fetches images from the queue and generates hashes and the thumbnail.
  * The results are sent as a new message.
  */
-public class FileProcessor {
-	private static final Logger LOGGER = LoggerFactory.getLogger(FileProcessor.class);
+public class CustomHashProcessor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CustomHashProcessor.class);
 
 	private final Channel channel;
 	private final QueueConfiguration queueConfig;
 	
-	private final int thumbnailSize;
+	public CustomHashProcessor(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
+		
+		this.channel = channel;
+		this.queueConfig = queueConfig;
+		
+		channel.basicQos(20);
+		
+		processFiles();
+	}
 	
-	
-	public FileProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
-		LOGGER.info("{} starting up...", FileProcessor.class.getSimpleName());
+	public CustomHashProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnection();
@@ -61,39 +73,34 @@ public class FileProcessor {
 		
 		queueConfig = new QueueConfiguration(channel, consul);
 		
-		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
-
 		channel.basicQos(20);
 
-		
 		processFiles();
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
-		String queueName =  queueConfig.getQueueName(ConfiguredQueues.files);
+		String queueName =  queueConfig.getQueueName(ConfiguredQueues.filePreProcessed);
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new FileMessageConsumer(channel, thumbnailSize, queueConfig));
+		channel.basicConsume(queueName, new CustomFileMessageConsumer(channel, queueConfig));
 	}
 }
 
-class FileMessageConsumer extends DefaultConsumer {
-	private static final Logger LOGGER = LoggerFactory.getLogger(FileMessageConsumer.class);
+class CustomFileMessageConsumer extends DefaultConsumer {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHashConsumer.class);
 
 	private static final int IMAGE_SIZE = 32;
 	private static final int DCT_MATRIX_SIZE = 8;
 	
 	private final DoubleDCT_2D jtransformDCT;
 	
-	private final int thumbnailSize;
 	private final QueueConfiguration queueConfig;
-	private final HashMessageHelper hashMessageHelper;
+	private final HashMessageBuilder hashMessageBuilder;
 	
-	public FileMessageConsumer(Channel channel, int thumbnailSize, QueueConfiguration queueConfig) {
+	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig) {
 		super(channel);
 		
-		this.thumbnailSize = thumbnailSize;
 		this.queueConfig = queueConfig;
-		this.hashMessageHelper = new HashMessageHelper(channel, queueConfig);
+		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
 		
 		this.jtransformDCT = new DoubleDCT_2D(IMAGE_SIZE, IMAGE_SIZE); 
 		
@@ -104,77 +111,67 @@ class FileMessageConsumer extends DefaultConsumer {
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 		Map<String, Object> header = properties.getHeaders();
 		
-		MessageDigest md = null;
-		try {
-			md = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			//TODO send a error message back
-			e.printStackTrace();
+		String anchor = header.get(MessageHeaderKeys.ANCHOR).toString();
+		String relativePath = header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH).toString();
+		Object rawCustomHashHeader = header.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS);
+		String[] customHashes = null;
+		
+		if (Objects.nonNull(rawCustomHashHeader)) {
+			customHashes = rawCustomHashHeader.toString().split(",");
+		} else {
+			customHashes = new String[0];
+		}
+		
+		if(! hasCustomHashes(customHashes)) {
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
 		}
 		
 		InputStream is =  new ByteArrayInputStream(body);
-		DigestInputStream dis =  new DigestInputStream(is, md);
 		
-		BufferedImage originalImage;
+		BufferedImage preProcessedImage;
 		
 		try {
-			originalImage = ImageIO.read(dis);
+			preProcessedImage = ImageIO.read(is);
 		}catch (IIOException e) {
-			LOGGER.warn("Failed to read image {} - {}: {}", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH),e.getMessage());
-			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			LOGGER.warn("Failed to read image {}:{}: {}", anchor, relativePath,e.getMessage());
+			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 			return;
 		}
 		
-		if (originalImage == null) {
+		if (preProcessedImage == null) {
 			//TODO send an error message
-			LOGGER.warn("Was unable to read image data for {} - {} ", header.get(MessageHeaderKeys.ANCHOR), header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			LOGGER.warn("Was unable to read image data for {}:{} ", anchor, relativePath);
+			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 			return;
 		}
 		
-		boolean hasThumbnail = Boolean.parseBoolean(header.get("thumb").toString());
-		
-		if(!hasThumbnail) {
-			try {
-				createThumbnail(header, originalImage);
-			} catch (IllegalArgumentException iae) {
-				//TODO send a error message
-				LOGGER.warn("Failed to create thumbnail due to {}", iae);
-			}
-		}
-		
-		long pHash = calculatePhash(originalImage);
-		originalImage.flush();
+		long pHash = calculatePhash(preProcessedImage);
+		preProcessedImage.flush();
 		
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
 		hashHeaders.put(MessageHeaderKeys.ANCHOR, header.get(MessageHeaderKeys.ANCHOR));
 		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-
-		hashMessageHelper.sendMessage(hashHeaders, dis.getMessageDigest().digest(), pHash);
+		hashHeaders.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, header.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS));
+		
+		ByteArrayDataOutput messageBody = ByteStreams.newDataOutput();
+		messageBody.writeLong(pHash);
+		
+		//TODO include custom hashes in HashMessageBuilder
+		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());
 		
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"),	header.get("missing-hash"));
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
-
-	private void createThumbnail(Map<String, Object> header, BufferedImage originalImage) throws IOException {
-		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, thumbnailSize);
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		ImageIO.write(thumbnail, "jpg", os);
-		thumbnail.flush();
-		
-		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
-		thumbnailHeaders.put("anchor", header.get("anchor"));
-		thumbnailHeaders.put("path", header.get("path"));
-		
-		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
-		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnails), thumbnailProps, os.toByteArray());
+	
+	private boolean hasCustomHashes(String[] customHashes) {
+		return ! (customHashes.length == 0 || customHashes[0].isEmpty());
 	}
 	
 	private long calculatePhash(BufferedImage originalImage) {
-		BufferedImage grayscaleImage = Scalr.resize(originalImage, Method.SPEED, Mode.FIT_EXACT, IMAGE_SIZE, new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null));
-		
-		double[][] reducedColorValues = ImageUtil.toDoubleMatrix(grayscaleImage);
+		double[][] reducedColorValues = ImageUtil.toDoubleMatrix(originalImage);
 
 		jtransformDCT.forward(reducedColorValues, true);
 		double[][] dct = reducedColorValues;

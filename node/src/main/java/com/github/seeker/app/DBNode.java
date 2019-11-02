@@ -1,6 +1,7 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.messaging.HashMessage;
 import com.github.seeker.messaging.HashMessageHelper;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -58,7 +60,7 @@ public class DBNode {
 		this.mapper = mapper;
 		
 		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
-		hashMessageHelper = new HashMessageHelper(channel, queueConfig);
+		hashMessageHelper = new HashMessageHelper();
 		
 		startConsumers();
 	}
@@ -88,12 +90,12 @@ class DBStore extends DefaultConsumer {
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		HashMessage message = hashMessageHelper.decodeHashMessage(properties.getHeaders(), body);
+		Map<String, Object> headers = properties.getHeaders();
 		
-		String anchor = message.getAnchor();
-		String relativeAnchorPath = message.getReltaivePath();
+		String anchor = hashMessageHelper.getAnchor(headers);
+		String relativeAnchorPath = hashMessageHelper.getRelativePath(headers);
 		
-		ImageMetaData meta = mapper.getImageMetadata(message.getAnchor(), message.getReltaivePath());
+		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
 		
 		if(meta == null) {
 			LOGGER.warn("No metadata found in database for {} - {}", anchor, relativeAnchorPath);
@@ -102,21 +104,22 @@ class DBStore extends DefaultConsumer {
 			meta.setPath(relativeAnchorPath.toString());
 		}
 		
-		updateMetadata(message, meta);
-
-		mapper.storeDocument(meta);
-		LOGGER.info("Updated database entry for {} - {}", anchor, relativeAnchorPath);
+		try {
+			//TODO this will be replaced with hash message helper
+			if(headers.containsKey(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS)) {
+				meta.getHashes().put("phash", new Hash(body));
+			}else {
+				meta.getHashes().putAll(hashMessageHelper.decodeHashMessage(headers, body));
+			}
+			
+			mapper.storeDocument(meta);
+			LOGGER.info("Updated database entry for {} - {}", anchor, relativeAnchorPath);
+		} catch (NoSuchAlgorithmException e) {
+			LOGGER.error("Failed to update hash because algorithm is unknown: {}", e);
+			// TODO Send message to queue
+			e.printStackTrace();
+		}
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
-	}
-	
-	private void updateMetadata(HashMessage message, ImageMetaData meta) {
-		//TODO use required hashes
-		
-		Map<String, Hash> metaHashes = meta.getHashes();
-		metaHashes.put("sha256", new Hash(message.getSha256()));
-		metaHashes.put("phash", new Hash(Longs.toByteArray(message.getPhash())));
-
-		mapper.storeDocument(meta);
 	}
 }

@@ -60,10 +60,15 @@
     key: config/rabbitmq/users/si2
     value: "{{si2_pwd}}"
 
-- name: Set queue name for loader file queue
+- name: Set queue name for file digest queue
   consul_kv:
-    key: config/rabbitmq/queue/loader-file-feed
-    value: "loaded-files"
+    key: config/rabbitmq/queue/file-digest
+    value: "file-digest"
+
+- name: Set queue name for file resize queue
+  consul_kv:
+    key: config/rabbitmq/queue/file-resize
+    value: "file-resize"
 
 - name: Set queue name for thumbnails
   consul_kv:
@@ -79,4 +84,10 @@
   consul_kv:
     key: config/rabbitmq/queue/thumbnail-request
     value: "thumbnail-request"
+
+- name: Set queue name for pre processed files
+  consul_kv:
+    key: config/rabbitmq/queue/file-pre-processed
+    value: "file-pre-processed"
     
+

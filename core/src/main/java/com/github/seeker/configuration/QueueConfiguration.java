@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 
 /**
@@ -16,17 +17,32 @@ import com.rabbitmq.client.Channel;
 public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
 	
+	private static final String FILE_LOADER_EXCHANGE = "loader";
+	private static final String FILE_LOADER_INTEGRATION_EXCHANGE = "integration-loader";
+	
 	private Channel channel;
 	private ConsulClient consulClient;
 	private boolean integration;
 	private Map<ConfiguredQueues, String> queueNames;
+	private String fileLoaderExchangeName;
 	
 	public enum ConfiguredQueues 
 	{
 		/**
-		 * Queue containing files to process
+		 * Files in this queue will be processed directly, using the raw data
 		 */
-		files,
+		fileDigest,
+		
+		/**
+		 * Files in this queue will be resized
+		 */
+		fileResize,
+		
+		
+		/**
+		 * Messages in this queue are pre-processed files. They need to be further processed to yield a usable hash.
+		 */
+		filePreProcessed,
 		/**
 		 * Queue for computed hashes
 		 */
@@ -70,6 +86,7 @@ public class QueueConfiguration {
 		this.integration = integration;
 		
 		setupQueueNames(setupConsulKeys());
+		declareExchanges();
 		declareQueues();
 	}
 	
@@ -90,7 +107,9 @@ public class QueueConfiguration {
 		keyToQueues.put(ConfiguredQueues.hashes, "config/rabbitmq/queue/hash");
 		keyToQueues.put(ConfiguredQueues.thumbnails, "config/rabbitmq/queue/thumbnail");
 		keyToQueues.put(ConfiguredQueues.thumbnailRequests, "config/rabbitmq/queue/thumbnail-request");		
-		keyToQueues.put(ConfiguredQueues.files, "config/rabbitmq/queue/loader-file-feed");
+		keyToQueues.put(ConfiguredQueues.fileDigest, "config/rabbitmq/queue/file-digest");
+		keyToQueues.put(ConfiguredQueues.fileResize, "config/rabbitmq/queue/file-resize");
+		keyToQueues.put(ConfiguredQueues.filePreProcessed, "config/rabbitmq/queue/file-pre-processed");
 		
 		return keyToQueues;
 	}
@@ -111,13 +130,27 @@ public class QueueConfiguration {
 		}
 	}
 	
+	private void declareExchanges() throws IOException {
+		LOGGER.info("Declaring exchanges...");
+		
+		fileLoaderExchangeName = FILE_LOADER_EXCHANGE;
+		
+		if(integration) {
+			fileLoaderExchangeName = FILE_LOADER_INTEGRATION_EXCHANGE;
+		}
+		
+		channel.exchangeDeclare(fileLoaderExchangeName, BuiltinExchangeType.FANOUT);
+	}
+	
 	private void declareQueues() throws IOException {
 		LOGGER.info("Declaring {} queues...", queueNames.size());
-		
 		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
 			LOGGER.debug("Declaring queue {} ...", getQueueName(queue));
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
+		
+		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), fileLoaderExchangeName, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), fileLoaderExchangeName, "");
 	}
 	
 	/**
@@ -135,5 +168,15 @@ public class QueueConfiguration {
 		}
 		
 		return queueNames.get(queue);
+	}
+	
+	/**
+	 * Get the name of the exchange for file loading.
+	 * This is a fanout exchange that sends messages to the digest hasher and resizer.
+	 * 
+	 * @return the name of the exchange
+	 */
+	public String getFileLoaderExchangeName() {
+		return fileLoaderExchangeName;
 	}
 }

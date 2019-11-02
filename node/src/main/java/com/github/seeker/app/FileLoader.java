@@ -100,7 +100,7 @@ public class FileLoader {
 		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
 		
 		try {
-			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getQueueName(ConfiguredQueues.files)));
+			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getFileLoaderExchangeName()));
 		} catch (IOException e) {
 			LOGGER.warn("Failed to walk file tree for {}: {}", anchorAbsolutePath, e.getMessage());
 		}
