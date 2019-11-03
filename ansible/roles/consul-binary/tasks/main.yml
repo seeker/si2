@@ -30,13 +30,3 @@
     creates: "{{ consul_binary }}"
     owner: root
 
-- name: Create Consul configuration  directory
-  file:
-    state: directory
-    path: /etc/consul.d/
-
-- name: Create Consul data directory
-  file:
-    state: directory
-    path: /var/consul/
-

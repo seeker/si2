@@ -21,7 +21,7 @@ Vagrant.configure("2") do |config|
 		ansible.groups = {
 			"consul_server" => ["consul"],
 			"vagrant" => ["consul"],
-			"vagrant:vars" => {"consul_server" => "192.168.42.10"}
+			"vagrant:vars" => {"consul_server" => "192.168.42.10", "gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
 		}
 	end
 
@@ -39,6 +39,7 @@ Vagrant.configure("2") do |config|
                 ansible.groups = {
                         "mongodb" => ["mongodb"],
                         "vagrant" => ["mongodb"],
+						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
                 }
         end
 
@@ -55,6 +56,8 @@ Vagrant.configure("2") do |config|
                 ansible.playbook = "ansible/site.yml"
                 ansible.groups = {
                         "rabbitmq" => ["rabbitmq"],
+						"vagrant" => ["rabbitmq"],
+						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
                 }
         end
 

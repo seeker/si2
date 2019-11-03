@@ -1,20 +1,56 @@
 ---
+- fail: msg="Please set the gossip_encryption_key (preferably using vault)"
+  when: gossip_encryption_key is undefined
+
 - name: Install python Consul
   apt:
     cache_valid_time: "{{apt_cache_timeout}}"
     name: python3-consul
     state: present
 
-- name: Create Systemd unit for Consul
+- name: Create consul user
+  user:
+    name: consul
+    system: yes
+    home: /etc/consul.d/
+    shell: /bin/false
+
+- name: Create Consul configuration  directory
+  file:
+    state: directory
+    path: /etc/consul.d/
+    recurse: yes
+    owner: consul
+    group: consul
+
+- name: Create Consul data directory
+  file:
+    state: directory
+    path: /var/consul/
+    recurse: yes
+    owner: consul
+    group: consul
+    
+- name: Copy Systemd unit for Consul
+  copy:
+    src: consul.service
+    dest: /etc/systemd/system/consul.service
+
+- name: Create consul main configuration
   template:
-    src: systemd-unit.j2
-    dest: /etc/systemd/system/consul.service    
+    src: consul.hcl.j2
+    dest: /etc/consul.d/consul.hcl
+
+- name: Create consul encryption configuration
+  template:
+    src: encrypt.hcl.j2
+    dest: /etc/consul.d/encrypt.hcl
 
 - name: Enable and start Consul agent
   systemd:
     name: consul
     daemon_reload: yes
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Wait for consul agent to start up

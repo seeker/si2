@@ -1,0 +1,12 @@
+{% if server %}
+bootstrap_expect = 1
+ui = true
+client_addr = "{{ bind_ip }}"
+{% endif %}
+
+server = {{ server|lower }}
+data_dir = "/var/consul/"
+node_name = "{{ inventory_hostname }}"
+datacenter = "{{ datacenter }}"
+bind_addr = "{{ bind_ip }}"
+retry_join = ["{{ consul_server }}"]
