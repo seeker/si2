@@ -1,0 +1,18 @@
+[
+  {server, [
+    {cacertfile, "{{ ca_cert_path }}"},
+    {certfile, "{{ server_cert_path }}"},
+    {keyfile,  "{{ server_key_path }}"},
+    {secure_renegotiate, true},
+    {verify, verify_peer},
+    {fail_if_no_peer_cert, true}
+  ]},
+  {client, [
+    {cacertfile, "{{ ca_cert_path }}"},
+    {certfile, "{{ client_cert_path }}"},
+    {keyfile, "{{ client_key_path }}"},
+    {secure_renegotiate, true},
+    {verify, verify_peer},
+    {fail_if_no_peer_cert, true}
+  ]}
+].

@@ -1,0 +1,10 @@
+# NOTE: the following path is **system dependent**
+ERL_SSL_PATH="{{ erlang_ssl_path }}"
+
+SERVER_ADDITIONAL_ERL_ARGS="-pa $ERL_SSL_PATH
+  -proto_dist inet_tls
+  -ssl_dist_optfile /etc/rabbitmq/ssl_dist.config"
+
+CTL_ERL_ARGS="-pa $ERL_SSL_PATH
+  -proto_dist inet_tls
+  -ssl_dist_optfile /etc/rabbitmq/ssl_dist.config"
