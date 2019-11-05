@@ -1,0 +1,3 @@
+---
+erlang_ssl_path: "/usr/lib/erlang/lib/ssl-8.2.3/ebin"
+rabbitmq_config_dir: "/etc/rabbitmq/"
