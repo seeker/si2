@@ -1,0 +1,16 @@
+---
+- name: Generate CA certificates
+  shell: "consul tls ca create"
+  args:
+    chdir: "{{ ssl_gen_dir.path }}"
+
+- name: Generate server certificates
+  shell: "consul tls cert create -dc={{ datacenter }} -server"
+  args:
+    chdir: "{{ ssl_gen_dir.path }}"
+
+- name: Generate client certificates
+  shell: "consul tls cert create -dc={{ datacenter }} -client"
+  args:
+    chdir: "{{ ssl_gen_dir.path }}"
+    
