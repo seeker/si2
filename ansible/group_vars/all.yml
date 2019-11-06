@@ -1,8 +1,3 @@
 ---
 ansible_python_interpreter: "python3"
 apt_cache_timeout: 7200
-ca_cert_path: "{{ rabbitmq_config_dir }}/ca_cert.pem"
-server_cert_path: "{{ rabbitmq_config_dir }}/server_cert.pem"
-server_key_path: "{{ rabbitmq_config_dir }}/server_key.pem"
-client_cert_path: "{{ rabbitmq_config_dir }}/client_cert.pem"
-client_key_path: "{{ rabbitmq_config_dir }}/client_key.pem"

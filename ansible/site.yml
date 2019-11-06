@@ -28,6 +28,8 @@
   - consul-binary
   - consul-service
   - rabbitmq-server
+  - rabbitmq-server-ssl-enable
+
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.12

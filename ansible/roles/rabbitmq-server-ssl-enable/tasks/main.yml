@@ -12,18 +12,65 @@
 - name: Create RabbitMQ SSL configuration
   template:
     src: ssl_dist.config.j2
-    dest: /etc/rabbitmq/ssl_dist.config
+    dest: "{{ rabbitmq_ssl_config }}"
     owner: rabbitmq
     group: rabbitmq
 
-# TODO conditional restart, only if config files have changed
-- name: Restart RabbitMQ server
-  systemd:
-    name: rabbitmq-server
-    state: restarted
+- name: Enable SSL in RabbitMQ enviroment configuration
+  template:
+    src: rabbitmq-env.conf.j2
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq-env.conf"
+    owner: rabbitmq
+    group: rabbitmq
 
 - name: Register RabbitMQ SSL service with consul
   consul:
     service_name: rabbitmq-ssl
     service_port: 5671
     tags: message-broker,rabbitmq
+
+- name: Copy CA certificate
+  copy:
+    src: "{{ ca_cert_source }}"
+    dest: "{{ rabbitmq_config_dir }}/ca_cert.pem"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "u=rwx,g=rwx,o="
+
+- name: Copy server certificate
+  copy:
+    src: "{{ server_cert_source }}"
+    dest: "{{ rabbitmq_config_dir }}/server_cert.pem"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "u=rwx,g=rwx,o="
+
+- name: Copy server key
+  copy:
+    src: "{{ server_key_source }}"
+    dest: "{{ rabbitmq_config_dir }}/server_key.pem"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "u=rwx,g=rwx,o="
+
+- name: Copy client certificate
+  copy:
+    src: "{{ client_cert_source }}"
+    dest: "{{ rabbitmq_config_dir }}/client_cert.pem"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "u=rwx,g=rwx,o="
+
+- name: Copy client key
+  copy:
+    src: "{{ client_key_source }}"
+    dest: "{{ rabbitmq_config_dir }}/client_key.pem"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "u=rwx,g=rwx,o="
+
+# TODO conditional restart, only if config files or certs have changed
+- name: Restart RabbitMQ server
+  systemd:
+    name: rabbitmq-server
+    state: restarted

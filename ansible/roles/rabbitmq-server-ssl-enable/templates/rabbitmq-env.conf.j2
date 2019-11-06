@@ -3,8 +3,8 @@ ERL_SSL_PATH="{{ erlang_ssl_path }}"
 
 SERVER_ADDITIONAL_ERL_ARGS="-pa $ERL_SSL_PATH
   -proto_dist inet_tls
-  -ssl_dist_optfile /etc/rabbitmq/ssl_dist.config"
+  -ssl_dist_optfile {{ rabbitmq_ssl_config }}"
 
 CTL_ERL_ARGS="-pa $ERL_SSL_PATH
   -proto_dist inet_tls
-  -ssl_dist_optfile /etc/rabbitmq/ssl_dist.config"
+  -ssl_dist_optfile {{ rabbitmq_ssl_config }}"
