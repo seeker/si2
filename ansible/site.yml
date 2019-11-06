@@ -4,11 +4,14 @@
   become: yes
   roles:
   - consul-binary
+  - generate-ssl-certifcates
   - consul-service
   - consul-kv-config
   vars:
     - server: yes
     - bind_ip: 192.168.42.10
+    - ssl_gen_dir: "/vagrant/ssl-certs/"
+    - datacaenter: "vagrant"
 
 - hosts: mongodb
   become_user: root

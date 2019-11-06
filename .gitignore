@@ -16,3 +16,6 @@ src/main/resources/si2.yaml
 
 # thumbnail directory for thumbnail node
 thumbs/
+
+# SSL certificates generated for vargrant development environment
+ssl-certs/
