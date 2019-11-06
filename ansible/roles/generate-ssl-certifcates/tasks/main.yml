@@ -1,4 +1,9 @@
 ---
+- name: Create directory for SSL certificates
+  file:
+    state: directory
+    path: "{{ ssl_gen_dir }}"
+
 - name: Generate CA certificates
   shell: "consul tls ca create"
   args:
