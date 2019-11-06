@@ -7,15 +7,18 @@
 - name: Generate CA certificates
   shell: "consul tls ca create"
   args:
-    chdir: "{{ ssl_gen_dir.path }}"
+    chdir: "{{ ssl_gen_dir }}"
+    creates: "{{ ssl_gen_dir }}/consul-agent-ca.pem"
 
 - name: Generate server certificates
   shell: "consul tls cert create -dc={{ datacenter }} -server"
   args:
-    chdir: "{{ ssl_gen_dir.path }}"
-
+    chdir: "{{ ssl_gen_dir }}"
+    creates: "{{ ssl_gen_dir }}/{{ datacenter }}-server-consul-0.pem"
+    
 - name: Generate client certificates
   shell: "consul tls cert create -dc={{ datacenter }} -client"
   args:
-    chdir: "{{ ssl_gen_dir.path }}"
-    
+    chdir: "{{ ssl_gen_dir }}"
+    creates: "{{ ssl_gen_dir }}/{{ datacenter }}-client-consul-0.pem"
+
