@@ -30,9 +30,15 @@
   roles:
   - consul-binary
   - consul-service
-  - rabbitmq-server
+#  - rabbitmq-server
   - rabbitmq-server-ssl-enable
 
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.12
+    - ca_cert_source: "/vagrant/ssl-certs/consul-agent-ca.pem"
+    - server_cert_source: "/vagrant/ssl-certs/vagrant-server-consul-0.pem"
+    - server_key_source: "/vagrant/ssl-certs/vagrant-server-consul-0-key.pem"
+    - client_cert_source: "/vagrant/ssl-certs/vagrant-client-consul-0.pem"
+    - client_key_source: "/vagrant/ssl-certs/vagrant-client-consul-0-key.pem"
+    - remote_source: yes

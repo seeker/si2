@@ -28,7 +28,7 @@
     service_name: rabbitmq-ssl
     service_port: 5671
     tags: message-broker,rabbitmq
-
+    
 - name: Copy CA certificate
   copy:
     src: "{{ ca_cert_source }}"
@@ -36,6 +36,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "u=rwx,g=rwx,o="
+    remote_src: "{{ remote_source }}"
 
 - name: Copy server certificate
   copy:
@@ -44,6 +45,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "u=rwx,g=rwx,o="
+    remote_src: "{{ remote_source }}"
 
 - name: Copy server key
   copy:
@@ -52,6 +54,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "u=rwx,g=rwx,o="
+    remote_src: "{{ remote_source }}"
 
 - name: Copy client certificate
   copy:
@@ -60,6 +63,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "u=rwx,g=rwx,o="
+    remote_src: "{{ remote_source }}"
 
 - name: Copy client key
   copy:
@@ -68,6 +72,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "u=rwx,g=rwx,o="
+    remote_src: "{{ remote_source }}"
 
 # TODO conditional restart, only if config files or certs have changed
 - name: Restart RabbitMQ server
