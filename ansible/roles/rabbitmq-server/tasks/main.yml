@@ -1,6 +1,6 @@
 ---
 - name: Install RabbitMQ server and ansible dependencies
-  import_tasks: install-rabbitmq-ubuntu-repo.yml
+  import_tasks: install-rabbitmq-bintray-repo.yml
 
 - name: Register RabbitMQ service with consul
   consul:
