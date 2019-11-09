@@ -14,6 +14,23 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
 
+  config.vm.define "vault", primary: true do |vault|
+	vault.vm.network "private_network", ip: "192.168.42.13"
+	vault.vm.provision "ansible" do |ansible|
+		ansible.playbook = "ansible/site.yml"
+		ansible.groups = {
+			"vault" => ["valut"],
+			"vagrant" => ["vault"],
+			"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
+		}
+	end
+
+	vault.vm.provider "virtualbox" do |vb|
+		vb.memory = 512
+		vb.cpus = 2
+	end
+  end
+
   config.vm.define "consul", primary: true do |consul|
 	consul.vm.network "private_network", ip: "192.168.42.10"
 	consul.vm.provision "ansible" do |ansible|
