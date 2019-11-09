@@ -1,0 +1,26 @@
+---
+- name: Add RabbitMQ signing key
+  apt_key:
+    url: https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc
+
+- name: Add Erlang bintray repository
+  apt_repository:
+    filename: bintray.erlang
+    repo: deb http://dl.bintray.com/rabbitmq-erlang/debian bionic erlang
+
+- name: Add RabbitMQ bintray repository
+  apt_repository:
+    filename: bintray.rabbitmq
+    repo: deb https://dl.bintray.com/rabbitmq/debian bionic main
+
+- name: Install RabbitMQ server and ansible dependencies
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: rabbitmq-server
+
+- name: Enable and start RabbitMQ server
+  systemd:
+    daemon_reload: yes
+    name: rabbitmq-server
+    enabled: yes
+    state: started
