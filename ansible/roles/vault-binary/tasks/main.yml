@@ -1,0 +1,38 @@
+---
+- name: Install zip
+  apt:
+    cache_valid_time: "{{apt_cache_timeout}}"
+    name: zip
+
+- name: Remove exisitng binary
+  when: force
+  file:
+    path: "{{ vault_binary }}"
+    state: absent
+
+- name: Check that the Vault binary exists
+  stat:
+    path: "{{ vault_binary }}"
+  register: vault_binary_stat
+
+- name: Create temporary setup directory
+  tempfile:
+    state: directory
+  register: vault_setup_directory
+  when: vault_binary_stat.stat.exists == False
+
+- name: Download Vault tarball
+  get_url:
+    url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_linux_amd64.zip"
+    dest: "{{ temp_vault }}"
+  when: vault_binary_stat.stat.exists == False
+
+- name: Unpack Vault
+  unarchive:
+    src: "{{ temp_vault }}"
+    remote_src: yes
+    dest: /usr/local/bin/
+    creates: "{{ vault_binary }}"
+    owner: root
+  when: vault_binary_stat.stat.exists == False
+
