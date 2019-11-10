@@ -1,0 +1,36 @@
+---
+- name: Create Vault user
+  user:
+    name: vault
+    system: yes
+    home: /etc/vault.d/
+    shell: /bin/false
+
+- name: Create Vault configuration  directory
+  file:
+    state: directory
+    path: /etc/vault.d/
+    recurse: yes
+    owner: vault
+    group: vault
+
+- name: Copy Systemd unit for Vault
+  copy:
+    src: vault.service
+    dest: /etc/systemd/system/vault.service
+
+- name: Create Vault main configuration
+  template:
+    src: vault.hcl.j2
+    dest: /etc/vault.d/vault.hcl
+
+- name: Enable and start Vault agent
+  systemd:
+    name: vault
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+
+- name: Wait for Vault agent to start up
+  wait_for:
+    timeout: 5
