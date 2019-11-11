@@ -1,32 +1,33 @@
 ---
-- name: Install zip
-  apt:
-    cache_valid_time: "{{apt_cache_timeout}}"
-    name: zip
-
-- name: Removing consul binary
-  when: force
-  file:
-    path: temp_consul
-    state: absent
-
-- name: Download consul tarball
-  get_url:
-    url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
-    dest: "{{ temp_consul }}"
-    force: "{{ force }}"
-
 - name: Remove exisitng binary
   when: force
   file:
     path: "{{ consul_binary }}"
     state: absent
 
-- name: Unpack consul
-  unarchive:
-    src: "{{ temp_consul }}"
-    remote_src: yes
-    dest: /usr/local/bin/
-    creates: "{{ consul_binary }}"
-    owner: root
+- name: Check that the Vault binary exists
+  stat:
+    path: "{{ consul_binary }}"
+  register: consul_binary_stat
 
+- name: Download and install Consul binary
+  block:
+    - name: Install zip
+      apt:
+        cache_valid_time: "{{ apt_cache_timeout }}"
+        name: zip
+
+    - name: Download Consul tarball
+      get_url:
+        url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
+        dest: "{{ temp_consul }}"
+
+    - name: Unpack Consul
+      unarchive:
+        src: "{{ temp_consul }}"
+        remote_src: yes
+        dest: /usr/local/bin/
+        creates: "{{ consul_binary }}"
+        owner: root
+
+  when: not consul_binary_stat.stat.exists
