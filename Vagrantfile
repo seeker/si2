@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
 	vault.vm.provision "ansible" do |ansible|
 		ansible.playbook = "ansible/site.yml"
 		ansible.groups = {
-			"vault" => ["valut"],
+			"vault" => ["vault"],
 			"vagrant" => ["vault"],
 			"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
 		}
