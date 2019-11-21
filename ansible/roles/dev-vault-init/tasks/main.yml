@@ -1,0 +1,62 @@
+---
+# DO NOT use this role in production, it is unsafe
+- name: Delete Vault storage on consul
+  consul_kv:
+    key: vault
+    recurse: yes
+    state: absent
+  when: clear_vault
+
+- name: Check if Vault has been initialized
+  uri:
+    url: http://{{ bind_ip }}:8200/v1/sys/init
+    validate_certs: no
+    body_format: json
+    return_content: yes
+  register: vault_init_response
+
+- name: Initialize Vault with a single key
+  block:
+    - name: Initialize Vault
+      uri:
+        url: http://{{ bind_ip }}:8200/v1/sys/init
+        method: post
+        body: '{"secret_shares" : 1, "secret_threshold" : 1}'
+      register: init_response
+
+    - set_fact:
+        root_token: "{{ init_response.json.root_token }}"
+        cacheable: yes
+        unseal_key: "{{ init_response['json']['keys'][0] }}"
+
+    - name: Create User profile with enviroment variables
+      template:
+        src: profile.j2
+        dest: /home/vagrant/.profile
+        group: vagrant
+        owner: vagrant
+        mode: "u=rwx,g=rwx,o="
+
+    - name: Create Vault auto unseal script
+      template:
+        src: auto-unseal-vault.sh.j2
+        dest: /home/vagrant/auto-unseal-vault.sh
+        group: vagrant
+        owner: vagrant
+        mode: "u=rwx,g=rwx,o="
+        
+    - name: Create Systemd unit to run unseal script
+      copy:
+        src: auto-unseal-vault.service
+        dest: /etc/systemd/system/auto-unseal-vault.service
+        owner: root
+        group: root
+
+    - name: Enable and start Vault auto unseal Systemd unit
+      systemd:
+        name: auto-unseal-vault
+        daemon_reload: yes
+        state: started
+        enabled: yes
+    
+  when: vault_init_response.json.initialized == false

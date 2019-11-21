@@ -1,0 +1,5 @@
+#!/bin/sh
+sleep 5
+
+export VAULT_ADDR='http://{{ bind_ip }}:8200'
+vault operator unseal {{ hostvars['vault']['ansible_facts']['unseal_key'] }}
