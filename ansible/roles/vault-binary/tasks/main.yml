@@ -37,3 +37,7 @@
 
   when: not vault_binary_stat.stat.exists
 
+- name: Install Vault shell autocomplete
+  shell:
+    cmd: 'vault -autocomplete-install'
+  when: install_autocomplete
