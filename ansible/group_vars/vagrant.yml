@@ -1,0 +1,3 @@
+---
+ssl_gen_dir: /vagrant/ssl-certs
+datacenter: vagrant

@@ -2,6 +2,9 @@
 \.vagrant
 *.log
 
+# generated SSL certificates for Vagrant VMs
+/ssl-certs/
+
 # eclipse IDE files
 .settings/
 .project

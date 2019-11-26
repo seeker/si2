@@ -6,6 +6,7 @@
   - consul-binary
   - consul-service
   - consul-kv-config
+  - generate-ssl-certifcates
   vars:
     - server: yes
     - bind_ip: 192.168.42.10
