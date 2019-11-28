@@ -1,24 +1,62 @@
 ---
-- name: Create directory for SSL certificates
-  file:
+- name: Create temporary directory to generate certificates
+  tempfile:
     state: directory
-    path: "{{ ssl_gen_dir }}"
+    suffix: "ssl-gen"
+  register: ssl_gen_dir
 
-- name: Generate CA certificates
-  command: "consul tls ca create"
-  args:
-    chdir: "{{ ssl_gen_dir }}"
-    creates: "{{ ssl_gen_dir }}/consul-agent-ca.pem"
+- name: Check if the SSL directory exists
+  stat:
+    path: "{{ ssl_dir }}"
+  register: ssl_dir_stat
 
-- name: Generate server certificates
-  command: "consul tls cert create -dc={{ datacenter }} -server"
-  args:
-    chdir: "{{ ssl_gen_dir }}"
-    creates: "{{ ssl_gen_dir }}/{{ datacenter }}-server-consul-0.pem"
+- name: Create SSL certificates
+  block:
+    - name: Create directory for SSL certificates
+      file:
+        state: directory
+        path: "{{ ssl_dir }}"
 
-- name: Generate client certificates
-  command: "consul tls cert create -dc={{ datacenter }} -client"
-  args:
-    chdir: "{{ ssl_gen_dir }}"
-    creates: "{{ ssl_gen_dir }}/{{ datacenter }}-client-consul-0.pem"
+    - name: Generate CA certificates
+      command: "consul tls ca create"
+      args:
+        chdir: "{{ ssl_gen_dir.path }}"
+        creates: "{{ ssl_gen_dir.path }}/consul-agent-ca.pem"
 
+    - name: Generate server certificates
+      command: "consul tls cert create -dc={{ datacenter }} -server"
+      args:
+        chdir: "{{ ssl_gen_dir.path }}"
+        creates: "{{ ssl_gen_dir.path }}/{{ datacenter }}-server-consul-0.pem"
+
+    - name: Generate client certificates
+      command: "consul tls cert create -dc={{ datacenter }} -client"
+      args:
+        chdir: "{{ ssl_gen_dir.path }}"
+        creates: "{{ ssl_gen_dir.path }}/{{ datacenter }}-client-consul-0.pem"
+
+    - name: Copy CA certificate
+      copy:
+        src: "{{ ssl_gen_dir.path }}/consul-agent-ca.pem"
+        dest: "{{ ssl_dir }}/ca.pem"
+        remote_src: yes
+
+    - name: Copy server certificate
+      copy:
+        src: "{{ ssl_gen_dir.path }}/{{ datacenter }}-server-consul-0.pem"
+        dest: "{{ ssl_dir }}/server-cert.pem"
+        remote_src: yes
+
+    - name: Copy server key
+      copy:
+        src: "{{ ssl_gen_dir.path }}/{{ datacenter }}-server-consul-0-key.pem"
+        dest: "{{ ssl_dir }}/server-key.pem"
+        remote_src: yes
+
+    - name: Copy client certificate
+      copy:
+        src: "{{ ssl_gen_dir.path }}/{{ datacenter }}-client-consul-0.pem"
+        dest: "{{ ssl_dir }}/client-cert.pem"
+        remote_src: yes
+
+  when: not ssl_dir_stat.stat.exists
