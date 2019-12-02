@@ -3,7 +3,7 @@
 *.log
 
 # generated SSL certificates for Vagrant VMs
-/ssl-certs/
+/ansible/files/ssl-certs/
 
 # eclipse IDE files
 .settings/
