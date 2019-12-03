@@ -1,0 +1,7 @@
+listeners.ssl.default = 5671
+
+ssl_options.cacertfile = {{ ca_cert_path }}
+ssl_options.certfile   = {{ server_cert_path }}
+ssl_options.keyfile    = {{ server_key_path }}
+ssl_options.verify     = verify_peer
+ssl_options.fail_if_no_peer_cert = false

@@ -1,0 +1,43 @@
+---
+- name: Copy CA certificate
+  copy:
+    src: "ssl-certs/ca.pem"
+    dest: "{{ ca_cert_path }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: 'u=rw,g=,o='
+  register: ca_cert_task
+
+- name: Copy server certificate
+  copy:
+    src: "ssl-certs/server-cert.pem"
+    dest: "{{ server_cert_path }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: 'u=rw,g=,o='
+  register: server_cert_task
+
+- name: Copy server key
+  copy:
+    src: "ssl-certs/server-key.pem"
+    dest: "{{ server_key_path }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: 'u=rw,g=,o='
+  register: server_key_task
+
+- name: Create RabbitMQ TLS configuration
+  template:
+    src: rabbitmq.conf.j2
+    dest: "{{ rabbitmq_ssl_config }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: 'u=rw,g=r,o=r'
+  register: config_task
+
+- name: Restart RabbitMQ server
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+  # TODO replace with handler
+  when: ca_cert_task.changed or server_cert_task.changed or server_key_task.changed or config_task.changed
