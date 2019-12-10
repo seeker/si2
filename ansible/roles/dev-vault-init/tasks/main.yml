@@ -9,7 +9,7 @@
 
 - name: Check if Vault has been initialized
   uri:
-    url: http://{{ bind_ip }}:8200/v1/sys/init
+    url: http://127.0.0.1:8200/v1/sys/init
     validate_certs: no
     body_format: json
     return_content: yes
@@ -19,7 +19,7 @@
   block:
     - name: Initialize Vault
       uri:
-        url: http://{{ bind_ip }}:8200/v1/sys/init
+        url: http://127.0.0.1:8200/v1/sys/init
         method: post
         body: '{"secret_shares" : 1, "secret_threshold" : 1}'
       register: init_response
@@ -60,3 +60,11 @@
         enabled: yes
     
   when: vault_init_response.json.initialized == false
+
+- name: Copy profile script for local vault address
+  copy:
+    src: vault-profile.sh
+    dest: /etc/profile.d/vault.sh
+    owner: root
+    group: root
+    mode: "u=rwx,g=rwx,o=rx"
