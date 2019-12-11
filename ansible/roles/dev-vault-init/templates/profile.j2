@@ -26,5 +26,4 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
-export VAULT_ADDR='http://{{ bind_ip }}:8200'
 export VAULT_TOKEN='{{ ansible_facts['root_token'] }}'
