@@ -29,37 +29,53 @@
         cacheable: yes
         unseal_key: "{{ init_response['json']['keys'][0] }}"
 
-    - name: Create User profile with enviroment variables
+    - name: Create Vault token file
       template:
-        src: profile.j2
-        dest: /home/vagrant/.profile
-        group: vagrant
+        src: vault-token.j2
+        dest: "{{ vault_token_path }}"
         owner: vagrant
+        group: vagrant
         mode: "u=rwx,g=rwx,o="
 
-    - name: Create Vault auto unseal script
+    - name: Create Vault seal key file
       template:
-        src: auto-unseal-vault.sh.j2
-        dest: /home/vagrant/auto-unseal-vault.sh
-        group: vagrant
+        src: vault-seal.j2
+        dest: "{{ vault_seal_path }}"
         owner: vagrant
+        group: vagrant
         mode: "u=rwx,g=rwx,o="
-        
-    - name: Create Systemd unit to run unseal script
-      copy:
-        src: auto-unseal-vault.service
-        dest: /etc/systemd/system/auto-unseal-vault.service
-        owner: root
-        group: root
 
-    - name: Enable and start Vault auto unseal Systemd unit
-      systemd:
-        name: auto-unseal-vault
-        daemon_reload: yes
-        state: started
-        enabled: yes
-    
   when: vault_init_response.json.initialized == false
+
+- name: Create User profile with enviroment variables
+  template:
+    src: profile.j2
+    dest: /home/vagrant/.profile
+    group: vagrant
+    owner: vagrant
+    mode: "u=rwx,g=rwx,o="
+
+- name: Create Vault auto unseal script
+  template:
+    src: auto-unseal-vault.sh.j2
+    dest: /home/vagrant/auto-unseal-vault.sh
+    group: vagrant
+    owner: vagrant
+    mode: "u=rwx,g=rwx,o="
+
+- name: Create Systemd unit to run unseal script
+  copy:
+    src: auto-unseal-vault.service
+    dest: /etc/systemd/system/auto-unseal-vault.service
+    owner: root
+    group: root
+
+- name: Enable and start Vault auto unseal Systemd unit
+  systemd:
+    name: auto-unseal-vault
+    daemon_reload: yes
+    state: started
+    enabled: yes
 
 - name: Copy profile script for local vault address
   copy:

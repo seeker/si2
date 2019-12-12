@@ -26,4 +26,4 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
-export VAULT_TOKEN='{{ ansible_facts['root_token'] }}'
+export VAULT_TOKEN=$(cat {{ vault_token_path }})
