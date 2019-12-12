@@ -7,3 +7,12 @@ listener "tcp" {
   address     = "127.0.0.1:8200"
   tls_disable = 1
 }
+{% if tls %}
+listener "tcp" {
+  address     = "{{ bind_ip }}:8200"
+  tls_cert_file = "/etc/vault.d/vault-cert.pem"
+  tls_key_file = "/etc/vault.d/vault-key.pem"
+}
+{% endif %}
+
+ui = true
