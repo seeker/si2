@@ -1,0 +1,25 @@
+---
+- name: Check if PKI secrets engine is enabled
+  uri:
+    url: "{{ vault_server_api }}/sys/mounts"
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+  register: mounts_response
+
+- debug:
+    var: mounts_response
+
+- name: Enable PKI secrets engine
+  block:
+    - name: Enable PKI secrets engine via API call
+      uri:
+        url: "{{ vault_server_api }}/sys/mounts/pki"
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
+          type: pki
+          config:
+            max_lease_ttl: 720h
+  when: true
+  
+  #mounts_response.json.pki != null
+    
