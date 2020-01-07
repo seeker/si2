@@ -37,6 +37,14 @@
         group: vagrant
         mode: "u=rwx,g=rwx,o="
 
+    - name: Create Vault token file
+      template:
+        src: vault-token.j2
+        dest: /vagrant/vault-root-token
+        owner: vagrant
+        group: vagrant
+        mode: "u=rw,g=rw,o="
+
     - name: Create Vault seal key file
       template:
         src: vault-seal.j2
