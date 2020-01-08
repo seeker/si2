@@ -38,7 +38,10 @@ Vagrant.configure("2") do |config|
 		ansible.groups = {
 			"vault" => ["vault"],
 			"vagrant" => ["vault"],
-			"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
+			"vagrant:vars" => {
+						"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA==",
+						"vault_api_url" => "http://127.0.0.1:8200/v1"
+					}
 		}
 	end
 

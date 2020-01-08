@@ -41,6 +41,7 @@
   - consul-service
   - vault-service
   - dev-vault-init
+  - vault-approle-auth
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.13
