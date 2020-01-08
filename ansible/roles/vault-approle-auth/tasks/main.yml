@@ -1,8 +1,4 @@
 ---
-- set_fact:
-    vault_token: "{{ lookup('file', '../vault-root-token') }}"
-    cacheable: yes
-
 - name: Read Vault auth methods 
   uri:
     url: "{{ vault_api_url }}/sys/auth"
@@ -26,7 +22,6 @@
         default_lease_ttl: 10m
         max_lease_ttl: 30m
       
-
   register: approle_enable_response
   when: auth_response['json']['data']['approle/'] is not defined
 
