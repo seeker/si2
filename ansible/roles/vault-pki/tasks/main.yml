@@ -6,20 +6,19 @@
       X-Vault-Token: "{{ vault_token }}"
   register: mounts_response
 
-- debug:
-    var: mounts_response
-
 - name: Enable PKI secrets engine
   block:
     - name: Enable PKI secrets engine via API call
       uri:
-        url: "{{ vault_server_api }}/sys/mounts/pki"
+        url: "{{ vault_server_api }}/sys/mounts/ssl"
+        method: POST
+        body_format: json
+        status_code: 204
         headers:
           X-Vault-Token: "{{ vault_token }}"
+        body:
           type: pki
           config:
             max_lease_ttl: 720h
-  when: true
-  
-  #mounts_response.json.pki != null
-    
+
+  when: mounts_response['json']['data']['ssl/'] is not defined
