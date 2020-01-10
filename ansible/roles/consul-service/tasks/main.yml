@@ -55,4 +55,5 @@
 
 - name: Wait for consul agent to start up
   wait_for:
-    timeout: 5
+    timeout: 10
+    port: 8500
