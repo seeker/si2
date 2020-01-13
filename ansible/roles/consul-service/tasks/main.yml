@@ -35,22 +35,24 @@
   copy:
     src: consul.service
     dest: /etc/systemd/system/consul.service
+  notify: Reload Consul
 
 - name: Create consul main configuration
   template:
     src: consul.hcl.j2
     dest: /etc/consul.d/consul.hcl
+  notify: Restart Consul
 
 - name: Create consul encryption configuration
   template:
     src: encrypt.hcl.j2
     dest: /etc/consul.d/encrypt.hcl
+  notify: Restart Consul
 
 - name: Enable and start Consul agent
   systemd:
     name: consul
-    daemon_reload: yes
-    state: restarted
+    state: started
     enabled: yes
 
 - name: Wait for consul agent to start up
