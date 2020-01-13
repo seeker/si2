@@ -9,6 +9,7 @@
   vars:
     - server: yes
     - bind_ip: 192.168.42.10
+    - consul_client_ip: "{{ bind_ip }}"
 
 - hosts: mongodb
   become_user: root

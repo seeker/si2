@@ -1,2 +1,3 @@
 server: false
 bind_ip: localhost
+consul_client_ip: 127.0.0.1
