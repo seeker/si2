@@ -85,6 +85,15 @@
     state: started
     enabled: yes
 
+- name: Wait for Vault to be unsealed
+  uri:
+    body_format: json
+    url: http://127.0.0.1:8200/v1/sys/seal-status
+  delay: 1
+  retries: 10
+  register: seal_state
+  until: seal_state.json.sealed == false
+
 - name: Copy profile script for local vault address
   copy:
     src: vault-profile.sh
