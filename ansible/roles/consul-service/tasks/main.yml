@@ -55,8 +55,6 @@
     state: started
     enabled: yes
 
-- name: Wait for consul agent to start up
-  wait_for:
-    timeout: 10
-    host: "{{ consul_client_ip }}"
-    port: 8500
+# This is required as the consul service needs to up and running to continue
+- name: Flush handlers
+  meta: flush_handlers
