@@ -9,11 +9,3 @@
   systemd:
     name: consul
     state: restarted
-  notify: Wait for consul start up
-
-- name: Wait for consul start up
-  wait_for:
-    delay: 2
-    timeout: 10
-    host: "{{ consul_client_ip }}"
-    port: 8500
