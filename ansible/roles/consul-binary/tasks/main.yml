@@ -5,7 +5,7 @@
     path: "{{ consul_binary }}"
     state: absent
 
-- name: Check that the Vault binary exists
+- name: Check that the Consul binary exists
   stat:
     path: "{{ consul_binary }}"
   register: consul_binary_stat
