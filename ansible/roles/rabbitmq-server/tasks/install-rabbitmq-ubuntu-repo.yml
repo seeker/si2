@@ -3,6 +3,7 @@
   apt:
     cache_valid_time: "{{apt_cache_timeout}}"
     name: rabbitmq-server
+  tags: packages
 
 - name: Fix RabbitMQ stop bug
   replace:

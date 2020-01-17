@@ -3,6 +3,7 @@
   apt:
     cache_valid_time: "{{apt_cache_timeout}}"
     name: mongodb
+  tags: packages
 
 # WARNING! 0.0.0.0 is dangerous as the server has no authentication set up!
 - name: Create mongodb configuration
