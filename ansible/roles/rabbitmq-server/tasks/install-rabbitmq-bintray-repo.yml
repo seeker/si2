@@ -21,9 +21,11 @@
         name: rabbitmq-server
   tags: packages
 
+- name: Flush handlers
+  meta: flush_handlers
+
 - name: Enable and start RabbitMQ server
   systemd:
-    daemon_reload: yes
     name: rabbitmq-server
     enabled: yes
     state: started
