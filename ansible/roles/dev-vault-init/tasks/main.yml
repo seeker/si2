@@ -70,6 +70,7 @@
     group: vagrant
     owner: vagrant
     mode: "u=rwx,g=rwx,o="
+  notify: Restart Vault auto unseal
 
 - name: Create Systemd unit to run unseal script
   copy:
@@ -77,13 +78,24 @@
     dest: /etc/systemd/system/auto-unseal-vault.service
     owner: root
     group: root
+  notify:
+    - Reload systemd daemon
+    - Restart Vault auto unseal
 
 - name: Enable and start Vault auto unseal Systemd unit
   systemd:
     name: auto-unseal-vault
-    daemon_reload: yes
     state: started
     enabled: yes
+
+- name: Wait for Vault to be unsealed
+  uri:
+    body_format: json
+    url: http://127.0.0.1:8200/v1/sys/seal-status
+  delay: 1
+  retries: 10
+  register: seal_state
+  until: seal_state.json.sealed == false
 
 - name: Copy profile script for local vault address
   copy:

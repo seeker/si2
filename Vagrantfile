@@ -23,6 +23,7 @@ Vagrant.configure("2") do |config|
 			"vagrant" => ["consul"],
 			"vagrant:vars" => {"consul_server" => "192.168.42.10", "gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
 		}
+		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
 	end
 
 	consul.vm.provider "virtualbox" do |vb|
@@ -43,6 +44,7 @@ Vagrant.configure("2") do |config|
 						"vault_api_url" => "http://127.0.0.1:8200/v1"
 					}
 		}
+		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
 	end
 
 	vault.vm.provider "virtualbox" do |vb|
@@ -61,6 +63,7 @@ Vagrant.configure("2") do |config|
                         "vagrant" => ["mongodb"],
 						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
                 }
+		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
         end
 
 	mongodb.vm.provider "virtualbox" do |vb|
@@ -79,6 +82,7 @@ Vagrant.configure("2") do |config|
 						"vagrant" => ["rabbitmq"],
 						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
                 }
+		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
         end
 
 	rabbitmq.vm.provider "virtualbox" do |vb|

@@ -18,19 +18,27 @@
   copy:
     src: vault.service
     dest: /etc/systemd/system/vault.service
+  notify:
+    - Reload systemd daemon
+    - Restart Vault service
 
 - name: Create Vault main configuration
   template:
     src: vault.hcl.j2
     dest: /etc/vault.d/vault.hcl
+  notify: Restart Vault service
 
 - name: Enable and start Vault agent
   systemd:
     name: vault
-    daemon_reload: yes
-    state: restarted
+    state: started
     enabled: yes
+
+# This is required as the Vault service needs to up and running to continue
+- name: Flush handlers
+  meta: flush_handlers
 
 - name: Wait for Vault agent to start up
   wait_for:
-    timeout: 5
+    timeout: 10
+    port: 8200
