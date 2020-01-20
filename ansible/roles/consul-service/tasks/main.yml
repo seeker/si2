@@ -1,6 +1,11 @@
 ---
-- fail: msg="Please set the gossip_encryption_key (preferably using vault)"
-  when: gossip_encryption_key is undefined
+# TODO replace this with secret from Vault
+- name: Check that the consul gossip key is set
+  assert:
+    quiet: yes
+    msg: Please set the gossip_encryption_key (preferably using vault)
+    that:
+      - gossip_encryption_key is defined
 
 - name: Install python Consul
   apt:
