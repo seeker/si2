@@ -1,0 +1,57 @@
+---
+- name: Check if RabbitMQ secrets engine is enabled
+  uri:
+    url: "{{ vault_server_api }}/sys/mounts"
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+  register: mounts_response
+
+- name: Enable RabbitMQ secrets engine
+  block:
+    - name: Enable RabbitMQ secrets engine via API call
+      uri:
+        url: "{{ vault_server_api }}/sys/mounts/rabbitmq"
+        method: POST
+        body_format: json
+        status_code: 204
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
+        body:
+          type: pki
+          config:
+            max_lease_ttl: 720h
+
+  when: mounts_response['json']['data']['rabbitmq/'] is not defined
+
+- name: Check if RabbitMQ admin credentails exist in Vault
+  uri:
+    url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+    method: GET
+    body_format: json
+    status_code:
+    - 200
+    - 404
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+
+  register: password_response
+
+- name: Generate RabbitMQ admin credentials
+  block:
+  - set_fact:
+      rabbitmq_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+
+  - name: Store RabbitMQ admin credentials
+    uri:
+      url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+      method: POST
+      body_format: json
+      status_code: 204
+      headers:
+        X-Vault-Token: "{{ vault_token }}"
+      body:
+        username: admin
+        password: "{{ rabbitmq_password }}"
+    register: create_rabbitmq_creds
+
+  when: password_response.status == 404  
