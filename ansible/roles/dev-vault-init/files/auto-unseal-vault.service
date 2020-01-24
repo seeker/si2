@@ -7,6 +7,7 @@ ConditionFileNotEmpty=/etc/vault.d/vault.hcl
 User=vagrant
 Group=vagrant
 ExecStart=/home/vagrant/auto-unseal-vault.sh
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
