@@ -17,9 +17,9 @@
         headers:
           X-Vault-Token: "{{ vault_token }}"
         body:
-          type: pki
+          type: rabbitmq
           config:
-            max_lease_ttl: 720h
+            max_lease_ttl: 1h
 
   when: mounts_response['json']['data']['rabbitmq/'] is not defined
 
