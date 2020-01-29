@@ -1,0 +1,22 @@
+---
+- name: Check if KV secrets engine is enabled
+  uri:
+    url: "{{ vault_server_api }}/sys/mounts"
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+  register: mounts_response
+
+- name: Enable KV secrets engine
+  block:
+    - name: Enable KV secrets engine via API call
+      uri:
+        url: "{{ vault_server_api }}/sys/mounts/kv"
+        method: POST
+        body_format: json
+        status_code: 204
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
+        body:
+          type: kv
+          
+  when: mounts_response['json']['data']['kv/'] is not defined

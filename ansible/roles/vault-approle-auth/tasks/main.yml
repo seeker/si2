@@ -1,0 +1,39 @@
+---
+- name: Read Vault auth methods 
+  uri:
+    url: "{{ vault_api_url }}/sys/auth"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+
+  register: auth_response
+
+- name: Enable approle auth
+  uri:
+    url: "{{ vault_api_url }}/sys/auth/approle"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      type: approle
+      config:
+        default_lease_ttl: 10m
+        max_lease_ttl: 30m
+      
+  register: approle_enable_response
+  when: auth_response['json']['data']['approle/'] is not defined
+
+- name: Create RabbitMQ approle
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/rabbitmq"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      token_ttl: 30m
+      token_period: 30m
+      token_policies: ""

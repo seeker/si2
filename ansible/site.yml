@@ -9,6 +9,7 @@
   vars:
     - server: yes
     - bind_ip: 192.168.42.10
+    - consul_client_ip: "{{ bind_ip }}"
 
 - hosts: mongodb
   become_user: root
@@ -31,3 +32,25 @@
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.12
+
+- hosts: vault
+  become_user: root
+  become: yes
+  pre_tasks:
+  - set_fact:
+      vault_token: "{{ lookup('file', '../vault-root-token') }}"
+      cacheable: yes
+    
+  roles:
+  - vault-binary
+  - consul-binary
+  - consul-service
+  - vault-service
+  - dev-vault-init
+  - vault-approle-auth
+  - vault-pki
+  - vault-kv
+  - vault-rabbitmq-secrets
+  vars:
+    - consul_server: 192.168.42.10
+    - bind_ip: 192.168.42.13

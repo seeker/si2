@@ -3,6 +3,7 @@
   apt:
     cache_valid_time: "{{apt_cache_timeout}}"
     name: mongodb
+  tags: packages
 
 # WARNING! 0.0.0.0 is dangerous as the server has no authentication set up!
 - name: Create mongodb configuration
@@ -14,12 +15,16 @@
     owner: root
     group: root
     mode: 'u=rw,g=rw,o=r'
+  notify: Restart MongoDB server
   
+- name: Flush handlers
+  meta: flush_handlers
+
 - name: Enable and restart the Mongodb server
   systemd:
     name: mongodb
     enabled: yes
-    state: restarted
+    state: started
 
 - name: Register mongodb service with consul
   consul:
