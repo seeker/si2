@@ -35,6 +35,7 @@
       X-Vault-Token: "{{ vault_token }}"
 
   register: password_response
+  check_mode: no
 
 - name: Generate RabbitMQ admin credentials
   block:
