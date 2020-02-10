@@ -14,6 +14,7 @@
     body_format: json
     return_content: yes
   register: vault_init_response
+  check_mode: no
 
 - name: Initialize Vault with a single key
   block:
@@ -96,6 +97,7 @@
   retries: 10
   register: seal_state
   until: seal_state.json.sealed == false
+  when: not ansible_check_mode
 
 - name: Copy profile script for local vault address
   copy:

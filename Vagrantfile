@@ -16,15 +16,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "consul", primary: true do |consul|
 	consul.vm.network "private_network", ip: "192.168.42.10"
-	consul.vm.provision "ansible" do |ansible|
-		ansible.playbook = "ansible/site.yml"
-		ansible.groups = {
-			"consul_server" => ["consul"],
-			"vagrant" => ["consul"],
-			"vagrant:vars" => {"consul_server" => "192.168.42.10", "gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
-		}
-		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
-	end
+  consul.vm.network "forwarded_port", guest: 22, host: 2220, auto_correct: false, id: "ssh"
+	consul.vm.provision "shell", path: "scripts/bootstrap.sh"
 
 	consul.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
@@ -34,18 +27,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "vault", primary: true do |vault|
 	vault.vm.network "private_network", ip: "192.168.42.13"
-	vault.vm.provision "ansible" do |ansible|
-		ansible.playbook = "ansible/site.yml"
-		ansible.groups = {
-			"vault" => ["vault"],
-			"vagrant" => ["vault"],
-			"vagrant:vars" => {
-						"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA==",
-						"vault_api_url" => "http://127.0.0.1:8200/v1"
-					}
-		}
-		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
-	end
+  vault.vm.network "forwarded_port", guest: 22, host: 2250, auto_correct: false, id: "ssh"
+	vault.vm.provision "shell", path: "scripts/bootstrap.sh"
 
 	vault.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
@@ -54,17 +37,9 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "mongodb" do |mongodb|
-	mongodb.vm.network "private_network", ip: "192.168.42.11"
-
-        mongodb.vm.provision "ansible" do |ansible|
-                ansible.playbook = "ansible/site.yml"
-                ansible.groups = {
-                        "mongodb" => ["mongodb"],
-                        "vagrant" => ["mongodb"],
-						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
-                }
-		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
-        end
+  mongodb.vm.network "private_network", ip: "192.168.42.11"
+  mongodb.vm.network "forwarded_port", guest: 22, host: 2230, auto_correct: false, id: "ssh"
+	mongodb.vm.provision "shell", path: "scripts/bootstrap.sh"
 
 	mongodb.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
@@ -74,18 +49,22 @@ Vagrant.configure("2") do |config|
   
   config.vm.define "rabbitmq" do |rabbitmq|
 	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
-
-        rabbitmq.vm.provision "ansible" do |ansible|
-                ansible.playbook = "ansible/site.yml"
-                ansible.groups = {
-                        "rabbitmq" => ["rabbitmq"],
-						"vagrant" => ["rabbitmq"],
-						"vagrant:vars" => {"gossip_encryption_key" => "8NXyj9/eZH6QK9HyF9GqCA=="}
-                }
-		ansible.raw_arguments = Shellwords.shellsplit(ENV['ANSIBLE_ARGS']) if ENV['ANSIBLE_ARGS']
-        end
+  rabbitmq.vm.network "forwarded_port", guest: 22, host: 2240, auto_correct: false, id: "ssh"
+  rabbitmq.vm.provision "shell", path: "scripts/bootstrap.sh"
 
 	rabbitmq.vm.provider "virtualbox" do |vb|
+		vb.memory = 1024
+		vb.cpus = 2
+	end
+  end
+
+  config.vm.define "ansible", autostart: false do |ansible|
+	ansible.vm.network "private_network", ip: "192.168.42.14"
+  ansible.vm.network "forwarded_port", guest: 22, host: 2250, auto_correct: false, id: "ssh"
+  # TODO provision with ansible playbook to install ansible and SSH key
+  ansible.vm.provision "shell", path: "scripts/bootstrap.sh"
+
+	ansible.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
 	end

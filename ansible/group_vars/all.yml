@@ -1,3 +1,5 @@
 ---
 ansible_python_interpreter: "python3"
 apt_cache_timeout: 86400
+gossip_encryption_key: "8NXyj9/eZH6QK9HyF9GqCA=="
+consul_server: "192.168.42.10"
