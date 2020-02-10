@@ -1,3 +1,4 @@
 #!/bin/sh
 
-cat /vagrant/ssh/vagrant.pub >> ~/.ssh/authorized_keys
+cat /vagrant/ssh/ansible.pub >> /root/.ssh/authorized_keys
+cat /vagrant/ssh/ansible.pub >> /home/vagrant/.ssh/authorized_keys
