@@ -63,4 +63,8 @@ public class ConfigurationBuilder {
 	public ConsulConfiguration getConsulConfiguration() {
 		return configProvider.bind("consul", ConsulConfiguration.class);
 	}
+	
+	public VaultCredentials getVaultCredentials() {
+		return configProvider.bind("vault", VaultCredentials.class);
+	}
 }

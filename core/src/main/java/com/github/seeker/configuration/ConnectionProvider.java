@@ -6,8 +6,12 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.Vault;
+import com.bettercloud.vault.VaultConfig;
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.orbitz.consul.model.health.Service;
 import com.orbitz.consul.model.health.ServiceHealth;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -50,6 +54,12 @@ public class ConnectionProvider {
 		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
 
 		return connFactory.newConnection();
+	}
+	
+	public Vault getVaultClient() throws VaultException {
+		Service vaultSerivce = consul.getFirstHealtyInstance(ConfiguredService.vault).getService();
+		VaultConfig vc = new VaultConfig().address(vaultSerivce.getAddress() + ":" + vaultSerivce.getPort()).build();
+		return new Vault(vc);
 	}
 	
 	public MongoDbMapper getIntegrationMongoDbMapper() {

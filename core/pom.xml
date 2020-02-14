@@ -240,5 +240,9 @@
 			<groupId>com.rabbitmq</groupId>
 			<artifactId>amqp-client</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.bettercloud</groupId>
+			<artifactId>vault-java-driver</artifactId>
+		</dependency>
 	</dependencies>
 </project>
