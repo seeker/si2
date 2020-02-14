@@ -25,9 +25,9 @@
   register: approle_enable_response
   when: auth_response['json']['data']['approle/'] is not defined
 
-- name: Create RabbitMQ approle
+- name: Create DBnode approle
   uri:
-    url: "{{ vault_api_url }}/auth/approle/role/rabbitmq"
+    url: "{{ vault_api_url }}/auth/approle/role/dbnode"
     method: POST
     body_format: json
     status_code: 204
