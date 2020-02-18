@@ -1,0 +1,27 @@
+---
+- name: Check if Vault has been initialized
+  uri:
+    url: "{{ vault_server_api }}/sys/init"
+    validate_certs: no
+    body_format: json
+    return_content: yes
+  register: vault_init_response
+
+- name: Vault is initialized
+  assert:
+    that:
+      - vault_init_response.json.initialized
+
+- name: Create SI2 rabbitmq user policy
+  uri:
+    url: "{{ vault_server_api }}/sys/policy/si2-node"
+    method: PUT
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      policy: >-
+          path "rabbitmq/creds/si2" {
+            capabilities = ["read"]
+          }

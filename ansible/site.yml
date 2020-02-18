@@ -47,6 +47,7 @@
   - consul-service
   - vault-service
   - dev-vault-init
+  - vault-policy
   - vault-approle-auth
   - vault-pki
   - vault-kv
