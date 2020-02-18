@@ -1,5 +1,2 @@
 ---
-vault_server_address: "127.0.0.1"
-vault_server_port: 8200
-vault_server_api: "http://{{ vault_server_address }}:{{ vault_server_port }}/v1"
 vault_token: "{{lookup('file', 'vault-root-token')}}"

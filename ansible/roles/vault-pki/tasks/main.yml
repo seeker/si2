@@ -1,7 +1,7 @@
 ---
 - name: Check if PKI secrets engine is enabled
   uri:
-    url: "{{ vault_server_api }}/sys/mounts"
+    url: "{{ vault_api_url }}/sys/mounts"
     headers:
       X-Vault-Token: "{{ vault_token }}"
   register: mounts_response
@@ -10,7 +10,7 @@
   block:
     - name: Enable PKI secrets engine via API call
       uri:
-        url: "{{ vault_server_api }}/sys/mounts/ssl"
+        url: "{{ vault_api_url }}/sys/mounts/ssl"
         method: POST
         body_format: json
         status_code: 204
