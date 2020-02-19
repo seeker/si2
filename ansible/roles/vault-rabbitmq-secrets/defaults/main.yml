@@ -1,2 +1,0 @@
----
-vault_token: "{{lookup('file', 'vault-root-token')}}"
