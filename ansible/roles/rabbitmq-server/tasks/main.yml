@@ -25,6 +25,31 @@
     tags: administrator
     state: present
 
+- name: Get RabbitMQ admin credentails from Vault
+  uri:
+    url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+    method: GET
+    body_format: json
+    status_code:
+    - 200
+    - 404
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+
+  register: password_response
+  check_mode: no
+
+- name: Create RabbitMQ admin user
+  rabbitmq_user:
+    user: "{{ password_response.json.data.username }}"
+    password: "{{ password_response.json.data.password }}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
+    state: present
+
 - name: Create rabbitmq si2 user
   rabbitmq_user:
     user: si2
