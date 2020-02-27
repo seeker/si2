@@ -56,3 +56,42 @@
     register: create_rabbitmq_creds
 
   when: password_response.status == 404  
+
+- name: Get RabbitMQ admin credentails from Vault
+  uri:
+    url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+    method: GET
+    body_format: json
+    status_code:
+    - 200
+    - 404
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+
+  register: password_response
+  check_mode: no
+
+- name: Configure RabbitMQ connection details for Vault
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/config/connection"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      connection_uri: "http://192.168.42.12:15672"
+      username: "{{ password_response.json.data.username }}"
+      password: "{{ password_response.json.data.password }}"
+
+- name: Configure RabbitMQ role for database node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/dbnode"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
