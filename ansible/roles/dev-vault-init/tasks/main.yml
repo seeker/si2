@@ -1,11 +1,24 @@
 ---
 # DO NOT use this role in production, it is unsafe
-- name: Delete Vault storage on consul
-  consul_kv:
-    key: vault
-    recurse: yes
-    state: absent
-  when: clear_vault
+- name: Reset Vault
+  block:
+    - name: Delete Vault storage on consul
+      consul_kv:
+        key: vault
+        recurse: yes
+        state: absent
+
+    - name: Restart Consul service
+      systemd:
+        name: consul
+        state: restarted
+
+    - name: Restart Vault service
+      systemd:
+        name: vault
+        state: restarted
+
+  tags: [ never, reset ]
 
 - name: Check if Vault has been initialized
   uri:
