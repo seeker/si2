@@ -30,6 +30,8 @@
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.13
+  handlers:
+    - import_tasks: handlers/main.yml
 
 - hosts: mongodb
   become_user: root
