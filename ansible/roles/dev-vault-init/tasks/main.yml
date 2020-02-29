@@ -39,7 +39,7 @@
       register: init_response
 
     - set_fact:
-        root_token: "{{ init_response.json.root_token }}"
+        root_token: "{{ init_response['json']['root_token'] }}"
         cacheable: yes
         unseal_key: "{{ init_response['json']['keys'][0] }}"
 
