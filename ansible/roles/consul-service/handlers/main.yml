@@ -1,5 +1,5 @@
 ---
-- name: Reaload Consul
+- name: Reload Consul
   systemd:
     name: consul
     daemon_reload: yes
