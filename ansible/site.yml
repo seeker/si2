@@ -25,8 +25,6 @@
   - vault-approle-auth
   - vault-pki
   - vault-kv
-  - vault-rabbitmq-secrets
-  - dev-vault-credentials
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.13
@@ -54,3 +52,11 @@
   vars:
     - consul_server: 192.168.42.10
     - bind_ip: 192.168.42.12
+
+- hosts: vault
+  become_user: root
+  become: yes
+
+  roles:
+  - vault-rabbitmq-secrets
+  - dev-vault-credentials
