@@ -62,7 +62,7 @@ Vagrant.configure("2") do |config|
 	ansible.vm.network "private_network", ip: "192.168.42.14"
   ansible.vm.network "forwarded_port", guest: 22, host: 2260, auto_correct: false, id: "ssh"
   # TODO provision with ansible playbook to install ansible and SSH key
-  ansible.vm.provision "shell", path: "scripts/bootstrap.sh"
+  ansible.vm.provision "shell", path: "scripts/ansible.sh"
 
 	ansible.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
