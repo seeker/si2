@@ -39,21 +39,27 @@ public class ConnectionProvider {
 		return new ConsulClient(consulConfig);
 	}
 
+	@Deprecated
 	public Connection getRabbitMQConnection() throws IOException, TimeoutException {
+		return getRabbitMQConnectionFactory("si2", consul.getKvAsString("config/rabbitmq/users/si2")).newConnection();
+	}
+	
+	public ConnectionFactory getRabbitMQConnectionFactory(String username, String password) throws IOException, TimeoutException {
 		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
 
 		String serverAddress = rabbitmqService.getNode().getAddress();
 		int serverPort = rabbitmqService.getService().getPort();
 
 		ConnectionFactory connFactory = new ConnectionFactory();
-		connFactory.setUsername("si2");
-		connFactory.setPassword(consul.getKvAsString("config/rabbitmq/users/si2"));
+		connFactory.setUsername(username);
+		connFactory.setPassword(password);
 		connFactory.setHost(serverAddress);
 		connFactory.setPort(serverPort);
+		connFactory.setVirtualHost("/"); //TODO change this to /si2
 
 		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
 
-		return connFactory.newConnection();
+		return connFactory;
 	}
 	
 	public Vault getVaultClient() throws VaultException {
