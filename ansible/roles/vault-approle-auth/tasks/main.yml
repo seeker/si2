@@ -36,4 +36,4 @@
     body:
       token_ttl: 30m
       token_period: 30m
-      token_policies: ""
+      token_policies: "si2-rabbitmq"
