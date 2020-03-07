@@ -27,27 +27,26 @@
         token_ttl: 30m
         token_period: 30m
         token_policies: "dbnode"
-
-  - name: Rename dbnode approle role id
-    uri:
-      url: "{{ vault_api_url }}/auth/approle/role/dbnode/role-id"
-      method: POST
-      body_format: json
-      status_code: 204
-      headers:
-        X-Vault-Token: "{{ vault_token }}"
-      body:
-        role_id: dbnode
-
-  - name: Create custom dbnode approle secret id
-    uri:
-      url: "{{ vault_api_url }}/auth/approle/role/dbnode/custom-secret-id"
-      method: POST
-      body_format: json
-      status_code: 200
-      headers:
-        X-Vault-Token: "{{ vault_token }}"
-      body:
-        secret_id: dbnode
-      
   when: "'dbnode' not in approle_list['json']['data']['keys']"
+
+- name: Rename dbnode approle role id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/dbnode/role-id"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      role_id: dbnode
+
+- name: Create custom dbnode approle secret id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/dbnode/custom-secret-id"
+    method: POST
+    body_format: json
+    status_code: 200
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      secret_id: dbnode
