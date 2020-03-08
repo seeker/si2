@@ -35,3 +35,40 @@
     body:
       secret_id: dbnode
   when: dbnode_lookup.status == 204
+
+- name: Rename integration approle role id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/integration/role-id"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      role_id: integration
+
+- name: Lookup dbnode approle secret-id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/integration/secret-id/lookup"
+    method: POST
+    body_format: json
+    status_code:
+      - 200
+      - 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      secret_id: integration
+  register: integration_lookup
+
+- name: Create custom integration approle secret id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/integration/custom-secret-id"
+    method: POST
+    body_format: json
+    status_code: 200
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      secret_id: integration
+  when: integration_lookup.status == 204
