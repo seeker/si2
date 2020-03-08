@@ -10,10 +10,12 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
@@ -42,11 +44,11 @@ public class MessageDigestHasher {
 		processFiles();
 	}
 	
-	public MessageDigestHasher(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+	public MessageDigestHasher(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
 		this(
-				connectionProvider.getRabbitMQConnection(),
+				connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection(),
 				connectionProvider.getConsulClient(),
-				new QueueConfiguration(connectionProvider.getRabbitMQConnection().createChannel(),
+				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel(),
 				connectionProvider.getConsulClient())
 		);
 	}

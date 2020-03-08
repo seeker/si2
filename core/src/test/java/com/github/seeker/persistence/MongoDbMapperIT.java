@@ -31,6 +31,7 @@ import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
@@ -85,7 +86,7 @@ public class MongoDbMapperIT {
 	public Timeout testCaseTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(10, TimeUnit.SECONDS));
 	
 	@BeforeClass
-	public static void setUpClass() {
+	public static void setUpClass() throws Exception {
 		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
 		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfiguration);
 				

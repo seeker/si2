@@ -14,10 +14,12 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -43,14 +45,14 @@ public class ThumbnailNode {
 	private final MongoDbMapper mapper;
 	private final QueueConfiguration queueConfig;
 	
-	public ThumbnailNode(ConnectionProvider connectionProvider, String thumbnailDirectory) throws IOException, TimeoutException, InterruptedException {
+	public ThumbnailNode(ConnectionProvider connectionProvider, String thumbnailDirectory) throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", ThumbnailNode.class.getSimpleName());
 		LOGGER.info("Using thumbnail directory {}", Paths.get(thumbnailDirectory).toAbsolutePath());
 		
 		this.thumbnailDirectory = thumbnailDirectory;
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
+		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.thumbnail).newConnection();
 		channel = conn.createChannel();
 		channel.basicQos(100);
 		
