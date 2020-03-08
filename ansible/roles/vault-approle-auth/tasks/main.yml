@@ -36,4 +36,5 @@
     body:
       token_ttl: 30m
       token_period: 30m
-      token_policies: "si2-rabbitmq"
+      token_policies:
+        - dbnode

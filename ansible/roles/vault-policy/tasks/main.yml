@@ -25,3 +25,17 @@
           path "rabbitmq/creds/si2" {
             capabilities = ["read"]
           }
+
+- name: Create SI2 dbnode policy
+  uri:
+    url: "{{ vault_api_url }}/sys/policy/dbnode"
+    method: PUT
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      policy: >-
+          path "rabbitmq/creds/dbnode" {
+            capabilities = ["read"]
+          }
