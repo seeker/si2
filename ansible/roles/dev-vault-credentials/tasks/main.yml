@@ -40,6 +40,20 @@
     body:
       role_id: dbnode
 
+- name: Lookup dbnode approle secret-id
+  uri:
+    url: "{{ vault_api_url }}/auth/approle/role/dbnode/secret-id/lookup"
+    method: POST
+    body_format: json
+    status_code:
+      - 200
+      - 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      secret_id: dbnode
+  register: dbnode_lookup
+
 - name: Create custom dbnode approle secret id
   uri:
     url: "{{ vault_api_url }}/auth/approle/role/dbnode/custom-secret-id"
@@ -50,3 +64,4 @@
       X-Vault-Token: "{{ vault_token }}"
     body:
       secret_id: dbnode
+  when: dbnode_lookup.status == 204
