@@ -38,17 +38,3 @@
       token_period: 30m
       token_policies:
         - dbnode
-
-- name: Create integration approle
-  uri:
-    url: "{{ vault_api_url }}/auth/approle/role/integration"
-    method: POST
-    body_format: json
-    status_code: 204
-    headers:
-      X-Vault-Token: "{{ vault_token }}"
-    body:
-      token_ttl: 30m
-      token_period: 30m
-      token_policies:
-        - integration

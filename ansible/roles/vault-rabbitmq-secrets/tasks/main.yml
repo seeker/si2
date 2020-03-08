@@ -96,14 +96,4 @@
       # The space before the first { is needed to trick ansible into thinking it's a string
       vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
 
-- name: Configure RabbitMQ role for integration
-  uri:
-    url: "{{ vault_api_url }}/rabbitmq/roles/integration"
-    method: POST
-    body_format: json
-    status_code: 204
-    headers:
-      X-Vault-Token: "{{ vault_token }}"
-    body: 
-      # The space before the first { is needed to trick ansible into thinking it's a string
-      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+# RabbitMQ role for integration can be found in dev-vault-credentails
