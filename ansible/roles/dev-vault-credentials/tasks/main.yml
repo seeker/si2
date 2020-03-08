@@ -11,21 +11,7 @@
       token_ttl: 30m
       token_period: 30m
       token_policies:
-        - integration
-
-- name: Create SI2 integration policy
-  uri:
-    url: "{{ vault_api_url }}/sys/policy/integration"
-    method: PUT
-    body_format: json
-    status_code: 204
-    headers:
-      X-Vault-Token: "{{ vault_token }}"
-    body:
-      policy: >-
-          path "rabbitmq/creds/integration" {
-            capabilities = ["read"]
-          }
+        - node
 
 - name: Configure RabbitMQ role for integration
   uri:
