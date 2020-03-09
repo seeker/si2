@@ -14,17 +14,6 @@
     name: guest
     state: absent
 
-- name: Create RabbitMQ integration user
-  rabbitmq_user:
-    user: integration
-    password: "{{integration_pwd}}"
-    vhost: /
-    configure_priv: .*
-    read_priv: .*
-    write_priv: .*
-    tags: administrator
-    state: present
-
 - name: Get RabbitMQ admin credentails from Vault
   uri:
     url: "{{ vault_api_url }}/kv/rabbitmq/admin"
