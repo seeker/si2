@@ -1,0 +1,11 @@
+---
+- name: Create RabbitMQ integration user
+  rabbitmq_user:
+    user: integration
+    password: "{{integration_pwd}}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
+    state: present

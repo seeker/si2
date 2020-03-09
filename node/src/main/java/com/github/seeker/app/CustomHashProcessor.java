@@ -25,11 +25,13 @@ import org.jtransforms.dct.DoubleDCT_2D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.dozedoff.commonj.util.ImageUtil;
 import com.github.seeker.commonhash.helper.TransformHelper;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
@@ -64,11 +66,11 @@ public class CustomHashProcessor {
 		processFiles();
 	}
 	
-	public CustomHashProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+	public CustomHashProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
+		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.hash_processor).newConnection();
 		channel = conn.createChannel();
 		
 		queueConfig = new QueueConfiguration(channel, consul);

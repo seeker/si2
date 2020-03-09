@@ -12,6 +12,9 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.RabbitMqRole;
+import com.github.seeker.configuration.VaultIntegrationCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
@@ -33,8 +36,8 @@ public class MessageITBase {
 	public static void baseSetUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		
-		connectionProvider = new ConnectionProvider(consulConfig);
-		rabbitConn = connectionProvider.getRabbitMQConnection();
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration));
+		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 	}
 
 	@AfterClass

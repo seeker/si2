@@ -3,10 +3,13 @@ package com.github.seeker.gui;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.rabbitmq.client.Connection;
 
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -31,13 +34,14 @@ public class MainWindow extends Application{
 		launch(args);
 	}
 
-	private void setUpVars() throws IOException, TimeoutException {
+	private void setUpVars() throws IOException, TimeoutException, VaultException {
 		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
+		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.client).newConnection();
 		
-		queueConfig = new QueueConfiguration(connectionProvider.getRabbitMQConnection().createChannel(), connectionProvider.getConsulClient());
+		queueConfig = new QueueConfiguration(rabbitConnection.createChannel(), connectionProvider.getConsulClient());
 		
 		mapper = connectionProvider.getMongoDbMapper();
-		metaDataExplorer = new MetaDataExplorer(mapper, connectionProvider.getRabbitMQConnection(), queueConfig);
+		metaDataExplorer = new MetaDataExplorer(mapper, rabbitConnection, queueConfig);
 	}
 	
 	private MenuBar buildMenuBar() {

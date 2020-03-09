@@ -25,3 +25,27 @@
           path "rabbitmq/creds/si2" {
             capabilities = ["read"]
           }
+
+- name: Read auth methods
+  uri:
+    url: "{{ vault_api_url }}/sys/auth"
+    method: GET
+    body_format: json
+    status_code: 200
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+  register: auth_methods
+
+- name: Create SI2 dynamic node policy
+  uri:
+    url: "{{ vault_api_url }}/sys/policy/node"
+    method: PUT
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      policy: >-
+          path "rabbitmq/creds/{{ '{{' }}identity.entity.aliases.{{auth_methods["json"]["approle/"]["accessor"]}}.name{{ '}}' }}" {
+            capabilities = ["read"]
+          }

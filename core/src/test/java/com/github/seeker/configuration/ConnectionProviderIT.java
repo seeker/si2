@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.rabbitmq.client.Connection;
 
@@ -26,7 +27,7 @@ public class ConnectionProviderIT {
 
 	@Before
 	public void setUp() throws Exception {
-		cut = new ConnectionProvider(consulConfig);
+		cut = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration));
 	}
 
 	@Test
@@ -52,7 +53,7 @@ public class ConnectionProviderIT {
 	
 	@Test
 	public void rabbitMQClientValid() throws Exception {
-		Connection rabbitConn = cut.getRabbitMQConnection();
+		Connection rabbitConn = cut.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 		
 		assertThat(rabbitConn.isOpen(), is(true));
 	}

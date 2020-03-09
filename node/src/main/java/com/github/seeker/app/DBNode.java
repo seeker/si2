@@ -11,10 +11,12 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessage;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
@@ -41,8 +43,8 @@ public class DBNode {
 	private final HashMessageHelper hashMessageHelper;
 	private final List<String> requiredHashes;
 	
-	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
-		this(connectionProvider.getConsulClient(), connectionProvider.getMongoDbMapper(), connectionProvider.getRabbitMQConnection());
+	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
+		this(connectionProvider.getConsulClient(), connectionProvider.getMongoDbMapper(), connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection());
 	}
 	
 	public DBNode(ConsulClient consul, MongoDbMapper mapper, Connection rabbitMqConnection) throws IOException, TimeoutException, InterruptedException {

@@ -16,11 +16,13 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.processor.FileToQueueVistor;
 import com.google.common.util.concurrent.RateLimiter;
@@ -45,9 +47,9 @@ public class FileLoader {
 	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
 	//TODO get file types from consul
 	
-	public FileLoader(String id, ConnectionProvider connectionProvider) throws IOException, TimeoutException {
+	public FileLoader(String id, ConnectionProvider connectionProvider) throws IOException, TimeoutException, VaultException {
 		ConsulClient consul = connectionProvider.getConsulClient();
-		Connection conn = connectionProvider.getRabbitMQConnection();
+		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.file_loader).newConnection();
 		channel = conn.createChannel();
 		queueConfig = new QueueConfiguration(channel, consul);
 		

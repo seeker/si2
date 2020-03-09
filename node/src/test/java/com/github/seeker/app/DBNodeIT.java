@@ -24,6 +24,8 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.RabbitMqRole;
+import com.github.seeker.configuration.VaultCredentials;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
@@ -52,7 +54,18 @@ public class DBNodeIT {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
-		connectionProvider = new ConnectionProvider(consulConfig);
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultCredentials() {
+			private final String role = "integration";
+			@Override
+			public String secretId() {
+				return role;
+			}
+			
+			@Override
+			public String approleId() {
+				return role;
+			}
+		});
 	}
 
 	@AfterClass
@@ -63,7 +76,7 @@ public class DBNodeIT {
 	public void setUp() throws Exception {
 		duration = new Duration(20, TimeUnit.SECONDS);
 		
-		rabbitConn = connectionProvider.getRabbitMQConnection();
+		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 		ConsulClient consul = connectionProvider.getConsulClient();
 		
 		Channel channel = rabbitConn.createChannel();

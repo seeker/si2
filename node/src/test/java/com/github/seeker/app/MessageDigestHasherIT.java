@@ -2,6 +2,7 @@ package com.github.seeker.app;
 
 import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +32,9 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.VaultCredentials;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -40,6 +44,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
@@ -76,7 +81,20 @@ public class MessageDigestHasherIT {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
-		connectionProvider = new ConnectionProvider(consulConfig);
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultCredentials() {
+			
+			@Override
+			public String secretId() {
+				return "integration";
+			}
+			
+			@Override
+			public String approleId() {
+				return "integration";
+			}
+		});
+		
+		assertThat(connectionProvider, is(notNullValue()));
 	}
 
 	@AfterClass
@@ -85,7 +103,10 @@ public class MessageDigestHasherIT {
 
 	@Before
 	public void setUp() throws Exception {
-		rabbitConn = connectionProvider.getRabbitMQConnection();
+		ConnectionFactory connFactory = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration);
+		assertThat(connFactory, is(notNullValue()));
+		
+		rabbitConn = connFactory.newConnection();
 		ConsulClient consul = connectionProvider.getConsulClient();
 		
 		Channel channel = rabbitConn.createChannel();
@@ -159,7 +180,9 @@ public class MessageDigestHasherIT {
 
 	@After
 	public void tearDown() throws Exception {
-		rabbitConn.close();
+		if (Objects.nonNull(rabbitConn)) {
+			rabbitConn.close();
+		}
 		
 		Morphium dbClient = connectionProvider.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 		dbClient.clearCachefor(ImageMetaData.class);

@@ -84,9 +84,84 @@
       username: "{{ password_response.json.data.username }}"
       password: "{{ password_response.json.data.password }}"
 
+# RabbitMQ role for integration can be found in dev-vault-credentails
+
 - name: Configure RabbitMQ role for database node
   uri:
     url: "{{ vault_api_url }}/rabbitmq/roles/dbnode"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+
+# FIXME restrict node permissions
+- name: Configure RabbitMQ role for hash processor node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/hash_processor"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+
+- name: Configure RabbitMQ role for file loader node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/file_loader"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+
+- name: Configure RabbitMQ role for image resizer node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/image_resizer"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+  
+- name: Configure RabbitMQ role for digest hasher node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/digest_hasher"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+
+- name: Configure RabbitMQ role for thumbnail node
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/thumbnail"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body: 
+      # The space before the first { is needed to trick ansible into thinking it's a string
+      vhosts: ' {"{{ rabbitmq_vhost }}": {"configure":".*", "write":".*", "read": ".*"}}'
+
+- name: Configure RabbitMQ role for client application
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/roles/client"
     method: POST
     body_format: json
     status_code: 204

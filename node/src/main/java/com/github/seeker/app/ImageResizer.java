@@ -25,10 +25,12 @@ import org.imgscalr.Scalr.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.rabbitmq.client.AMQP;
@@ -63,11 +65,11 @@ public class ImageResizer {
 		processFiles();
 	}
 	
-	public ImageResizer(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException {
+	public ImageResizer(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
-		rabbitMqConnection = connectionProvider.getRabbitMQConnection();
+		rabbitMqConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.image_resizer).newConnection();
 		
 		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel(), consul);
 		

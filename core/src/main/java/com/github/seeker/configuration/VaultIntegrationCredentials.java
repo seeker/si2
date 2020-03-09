@@ -4,8 +4,11 @@
  */
 package com.github.seeker.configuration;
 
+/**
+ * Vault approles for integration testing.
+ */
 public class VaultIntegrationCredentials implements VaultCredentials {
-	public static enum Approle {dbnode};
+	public static enum Approle {dbnode, integration};
 	
 	private final String role; 
 	

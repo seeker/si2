@@ -4,6 +4,7 @@
  */
 package com.github.seeker.app;
 
+import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 
@@ -44,10 +45,12 @@ public class App {
 		} catch (ArgumentParserException e) {
 			parser.handleError(e);
 			System.exit(1);
+		} catch (VaultException e) {
+			e.printStackTrace();
 		}
 	}
 	
-	private static void processArgs(Namespace namespace) {
+	private static void processArgs(Namespace namespace) throws VaultException {
 		System.out.println(namespace);
 		
 		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
