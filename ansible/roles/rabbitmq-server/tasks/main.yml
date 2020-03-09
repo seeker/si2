@@ -39,26 +39,10 @@
     tags: administrator
     state: present
 
-- name: Create rabbitmq si2 user
-  rabbitmq_user:
-    user: si2
-    password: "m6dtSqijKqldu6zHE9hK"
-    vhost: /
-    configure_priv: .*
-    read_priv: .*
-    write_priv: .*
-    state: present
-
 - name: Enable rabbitmq management plugin
   rabbitmq_plugin:
     names: rabbitmq_management
     state: enabled
-#TODO use prompt param for si2 password
-
-- name: Store password for si2 user in consul
-  consul_kv:
-    key: config/rabbitmq/users/si2
-    value: "{{si2_pwd}}"
 
 - name: Set queue name for file digest queue
   consul_kv:
