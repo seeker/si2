@@ -1,9 +1,15 @@
 ---
+- hosts: vagrant
+  become_user: root
+  become: yes
+
+  roles:
+    - consul-binary
+
 - hosts: consul_server
   become_user: root
   become: yes
   roles:
-  - consul-binary
   - consul-service
   - consul-kv-config
   vars:
@@ -17,7 +23,6 @@
     
   roles:
   - vault-binary
-  - consul-binary
   - consul-service
   - vault-service
   - dev-vault-init
@@ -35,7 +40,6 @@
   become_user: root
   become: yes
   roles:
-  - consul-binary
   - consul-service
   - mongodb-server
   vars:
@@ -46,7 +50,6 @@
   become_user: root
   become: yes
   roles:
-  - consul-binary
   - consul-service
   - rabbitmq-server
   - dev-rabbitmq-credentials
