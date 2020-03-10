@@ -21,8 +21,8 @@
   - consul-service
   - vault-service
   - dev-vault-init
-  - vault-policy
   - vault-approle-auth
+  - vault-policy
   - vault-pki
   - vault-kv
   vars:
