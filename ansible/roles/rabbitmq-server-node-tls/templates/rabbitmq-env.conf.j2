@@ -1,0 +1,14 @@
+# NOTE: the following path is system dependent and will change between Erlang
+#       versions
+ERL_SSL_PATH="{{ erlang_ssl_path }}"
+
+# -pa $ERL_SSL_PATH prepends the directory ERL_SSL_PATH points at to the code path
+# -proto_dist inet_tls tells the runtime to encrypt inter-node communication
+# -ssl_dist_optfile tells the runtime where to find its inter-node TLS configuration file
+SERVER_ADDITIONAL_ERL_ARGS="-pa $ERL_SSL_PATH
+  -proto_dist inet_tls
+  -ssl_dist_optfile {{ rabbitmq_ssl_config }}"
+
+CTL_ERL_ARGS="-pa $ERL_SSL_PATH
+  -proto_dist inet_tls
+  -ssl_dist_optfile {{ rabbitmq_ssl_config }}"

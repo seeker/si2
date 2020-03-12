@@ -1,0 +1,5 @@
+[{server,
+  [{certfile, "{{ rabbitmq_ssl_cert_bundle }}"},
+   {secure_renegotiate, true}]},
+ {client,
+  [{secure_renegotiate, true}]}].

@@ -1,0 +1,59 @@
+---
+- name: Erlang SSL lib must exist
+  stat:
+    path: "{{ erlang_ssl_path }}"
+  register: erlang_ssl_path_stat
+
+- name: Check that the Erlang SSL library is available
+  assert:
+    fail_msg: Check Erlang SSL version at /usr/lib/erlang/lib/ssl-* and update erlang_ssl_path in Ansible
+    quiet: true
+    that:
+      - erlang_ssl_path_stat.stat.isdir is defined
+      - erlang_ssl_path_stat.stat.isdir
+
+
+- name: Get SSL certificate and private key for server
+  uri:
+    url: "{{ vault_api_url }}/pki/issue/rabbitmq"
+    method: POST
+    body_format: json
+    body:
+      common_name: "{{ ssl_domain }}"
+      # 30 days
+      ttl: 720h
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    status_code:
+      - 200
+      - 204
+  register: cert_response
+
+- name: Write cretificate / private key bundle
+  template:
+    src: bundle.pem.j2
+    dest: "{{ rabbitmq_ssl_cert_bundle }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=,o=
+
+- name: Write RabbitMQ inter node SSL config
+  template:
+    src: inter_node_tls.config.j2
+    dest: "{{ rabbitmq_ssl_config }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Write RabbitMQ env config
+  template:
+    src: rabbitmq-env.conf.j2
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq-env.conf"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Flush handlers
+  meta: flush_handlers
