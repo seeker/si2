@@ -10,7 +10,7 @@
   block:
     - name: Enable PKI secrets engine via API call
       uri:
-        url: "{{ vault_api_url }}/sys/mounts/ssl"
+        url: "{{ vault_api_url }}/sys/mounts/pki"
         method: POST
         body_format: json
         status_code: 204
@@ -21,4 +21,4 @@
           config:
             max_lease_ttl: 720h
 
-  when: mounts_response['json']['data']['ssl/'] is not defined
+  when: mounts_response['json']['data']['pki/'] is not defined
