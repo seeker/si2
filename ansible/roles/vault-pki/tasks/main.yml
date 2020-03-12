@@ -19,6 +19,7 @@
         body:
           type: pki
           config:
-            max_lease_ttl: 720h
+            # TTL of 1 year
+            max_lease_ttl: 8760h
 
   when: mounts_response['json']['data']['pki/'] is not defined
