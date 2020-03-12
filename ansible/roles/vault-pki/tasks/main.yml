@@ -23,3 +23,34 @@
             max_lease_ttl: 8760h
 
   when: mounts_response['json']['data']['pki/'] is not defined
+
+- name: Generate PKI CA 
+  uri:
+    url: "{{ vault_api_url }}/pki/root/generate/internal"
+    method: POST
+    body_format: json
+    body:
+      common_name: "{{ ssl_domain }}"
+      # TTL of 1 year
+      ttl: 8760h
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    status_code:
+      - 200
+      - 204
+
+- name: Create / Update rabbitmq PKI role
+  uri:
+    url: "{{ vault_api_url }}/pki/roles/rabbitmq"
+    method: POST
+    body_format: json
+    body:
+      allow_any_name: true
+      enforce_hostnames: false
+      allowed_domains:
+        - "{{ ssl_domain }}"
+      allow_subdomains: true
+      ttl: 720h
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    status_code: 204
