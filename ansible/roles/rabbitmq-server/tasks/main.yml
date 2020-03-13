@@ -73,10 +73,11 @@
     tags: administrator
     state: present
 
-- name: Enable rabbitmq management plugin
+- name: Enable rabbitmq management and shovel plugin
   rabbitmq_plugin:
-    names: rabbitmq_management
+    names: rabbitmq_management,rabbitmq_shovel,rabbitmq_shovel_management
     state: enabled
+    new_only: true
 
 - name: Set queue name for file digest queue
   consul_kv:
