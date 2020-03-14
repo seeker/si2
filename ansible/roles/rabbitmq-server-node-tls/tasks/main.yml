@@ -73,5 +73,14 @@
     mode: o=rw,g=r,o=r
   notify: Restart RabbitMQ server
 
+- name: Write RabbitMQ client SSL config
+  template:
+    src: rabbitmq.conf.j2
+    dest: "{{ rabbitmq_client_ssl_config }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
 - name: Flush handlers
   meta: flush_handlers
