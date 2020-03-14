@@ -1,5 +1,14 @@
-[{server,
-  [{certfile, "{{ rabbitmq_ssl_cert_bundle }}"},
-   {secure_renegotiate, true}]},
- {client,
-  [{secure_renegotiate, true}]}].
+[
+  {server, [
+    {cacertfile, "{{ vault_ca_cert }}"},
+    {certfile, "{{ rabbitmq_server_cert }}"},
+    {keyfile,  "{{ rabbitmq_server_private_key }}"},
+    {secure_renegotiate, true}
+  ]},
+  {client, [
+    {cacertfile, "{{ vault_ca_cert }}"},
+    {certfile,   "{{ rabbitmq_server_cert }}"},
+    {keyfile,    "{{ rabbitmq_server_private_key }}"},
+    {secure_renegotiate, true}
+  ]}
+].

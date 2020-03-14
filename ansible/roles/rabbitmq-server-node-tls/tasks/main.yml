@@ -12,6 +12,16 @@
       - erlang_ssl_path_stat.stat.isdir is defined
       - erlang_ssl_path_stat.stat.isdir
 
+- name: Get and store Vault CA certificate
+  uri:
+    url: "{{ vault_api_url }}/pki/ca/pem"
+    method: GET
+    status_code: 200
+    return_content: yes
+    dest: "{{ vault_ca_cert }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
 
 - name: Get SSL certificate and private key for server
   uri:
@@ -29,10 +39,18 @@
       - 204
   register: cert_response
 
-- name: Write cretificate / private key bundle
+- name: Write RabbitMQ server certificate
   template:
-    src: bundle.pem.j2
-    dest: "{{ rabbitmq_ssl_cert_bundle }}"
+    src: server-cert.pem.j2
+    dest: "{{ rabbitmq_server_cert }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+
+- name: Write RabbitMQ server private key
+  template:
+    src: server-private-key.pem.j2
+    dest: "{{ rabbitmq_server_private_key }}"
     owner: rabbitmq
     group: rabbitmq
     mode: o=rw,g=,o=
