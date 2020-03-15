@@ -9,9 +9,6 @@
 - hosts: consul_server
   become_user: root
   become: yes
-  pre_tasks:
-    - set_fact:
-        consul_server: "{{ bind_ip }}"
 
   roles:
   - consul-service

@@ -2,7 +2,6 @@
 ansible_python_interpreter: "python3"
 apt_cache_timeout: 86400
 gossip_encryption_key: "8NXyj9/eZH6QK9HyF9GqCA=="
-consul_server: "192.168.42.10"
 vault_token: "{{ lookup('file', '../vault-root-token') }}"
 vault_server_address: "192.168.42.13"
 vault_server_port: 8200
