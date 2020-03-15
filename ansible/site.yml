@@ -9,6 +9,10 @@
 - hosts: consul_server
   become_user: root
   become: yes
+  pre_tasks:
+    - set_fact:
+        consul_server: "{{ bind_ip }}"
+
   roles:
   - consul-service
   - consul-kv-config
@@ -29,8 +33,6 @@
   - vault-policy
   - vault-pki
   - vault-kv
-  vars:
-    - consul_server: 192.168.42.10
   handlers:
     - import_tasks: handlers/main.yml
 
@@ -40,8 +42,6 @@
   roles:
   - consul-service
   - mongodb-server
-  vars:
-    - consul_server: 192.168.42.10
 
 - hosts: rabbitmq
   become_user: root
@@ -51,8 +51,6 @@
   - rabbitmq-server
   - rabbitmq-server-node-tls
   - dev-rabbitmq-credentials
-  vars:
-    - consul_server: 192.168.42.10
 
 - hosts: vault
   become_user: root
