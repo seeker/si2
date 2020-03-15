@@ -1,6 +1,4 @@
 ---
-temp_path: /var/tmp/
-temp_consul : "{{ temp_path }}/consul.zip"
 consul_binary: /usr/local/bin/consul
 consul_version: "1.6.0"
 force: false
