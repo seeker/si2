@@ -49,6 +49,7 @@
     body:
       secret_id: dbnode
   register: dbnode_lookup
+  check_mode: no
 
 - name: Create custom dbnode approle secret id
   uri:
@@ -86,6 +87,7 @@
     body:
       secret_id: integration
   register: integration_lookup
+  check_mode: no
 
 - name: Create custom integration approle secret id
   uri:

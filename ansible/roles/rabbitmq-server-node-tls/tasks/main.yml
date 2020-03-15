@@ -38,6 +38,7 @@
       - 200
       - 204
   register: cert_response
+  check_mode: no
 
 - name: Write RabbitMQ server certificate
   template:
@@ -46,6 +47,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: o=rw,g=r,o=r
+  diff: no
 
 - name: Write RabbitMQ server private key
   template:
@@ -54,6 +56,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: o=rw,g=,o=
+  diff: no
 
 - name: Write RabbitMQ inter node SSL config
   template:
