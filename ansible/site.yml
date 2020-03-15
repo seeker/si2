@@ -14,7 +14,6 @@
   - consul-kv-config
   vars:
     - server: yes
-    - bind_ip: 192.168.42.10
     - consul_client_ip: "{{ bind_ip }}"
 
 - hosts: vault
@@ -32,7 +31,6 @@
   - vault-kv
   vars:
     - consul_server: 192.168.42.10
-    - bind_ip: 192.168.42.13
   handlers:
     - import_tasks: handlers/main.yml
 
@@ -44,7 +42,6 @@
   - mongodb-server
   vars:
     - consul_server: 192.168.42.10
-    - bind_ip: 192.168.42.11
 
 - hosts: rabbitmq
   become_user: root
@@ -56,7 +53,6 @@
   - dev-rabbitmq-credentials
   vars:
     - consul_server: 192.168.42.10
-    - bind_ip: 192.168.42.12
 
 - hosts: vault
   become_user: root
