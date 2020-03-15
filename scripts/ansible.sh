@@ -12,8 +12,8 @@ echo '=== Adding Ansible repository ==='
 apt-add-repository --yes --update ppa:ansible/ansible
 apt-get update
 
-echo '=== Installing Ansible ==='
-apt-get install -y ansible
+echo '=== Installing Ansible and additional packages==='
+apt-get install -y ansible python-netaddr
 
 echo '=== Copy SSH private key ==='
 cp -v /vagrant/ssh/ansible* /home/vagrant/.ssh
