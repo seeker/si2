@@ -22,6 +22,7 @@
     owner: rabbitmq
     group: rabbitmq
     mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
 
 - name: Get SSL certificate and private key for server
   uri:
@@ -29,7 +30,9 @@
     method: POST
     body_format: json
     body:
-      common_name: "{{ ssl_domain }}"
+      common_name: "{{ ansible_all_ipv4_addresses | ipaddr(ip_and_cidr) | first }}"
+      alt_names: localhost
+      ip_sans: "127.0.0.1, {{ ansible_all_ipv4_addresses | ipaddr(ip_and_cidr) | first }}"
       # 30 days
       ttl: 720h
     headers:
@@ -48,6 +51,7 @@
     group: rabbitmq
     mode: o=rw,g=r,o=r
   diff: no
+  notify: Restart RabbitMQ server
 
 - name: Write RabbitMQ server private key
   template:
@@ -57,6 +61,7 @@
     group: rabbitmq
     mode: o=rw,g=,o=
   diff: no
+  notify: Restart RabbitMQ server
 
 - name: Write RabbitMQ inter node SSL config
   template:
