@@ -4,13 +4,13 @@
   file:
     path: "{{ vault_binary }}"
     state: absent
-  tags: packages
+  tags: package
 
 - name: Check that the Vault binary exists
   stat:
     path: "{{ vault_binary }}"
   register: vault_binary_stat
-  tags: packages
+  tags: package
 
 - name: Download and install Vault binary
   block:
@@ -38,7 +38,7 @@
         owner: root
 
   when: not vault_binary_stat.stat.exists
-  tags: packages
+  tags: package
 
 - name: Install Vault shell autocomplete
   shell:

@@ -4,13 +4,13 @@
   file:
     path: "{{ consul_binary }}"
     state: absent
-  tags: packages
+  tags: package
 
 - name: Check that the Consul binary exists
   stat:
     path: "{{ consul_binary }}"
   register: consul_binary_stat
-  tags: packages
+  tags: package
 
 - name: Download and install Consul binary
   block:
@@ -39,4 +39,4 @@
         owner: root
 
   when: not consul_binary_stat.stat.exists
-  tags: packages
+  tags: package

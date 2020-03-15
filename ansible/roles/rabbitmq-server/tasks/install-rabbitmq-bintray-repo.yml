@@ -19,7 +19,7 @@
       apt:
         cache_valid_time: "{{apt_cache_timeout}}"
         name: rabbitmq-server
-  tags: packages
+  tags: package
 
 - name: Flush handlers
   meta: flush_handlers

@@ -12,7 +12,7 @@
     cache_valid_time: "{{apt_cache_timeout}}"
     name: python3-consul
     state: present
-  tags: packages
+  tags: package
 
 - name: Create consul user
   user:
