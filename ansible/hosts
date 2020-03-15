@@ -1,5 +1,7 @@
 [vagrant:vars]
 ansible_user=vagrant
+ip_and_cidr = "192.168.42.1/24"
+consul_server = "192.168.42.10"
 
 [vagrant]
 192.168.42.[10:13]

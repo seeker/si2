@@ -6,6 +6,7 @@
     body_format: json
     return_content: yes
   register: vault_init_response
+  check_mode: no
 
 - name: Vault is initialized
   assert:
@@ -35,6 +36,7 @@
     headers:
       X-Vault-Token: "{{ vault_token }}"
   register: auth_methods
+  check_mode: no
 
 - name: Create SI2 dynamic node policy
   uri:

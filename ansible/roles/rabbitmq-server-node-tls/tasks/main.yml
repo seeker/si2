@@ -1,0 +1,94 @@
+---
+- name: Erlang SSL lib must exist
+  stat:
+    path: "{{ erlang_ssl_path }}"
+  register: erlang_ssl_path_stat
+
+- name: Check that the Erlang SSL library is available
+  assert:
+    fail_msg: Check Erlang SSL version at /usr/lib/erlang/lib/ssl-* and update erlang_ssl_path in Ansible
+    quiet: true
+    that:
+      - erlang_ssl_path_stat.stat.isdir is defined
+      - erlang_ssl_path_stat.stat.isdir
+
+- name: Get and store Vault CA certificate
+  uri:
+    url: "{{ vault_api_url }}/pki/ca/pem"
+    method: GET
+    status_code: 200
+    return_content: yes
+    dest: "{{ vault_ca_cert }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Get SSL certificate and private key for server
+  uri:
+    url: "{{ vault_api_url }}/pki/issue/rabbitmq"
+    method: POST
+    body_format: json
+    body:
+      common_name: "{{ ansible_all_ipv4_addresses | ipaddr(ip_and_cidr) | first }}"
+      alt_names: localhost
+      ip_sans: "127.0.0.1, {{ ansible_all_ipv4_addresses | ipaddr(ip_and_cidr) | first }}"
+      # 30 days
+      ttl: 720h
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    status_code:
+      - 200
+      - 204
+  register: cert_response
+  check_mode: no
+
+- name: Write RabbitMQ server certificate
+  template:
+    src: server-cert.pem.j2
+    dest: "{{ rabbitmq_server_cert }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  diff: no
+  notify: Restart RabbitMQ server
+
+- name: Write RabbitMQ server private key
+  template:
+    src: server-private-key.pem.j2
+    dest: "{{ rabbitmq_server_private_key }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=,o=
+  diff: no
+  notify: Restart RabbitMQ server
+
+- name: Write RabbitMQ inter node SSL config
+  template:
+    src: inter_node_tls.config.j2
+    dest: "{{ rabbitmq_ssl_config }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Write RabbitMQ env config
+  template:
+    src: rabbitmq-env.conf.j2
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq-env.conf"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Write RabbitMQ client SSL config
+  template:
+    src: rabbitmq.conf.j2
+    dest: "{{ rabbitmq_client_ssl_config }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: o=rw,g=r,o=r
+  notify: Restart RabbitMQ server
+
+- name: Flush handlers
+  meta: flush_handlers
