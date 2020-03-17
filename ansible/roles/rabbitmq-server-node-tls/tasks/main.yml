@@ -1,16 +1,19 @@
 ---
-- name: Erlang SSL lib must exist
-  stat:
-    path: "{{ erlang_ssl_path }}"
-  register: erlang_ssl_path_stat
+- name: Try to find Erlang SSL library
+  find:
+    file_type: directory
+    paths: /usr/lib/erlang/lib/
+    patterns: "ssl-*"
+  register: erlang_ssl_directory_find
 
-- name: Check that the Erlang SSL library is available
+- name: Check that the Erlang SSL library was found
   assert:
-    fail_msg: Check Erlang SSL version at /usr/lib/erlang/lib/ssl-* and update erlang_ssl_path in Ansible
+    fail_msg: Check that the Erlang SSL library exists at /usr/lib/erlang/lib/ssl-*
     quiet: true
-    that:
-      - erlang_ssl_path_stat.stat.isdir is defined
-      - erlang_ssl_path_stat.stat.isdir
+    that: erlang_ssl_directory_find.matched == 1
+
+- set_fact:
+    erlang_ssl_path:  "{{ erlang_ssl_directory_find.files[0].path }}/ebin"
 
 - name: Get and store Vault CA certificate
   uri:
