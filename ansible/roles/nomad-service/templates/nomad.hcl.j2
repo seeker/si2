@@ -1,0 +1,19 @@
+{% if nomad_server %}
+server {
+  enabled          = true
+  bootstrap_expect = 1
+  encrypt = "{{ gossip_encryption_key }}"
+}
+{% else %}
+client {
+  enabled       = true
+}
+{% endif %}
+
+consul {
+  address = "127.0.0.1:8500"
+}
+
+datacenter="{{ datacenter }}"
+data_dir  = "{{ nomad_data_directory }}"
+bind_addr = "{{ bind_ip }}"

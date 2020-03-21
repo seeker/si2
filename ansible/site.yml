@@ -1,10 +1,30 @@
 ---
-- hosts: nomad
+- hosts: nomad_server
   become_user: root
   become: yes
 
   roles:
     - nomad-binary
+    - consul-binary
+    - consul-service
+    - nomad-service
+  handlers:
+    - import_tasks: handlers/main.yml
+  
+  vars:
+    nomad_server: true
+
+- hosts: nomad_client
+  become_user: root
+  become: yes
+
+  roles:
+    - nomad-binary
+    - consul-binary
+    - consul-service
+    - nomad-service
+  handlers:
+    - import_tasks: handlers/main.yml
 
 - hosts: vagrant
   become_user: root
