@@ -20,3 +20,6 @@ consul_server = "192.168.42.10"
 
 [nomad]
 192.168.42.15
+
+[ansible]
+localhost

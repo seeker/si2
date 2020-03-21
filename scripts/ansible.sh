@@ -23,3 +23,6 @@ chown  vagrant:vagrant /home/vagrant/.ssh/ansible*
 
 echo '=== Disable Ansible SSH key checking ==='
 sed -i 's/#host_key_checking = False/host_key_checking = False/' /etc/ansible/ansible.cfg
+
+cd /vagrant/ansible
+ansible-playbook ansible.yml -i hosts
