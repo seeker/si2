@@ -9,3 +9,11 @@
   systemd:
     name: consul
     state: restarted
+
+- name: Restart systemd-resolved
+  systemd:
+    name: systemd-resolved
+    state: restarted
+
+- name: Persist iptables
+  command: netfilter-persistent save

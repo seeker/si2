@@ -1,7 +1,7 @@
 {% if server %}
 bootstrap_expect = 1
 ui = true
-client_addr = "{{ bind_ip }}"
+client_addr = "127.0.0.1 {{ bind_ip }}"
 {% endif %}
 
 server = {{ server|lower }}

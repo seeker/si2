@@ -1,6 +1,5 @@
 ---
 ssl_domain: "*"
-erlang_ssl_path: "/usr/lib/erlang/lib/ssl-9.5.3/ebin"
 rabbitmq_config_dir: "/etc/rabbitmq"
 vault_ca_cert: "{{ rabbitmq_config_dir }}/ca.pem"
 rabbitmq_server_cert: "{{ rabbitmq_config_dir }}/server-cert.pem"

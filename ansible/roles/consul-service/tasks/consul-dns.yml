@@ -1,0 +1,37 @@
+---
+- name: Install iptables-persistent package
+  apt:
+    name: iptables-persistent
+    state: present
+  tags: package
+
+- name: Redirect consul TLD requests to localhost
+  template:
+    src: resolved.conf
+    dest: /etc/systemd/resolved.conf
+    mode: preserve
+  notify: Restart systemd-resolved
+
+- name: Redirect TCP DNS requests to localhost to Consul
+  iptables:
+    table: nat
+    chain: OUTPUT
+    destination: "{{ consul_client_ip }}"
+    protocol: tcp
+    match: tcp
+    destination_port: 53
+    jump: REDIRECT
+    to_ports: 8600
+  notify: Persist iptables
+
+- name: Redirect UDP DNS requests to localhost to Consul
+  iptables:
+    table: nat
+    chain: OUTPUT
+    destination: "{{ consul_client_ip }}"
+    protocol: udp
+    match: udp
+    destination_port: 53
+    jump: REDIRECT
+    to_ports: 8600
+  notify: Persist iptables

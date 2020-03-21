@@ -20,3 +20,6 @@ cp -v /vagrant/ssh/ansible* /home/vagrant/.ssh
 dos2unix /home/vagrant/.ssh/ansible*
 chmod  u=rw,g=,o= /home/vagrant/.ssh/ansible*
 chown  vagrant:vagrant /home/vagrant/.ssh/ansible*
+
+echo '=== Disable Ansible SSH key checking ==='
+sed -i 's/#host_key_checking = False/host_key_checking = False/' /etc/ansible/ansible.cfg

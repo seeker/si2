@@ -61,6 +61,9 @@
     state: started
     enabled: yes
 
+- name: Setup DNS redirection to Consul
+  import_tasks: consul-dns.yml
+
 # This is required as the consul service needs to up and running to continue
 - name: Flush handlers
   meta: flush_handlers
