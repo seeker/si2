@@ -1,4 +1,11 @@
 ---
+- name: Install docker package
+  apt:
+    name: docker.io
+    state: present
+  when: not nomad_server
+  tags: package
+
 # TODO replace this with secret from Vault
 - name: Check that the Nomad gossip key is set
   assert:
