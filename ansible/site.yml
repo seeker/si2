@@ -1,4 +1,11 @@
 ---
+- hosts: nomad
+  become_user: root
+  become: yes
+
+  roles:
+    - nomad-binary
+
 - hosts: vagrant
   become_user: root
   become: yes

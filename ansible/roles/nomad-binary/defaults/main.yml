@@ -1,0 +1,4 @@
+---
+nomad_binary: /usr/local/bin/nomad
+nomad_version: "0.10.4"
+force: false
