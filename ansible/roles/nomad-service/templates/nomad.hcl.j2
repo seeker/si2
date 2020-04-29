@@ -4,7 +4,8 @@ server {
   bootstrap_expect = 1
   encrypt = "{{ gossip_encryption_key }}"
 }
-{% else %}
+{% endif %}
+{% if nomad_client %}
 client {
   enabled       = true
 }
