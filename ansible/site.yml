@@ -57,7 +57,7 @@
   - vault-rabbitmq-secrets
   - dev-vault-credentials
 
-- hosts: nomad_server
+- hosts: nomad
   become_user: root
   become: yes
 
@@ -71,15 +71,4 @@
   
   vars:
     nomad_server: true
-
-- hosts: nomad_client
-  become_user: root
-  become: yes
-
-  roles:
-    - nomad-binary
-    - consul-binary
-    - consul-service
-    - nomad-service
-  handlers:
-    - import_tasks: handlers/main.yml
+    nomad_client: true

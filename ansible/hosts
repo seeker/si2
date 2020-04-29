@@ -20,11 +20,8 @@ consul_server = "192.168.42.10"
 [rabbitmq]
 192.168.42.12:2250
 
-[nomad_server]
+[nomad]
 192.168.42.15
-
-[nomad_client]
-192.168.42.16
 
 [ansible]
 localhost

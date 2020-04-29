@@ -70,25 +70,14 @@ Vagrant.configure("2") do |config|
 	end
   end
   
-  config.vm.define "nomad_server" do |nomad_server|
-	nomad_server.vm.network "private_network", ip: "192.168.42.15"
-  nomad_server.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
-  nomad_server.vm.provision "shell", path: "scripts/bootstrap.sh"
+  config.vm.define "nomad" do |nomad|
+	nomad.vm.network "private_network", ip: "192.168.42.15"
+  nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
+  nomad.vm.provision "shell", path: "scripts/bootstrap.sh"
 
-	nomad_server.vm.provider "virtualbox" do |vb|
+	nomad.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
 		vb.cpus = 2
-	end
-  end
-  
-  config.vm.define "nomad_client" do |nomad_client|
-	nomad_client.vm.network "private_network", ip: "192.168.42.16"
-  nomad_client.vm.network "forwarded_port", guest: 22, host: 2280, auto_correct: false, id: "ssh"
-  nomad_client.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	nomad_client.vm.provider "virtualbox" do |vb|
-		vb.memory = 2048
-		vb.cpus = 4
 	end
   end
 
