@@ -71,9 +71,10 @@ Vagrant.configure("2") do |config|
   end
   
   config.vm.define "nomad" do |nomad|
-	nomad.vm.network "private_network", ip: "192.168.42.15"
   nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
-  nomad.vm.provision "shell", path: "scripts/bootstrap.sh"
+  nomad.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "ansible/site.yml"
+  end
 
 	nomad.vm.provider "virtualbox" do |vb|
 		vb.memory = 512
