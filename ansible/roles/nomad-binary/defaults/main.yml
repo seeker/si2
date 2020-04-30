@@ -2,3 +2,4 @@
 nomad_binary: /usr/local/bin/nomad
 nomad_version: "0.10.4"
 force: false
+nomad_binary_download_directory: /tmp/

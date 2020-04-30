@@ -9,23 +9,16 @@
   block:
     - name: Install zip
       apt:
-        cache_valid_time: "{{ apt_cache_timeout }}"
         name: zip
-
-    - name: Create temporary file for Nomad binary zip
-      tempfile:
-        state: file
-        suffix: nomad_binary
-      register: temp_nomad
   
     - name: Download Nomad tarball
       get_url:
         url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip"
-        dest: "{{ temp_nomad.path }}"
+        dest: "{{ nomad_binary_download_directory }}"
 
     - name: Unpack Nomad
       unarchive:
-        src: "{{ temp_nomad.path }}"
+        src: "{{ nomad_binary_download_directory }}/nomad_{{ nomad_version }}_linux_amd64.zip"
         remote_src: yes
         dest: /usr/local/bin/
         creates: "{{ nomad_binary }}"
