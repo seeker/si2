@@ -79,7 +79,7 @@ Vagrant.configure("2") do |config|
   end
 
 	nomad.vm.provider "virtualbox" do |vb|
-		vb.memory = 512
+		vb.memory = 2048
 		vb.cpus = 2
 	end
   end
