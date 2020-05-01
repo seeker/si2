@@ -70,5 +70,8 @@
     - import_tasks: handlers/main.yml
   
   vars:
-    nomad_server: true
-    nomad_client: true
+    - nomad_server: true
+    - nomad_client: true
+    - server: yes
+    - bind_ip: "10.0.2.15"
+    - consul_server: "{{ bind_ip }}"
