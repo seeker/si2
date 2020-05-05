@@ -74,6 +74,8 @@ Vagrant.configure("2") do |config|
   nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
   nomad.vm.network "forwarded_port", guest: 4646, host: 4646, id: "nomad"
   nomad.vm.network "forwarded_port", guest: 8500, host: 8500, id: "consul"
+  nomad.vm.network "forwarded_port", guest: 8200, host: 8200, id: "vault"
+  
   nomad.vm.provision "ansible_local" do |ansible|
     ansible.playbook = "ansible/site.yml"
   end

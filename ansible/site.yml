@@ -17,22 +17,6 @@
     - server: yes
     - consul_client_ip: "{{ bind_ip }}"
 
-- hosts: vault
-  become_user: root
-  become: yes
-    
-  roles:
-  - vault-binary
-  - consul-service
-  - vault-service
-  - dev-vault-init
-  - vault-approle-auth
-  - vault-policy
-  - vault-pki
-  - vault-kv
-  handlers:
-    - import_tasks: handlers/main.yml
-
 - hosts: mongodb
   become_user: root
   become: yes
@@ -66,6 +50,13 @@
     - consul-binary
     - consul-service
     - nomad-service
+    - vault-binary
+    - vault-service
+    - dev-vault-init
+    - vault-approle-auth
+    - vault-policy
+    - vault-pki
+    - vault-kv
   handlers:
     - import_tasks: handlers/main.yml
   
@@ -74,4 +65,5 @@
     - nomad_client: true
     - server: yes
     - bind_ip: "10.0.2.15"
+    - vault_server_address: "{{ bind_ip }}"
     - consul_server: "{{ bind_ip }}"
