@@ -3,7 +3,7 @@
   apt:
     name: docker.io
     state: present
-  when: not nomad_server
+  when: nomad_client
   tags: package
 
 # TODO replace this with secret from Vault
