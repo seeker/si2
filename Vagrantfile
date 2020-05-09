@@ -13,18 +13,6 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
-
-  config.vm.define "ansible", autostart: false do |ansible|
-	ansible.vm.network "private_network", ip: "192.168.42.14"
-  ansible.vm.network "forwarded_port", guest: 22, host: 2260, auto_correct: false, id: "ssh"
-  # TODO provision with ansible playbook to install ansible and SSH key
-  ansible.vm.provision "shell", path: "scripts/ansible.sh"
-
-	ansible.vm.provider "virtualbox" do |vb|
-		vb.memory = 1024
-		vb.cpus = 2
-	end
-  end
   
   config.vm.define "nomad" do |nomad|
   nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
