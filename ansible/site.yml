@@ -1,37 +1,10 @@
 ---
-- hosts: vagrant
-  become_user: root
-  become: yes
-
-  roles:
-    - consul-binary
-
-- hosts: consul_server
-  become_user: root
-  become: yes
-
-  roles:
-  - consul-service
-  - consul-kv-config
-  vars:
-    - server: yes
-    - consul_client_ip: "{{ bind_ip }}"
-
 - hosts: mongodb
   become_user: root
   become: yes
   roles:
   - consul-service
   - mongodb-server
-
-- hosts: rabbitmq
-  become_user: root
-  become: yes
-  roles:
-  - consul-service
-  - rabbitmq-server
-  - rabbitmq-server-node-tls
-  - dev-rabbitmq-credentials
 
 - hosts: nomad
   become_user: root

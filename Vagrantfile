@@ -14,45 +14,12 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
 
-  config.vm.define "consul", primary: true do |consul|
-	consul.vm.network "private_network", ip: "192.168.42.10"
-  consul.vm.network "forwarded_port", guest: 22, host: 2220, auto_correct: false, id: "ssh"
-	consul.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	consul.vm.provider "virtualbox" do |vb|
-		vb.memory = 512
-		vb.cpus = 2
-	end
-  end
-
-  config.vm.define "vault", primary: true do |vault|
-	vault.vm.network "private_network", ip: "192.168.42.13"
-  vault.vm.network "forwarded_port", guest: 22, host: 2250, auto_correct: false, id: "ssh"
-	vault.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	vault.vm.provider "virtualbox" do |vb|
-		vb.memory = 512
-		vb.cpus = 2
-	end
-  end
-
   config.vm.define "mongodb" do |mongodb|
   mongodb.vm.network "private_network", ip: "192.168.42.11"
   mongodb.vm.network "forwarded_port", guest: 22, host: 2230, auto_correct: false, id: "ssh"
 	mongodb.vm.provision "shell", path: "scripts/bootstrap.sh"
 
 	mongodb.vm.provider "virtualbox" do |vb|
-		vb.memory = 1024
-		vb.cpus = 2
-	end
-  end
-  
-  config.vm.define "rabbitmq" do |rabbitmq|
-	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
-  rabbitmq.vm.network "forwarded_port", guest: 22, host: 2240, auto_correct: false, id: "ssh"
-  rabbitmq.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	rabbitmq.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
 	end
