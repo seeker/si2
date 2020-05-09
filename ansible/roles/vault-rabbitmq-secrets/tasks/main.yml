@@ -41,21 +41,6 @@
       rabbitmq_user: "{{ password_response.json.data.data.username }}"
       rabbitmq_password: "{{ password_response.json.data.data.password }}"
 
-  - name: Configure RabbitMQ connection details for Vault
-    uri:
-      url: "{{ vault_api_url }}/rabbitmq/config/connection"
-      method: POST
-      body_format: json
-      status_code: 204
-      headers:
-        X-Vault-Token: "{{ vault_token }}"
-      body:
-        connection_uri: "http://rabbitmq.service.consul:15672"
-        username: "{{ rabbitmq_user }}"
-        password: "{{ rabbitmq_password }}"
-        # Since the job will not be running yet, this task would fail
-        verify_connection: false
-
   rescue:
     - debug:
         msg: "Generating new RabbitMQ admin credentials"
@@ -79,6 +64,20 @@
         headers:
           X-Vault-Token: "{{ vault_token }}"
 
+- name: Configure RabbitMQ connection details for Vault
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/config/connection"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      connection_uri: "http://rabbitmq.service.consul:15672"
+      username: "{{ rabbitmq_user }}"
+      password: "{{ rabbitmq_password }}"
+      # Since the job will not be running yet, this task would fail
+      verify_connection: false
 # RabbitMQ role for integration can be found in dev-vault-credentails
 
 - name: Configure RabbitMQ role for database node
