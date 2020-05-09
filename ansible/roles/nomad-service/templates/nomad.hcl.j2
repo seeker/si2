@@ -4,6 +4,13 @@ server {
   bootstrap_expect = 1
   encrypt = "{{ gossip_encryption_key }}"
 }
+
+vault {
+  enabled = true
+  address = "http://127.0.0.1:8200"
+  token = "{{ vault_token }}"
+}
+
 {% endif %}
 {% if nomad_client %}
 client {
