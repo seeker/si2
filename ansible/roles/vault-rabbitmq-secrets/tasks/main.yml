@@ -74,9 +74,8 @@
           - 204
         body_format: json
         body:
-          data:
-            username: "{{ rabbitmq_user }}"
-            password: "{{ rabbitmq_password }}"
+          username: "{{ rabbitmq_user }}"
+          password: "{{ rabbitmq_password }}"
         headers:
           X-Vault-Token: "{{ vault_token }}"
 
