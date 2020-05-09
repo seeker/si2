@@ -27,6 +27,21 @@
             capabilities = ["read"]
           }
 
+- name: Create SI2 rabbitmq Nomad policy
+# So Nomad can setup a RabbitMQ image
+  uri:
+    url: "{{ vault_api_url }}/sys/policy/si2-rabbitmq-nomad"
+    method: PUT
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      policy: >-
+          path "kv/rabbitmq/admin" {
+            capabilities = ["read"]
+          }
+
 - name: Read auth methods
   uri:
     url: "{{ vault_api_url }}/sys/auth"
