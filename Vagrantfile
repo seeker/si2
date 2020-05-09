@@ -14,17 +14,6 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
 
-  config.vm.define "mongodb" do |mongodb|
-  mongodb.vm.network "private_network", ip: "192.168.42.11"
-  mongodb.vm.network "forwarded_port", guest: 22, host: 2230, auto_correct: false, id: "ssh"
-	mongodb.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	mongodb.vm.provider "virtualbox" do |vb|
-		vb.memory = 1024
-		vb.cpus = 2
-	end
-  end
-
   config.vm.define "ansible", autostart: false do |ansible|
 	ansible.vm.network "private_network", ip: "192.168.42.14"
   ansible.vm.network "forwarded_port", guest: 22, host: 2260, auto_correct: false, id: "ssh"

@@ -1,11 +1,4 @@
 ---
-- hosts: mongodb
-  become_user: root
-  become: yes
-  roles:
-  - consul-service
-  - mongodb-server
-
 - hosts: nomad
   become_user: root
   become: yes
