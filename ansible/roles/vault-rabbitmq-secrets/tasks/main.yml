@@ -50,9 +50,11 @@
       headers:
         X-Vault-Token: "{{ vault_token }}"
       body:
-        connection_uri: "http://192.168.42.12:15672"
+        connection_uri: "http://rabbitmq.service.consul:15672"
         username: "{{ rabbitmq_user }}"
         password: "{{ rabbitmq_password }}"
+        # Since the job will not be running yet, this task would fail
+        verify_connection: false
 
   rescue:
     - debug:
