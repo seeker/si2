@@ -2,6 +2,7 @@ package com.github.seeker.configuration;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.hasItem;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class ConsulClientIT {
 	public void getFirstHealtyInstanceForMongoDb() throws Exception {
 		ServiceHealth service = client.getFirstHealtyInstance(ConfiguredService.mongodb);
 		
-		assertThat(service.getNode().getAddress(), is("192.168.42.11"));
+		assertThat(service.getService().getTags(), hasItem("mongodb"));
 	}
 
 	@Test
