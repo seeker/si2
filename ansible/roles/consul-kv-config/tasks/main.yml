@@ -1,24 +1,72 @@
 ---
 - name: Set value for required hashes
   consul_kv:
-    host: "{{host}}"
+
     key: config/general/required-hashes
     value: "SHA-256,SHA-512"
 
 - name: Set value for load rate limit
   consul_kv:
-    host: "{{host}}"
+
     key: config/fileloader/load-rate-limit
     value: "50"
 
 - name: Set value for thumbnail size
   consul_kv:
-    host: "{{host}}"
+
     key: config/general/thumbnail-size
     value: "200"
 
 - name: Set empty anchors for vagrant
   consul_kv:
-    host: "{{host}}"
+
     key: config/fileloader/anchors/vagrant
     value: ""
+
+- name: Set value for integration database name
+  consul_kv:
+
+    key: config/mongodb/database/integration
+    value: "mongodbintegration"
+
+- name: Set value for production database name
+  consul_kv:
+
+    key: config/mongodb/database/si2
+    value: "si2"
+
+- name: Set queue name for file digest queue
+  consul_kv:
+
+    key: config/rabbitmq/queue/file-digest
+    value: "file-digest"
+
+- name: Set queue name for file resize queue
+  consul_kv:
+
+    key: config/rabbitmq/queue/file-resize
+    value: "file-resize"
+
+- name: Set queue name for thumbnails
+  consul_kv:
+
+    key: config/rabbitmq/queue/thumbnail
+    value: "thumbnails"
+
+- name: Set queue name for hash
+  consul_kv:
+
+    key: config/rabbitmq/queue/hash
+    value: "hashes"
+
+- name: Set queue name for thumbnail requests
+  consul_kv:
+
+    key: config/rabbitmq/queue/thumbnail-request
+    value: "thumbnail-request"
+
+- name: Set queue name for pre processed files
+  consul_kv:
+
+    key: config/rabbitmq/queue/file-pre-processed
+    value: "file-pre-processed"
