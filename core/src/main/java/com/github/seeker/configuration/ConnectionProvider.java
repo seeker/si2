@@ -129,7 +129,7 @@ public class ConnectionProvider {
 		String mongoDBserverAddress = overrideVirtualBoxNatAddress(mongodbService.getNode().getAddress());
 
 		MorphiumConfig cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
+		LOGGER.info("Conneting to mongodb database {} on {}", database, mongoDBserverAddress);
 		cfg.setDatabase(database);
 		cfg.addHostToSeed(mongoDBserverAddress);
 		//TODO use replica sets at some point, disabled to prevent exception spam
