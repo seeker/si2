@@ -15,7 +15,13 @@ vault {
 {% if nomad_client %}
 client {
   enabled       = true
+
+  host_volume "mongodb" {
+    path      = "{{ mongodb_data_directory }}"
+    read_only = false
+  }
 }
+
 {% endif %}
 
 consul {

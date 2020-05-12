@@ -25,6 +25,11 @@ job "si2" {
   group "admin" {
     count = 1
 
+    volume "mongodb" {
+      type      = "host"
+      source    = "mongodb"
+    }
+
     restart {
       attempts = 2
       interval = "30m"
@@ -128,10 +133,16 @@ job "si2" {
         env = true
       }
     }
+
     task "mongodb" {
         driver = "docker"
         config {
           image = "mongo:4.2.6"
+        }
+
+        volume_mount {
+          volume      = "mongodb"
+          destination = "/data/db"
         }
 
         resources {
