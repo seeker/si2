@@ -69,6 +69,7 @@ public class ConnectionProvider {
 		if(status == 400) {
 			throw new IllegalArgumentException("Response returned '400 Bad Request'");
 		} else if(rabbitCreds.getRestResponse().getStatus() != 200) {
+			LOGGER.error("Failed to read credentails from Vault with response code {}", status);
 			throw new IllegalArgumentException("Failed with response " + Integer.toString(status));
 		}
 		
