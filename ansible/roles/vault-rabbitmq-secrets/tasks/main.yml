@@ -38,8 +38,8 @@
     diff: no
 
   - set_fact:
-      rabbitmq_user: "{{ password_response.json.data.data.username }}"
-      rabbitmq_password: "{{ password_response.json.data.data.password }}"
+      rabbitmq_user: "{{ password_response.json.data.username }}"
+      rabbitmq_password: "{{ password_response.json.data.password }}"
 
   rescue:
     - debug:
