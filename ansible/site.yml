@@ -8,10 +8,10 @@
     - consul-binary
     - consul-service
     - consul-kv-config
-    - nomad-service
     - vault-binary
     - vault-service
     - dev-vault-init
+    - nomad-service
     - vault-approle-auth
     - vault-policy
     - vault-pki
