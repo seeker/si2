@@ -57,7 +57,7 @@ job "si2" {
 
       resources {
         cpu    = 500 # 500 MHz
-        memory = 1024
+        memory = 512
 
         network {
           mbits = 900
@@ -147,7 +147,7 @@ job "si2" {
 
         resources {
           cpu    = 500 # 500 MHz
-          memory = 512
+          memory = 256
 
           network {
             mbits = 100
