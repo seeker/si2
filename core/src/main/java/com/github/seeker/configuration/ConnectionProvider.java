@@ -32,6 +32,8 @@ public class ConnectionProvider {
 	private final Vault vault;
 	private final ConsulConfiguration consulConfig;
 	
+	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";
+	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
 	private static final String PRODUCTION_DB_CONSUL_KEY = "config/mongodb/database/si2";
 	public static final String INTEGRATION_DB_CONSUL_KEY = "config/mongodb/database/integration";
 
@@ -41,6 +43,7 @@ public class ConnectionProvider {
 	} 
 	
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds) throws VaultException {
+		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
@@ -55,7 +58,7 @@ public class ConnectionProvider {
 		vault.auth().renewSelf();
 		
 		
-		String serverAddress = rabbitmqService.getNode().getAddress();
+		String serverAddress = overrideVirtualBoxNatAddress(rabbitmqService.getNode().getAddress());
 		int serverPort = rabbitmqService.getService().getPort();
 		String rabbitMqCredsPath = "/rabbitmq/creds/" + role.toString();
 		LOGGER.debug("Requesting RabbitMQ credentials from {}", rabbitMqCredsPath);
@@ -66,6 +69,7 @@ public class ConnectionProvider {
 		if(status == 400) {
 			throw new IllegalArgumentException("Response returned '400 Bad Request'");
 		} else if(rabbitCreds.getRestResponse().getStatus() != 200) {
+			LOGGER.error("Failed to read credentails from Vault with response code {}", status);
 			throw new IllegalArgumentException("Failed with response " + Integer.toString(status));
 		}
 		
@@ -87,7 +91,8 @@ public class ConnectionProvider {
 		Service vaultSerivce = consul.getFirstHealtyInstance(ConfiguredService.vault).getService();
 		Node vaultNode = consul.getFirstHealtyInstance(ConfiguredService.vault).getNode();
 		
-		String vaultAddress = "http://" + vaultNode.getAddress() + ":" + vaultSerivce.getPort();
+		
+		String vaultAddress = "http://" + overrideVirtualBoxNatAddress(vaultNode.getAddress()) + ":" + vaultSerivce.getPort();
 		LOGGER.debug("Created Vault config with address {}", vaultAddress);
 		
 		// Trailing slash is due to bug in library?
@@ -99,6 +104,15 @@ public class ConnectionProvider {
 		vc.token(auth.getAuthClientToken());
 		
 		return vaultClient;
+	}
+	
+	protected static String overrideVirtualBoxNatAddress(String originalAddress) {
+		if (VIRTUALBOX_NAT_ADDRESS.equals(originalAddress)) {
+			LOGGER.debug("Rewrote VirtualBox NAT address {} to {}", originalAddress, LOCALHOST_ADDRESS);
+			return LOCALHOST_ADDRESS;
+		} else {
+			return originalAddress;
+		}
 	}
 	
 	public MongoDbMapper getIntegrationMongoDbMapper() {
@@ -113,10 +127,10 @@ public class ConnectionProvider {
 		ServiceHealth mongodbService = consul.getFirstHealtyInstance(ConfiguredService.mongodb);
 		
 		String database = consul.getKvAsString(databaseNameConsulKey);
-		String mongoDBserverAddress = mongodbService.getNode().getAddress();
+		String mongoDBserverAddress = overrideVirtualBoxNatAddress(mongodbService.getNode().getAddress());
 
 		MorphiumConfig cfg = new MorphiumConfig();
-		LOGGER.info("Conneting to mongodb database {}", database);
+		LOGGER.info("Conneting to mongodb database {} on {}", database, mongoDBserverAddress);
 		cfg.setDatabase(database);
 		cfg.addHostToSeed(mongoDBserverAddress);
 		//TODO use replica sets at some point, disabled to prevent exception spam

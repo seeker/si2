@@ -1,0 +1,33 @@
+{% if nomad_server %}
+server {
+  enabled          = true
+  bootstrap_expect = 1
+  encrypt = "{{ gossip_encryption_key }}"
+}
+
+vault {
+  enabled = true
+  address = "http://127.0.0.1:8200"
+  token = "{{ vault_token }}"
+}
+
+{% endif %}
+{% if nomad_client %}
+client {
+  enabled       = true
+
+  host_volume "mongodb" {
+    path      = "{{ mongodb_data_directory }}"
+    read_only = false
+  }
+}
+
+{% endif %}
+
+consul {
+  address = "127.0.0.1:8500"
+}
+
+datacenter="{{ datacenter }}"
+data_dir  = "{{ nomad_data_directory }}"
+bind_addr = "{{ bind_ip }}"

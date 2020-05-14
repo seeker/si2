@@ -16,23 +16,16 @@
   block:
     - name: Install zip
       apt:
-        cache_valid_time: "{{ apt_cache_timeout }}"
         name: zip
-
-    - name: Create temporary file for Consul binary zip
-      tempfile:
-        state: file
-        suffix: consul_binary
-      register: temp_consul
   
     - name: Download Consul tarball
       get_url:
         url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
-        dest: "{{ temp_consul.path }}"
+        dest: "{{ consul_binary_download_directory }}"
 
     - name: Unpack Consul
       unarchive:
-        src: "{{ temp_consul.path }}"
+        src: "{{ consul_binary_download_directory }}/consul_{{ consul_version }}_linux_amd64.zip"
         remote_src: yes
         dest: /usr/local/bin/
         creates: "{{ consul_binary }}"

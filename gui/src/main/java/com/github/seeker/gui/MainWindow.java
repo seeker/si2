@@ -35,8 +35,10 @@ public class MainWindow extends Application{
 	}
 
 	private void setUpVars() throws IOException, TimeoutException, VaultException {
-		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
-		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.client).newConnection();
+		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+		
+		ConnectionProvider connectionProvider = new ConnectionProvider(configBuilder.getConsulConfiguration(), configBuilder.getVaultCredentials());
+		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
 		
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel(), connectionProvider.getConsulClient());
 		

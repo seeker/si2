@@ -1,58 +1,32 @@
 ---
-- hosts: vagrant
+- hosts: nomad
   become_user: root
   become: yes
 
   roles:
+    - nomad-binary
     - consul-binary
+    - consul-service
+    - consul-kv-config
+    - vault-binary
+    - vault-service
+    - dev-vault-init
+    - nomad-service
+    - vault-approle-auth
+    - vault-policy
+    - vault-pki
+    - vault-kv
+    #- dev-rabbitmq-credentials #TODO create RabbitMQ integration user via Vault?
+    - vault-rabbitmq-secrets
+    - dev-vault-credentials
 
-- hosts: consul_server
-  become_user: root
-  become: yes
-
-  roles:
-  - consul-service
-  - consul-kv-config
-  vars:
-    - server: yes
-    - consul_client_ip: "{{ bind_ip }}"
-
-- hosts: vault
-  become_user: root
-  become: yes
-    
-  roles:
-  - vault-binary
-  - consul-service
-  - vault-service
-  - dev-vault-init
-  - vault-approle-auth
-  - vault-policy
-  - vault-pki
-  - vault-kv
   handlers:
     - import_tasks: handlers/main.yml
-
-- hosts: mongodb
-  become_user: root
-  become: yes
-  roles:
-  - consul-service
-  - mongodb-server
-
-- hosts: rabbitmq
-  become_user: root
-  become: yes
-  roles:
-  - consul-service
-  - rabbitmq-server
-  - rabbitmq-server-node-tls
-  - dev-rabbitmq-credentials
-
-- hosts: vault
-  become_user: root
-  become: yes
-
-  roles:
-  - vault-rabbitmq-secrets
-  - dev-vault-credentials
+  
+  vars:
+    - nomad_server: true
+    - nomad_client: true
+    - server: yes
+    - bind_ip: "10.0.2.15"
+    - vault_server_address: "{{ bind_ip }}"
+    - consul_server: "{{ bind_ip }}"

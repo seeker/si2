@@ -13,62 +13,27 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
-
-  config.vm.define "consul", primary: true do |consul|
-	consul.vm.network "private_network", ip: "192.168.42.10"
-  consul.vm.network "forwarded_port", guest: 22, host: 2220, auto_correct: false, id: "ssh"
-	consul.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	consul.vm.provider "virtualbox" do |vb|
-		vb.memory = 512
-		vb.cpus = 2
-	end
-  end
-
-  config.vm.define "vault", primary: true do |vault|
-	vault.vm.network "private_network", ip: "192.168.42.13"
-  vault.vm.network "forwarded_port", guest: 22, host: 2250, auto_correct: false, id: "ssh"
-	vault.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	vault.vm.provider "virtualbox" do |vb|
-		vb.memory = 512
-		vb.cpus = 2
-	end
-  end
-
-  config.vm.define "mongodb" do |mongodb|
-  mongodb.vm.network "private_network", ip: "192.168.42.11"
-  mongodb.vm.network "forwarded_port", guest: 22, host: 2230, auto_correct: false, id: "ssh"
-	mongodb.vm.provision "shell", path: "scripts/bootstrap.sh"
-
-	mongodb.vm.provider "virtualbox" do |vb|
-		vb.memory = 1024
-		vb.cpus = 2
-	end
-  end
   
-  config.vm.define "rabbitmq" do |rabbitmq|
-	rabbitmq.vm.network "private_network", ip: "192.168.42.12"
-  rabbitmq.vm.network "forwarded_port", guest: 22, host: 2240, auto_correct: false, id: "ssh"
-  rabbitmq.vm.provision "shell", path: "scripts/bootstrap.sh"
+  config.vm.define "nomad" do |nomad|
+  nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
+  nomad.vm.network "forwarded_port", guest: 4646, host: 4646, id: "nomad"
+  nomad.vm.network "forwarded_port", guest: 8500, host: 8500, id: "consul"
+  nomad.vm.network "forwarded_port", guest: 8200, host: 8200, id: "vault"
+  nomad.vm.network "forwarded_port", guest: 15672, host: 15672, id: "rabbitmq-http"
+  nomad.vm.network "forwarded_port", guest: 15671, host: 15671, id: "rabbitmq-https"
+  nomad.vm.network "forwarded_port", guest: 5672, host: 5672, id: "amqp"
+  nomad.vm.network "forwarded_port", guest: 27017, host: 27017, id: "mongodb"
+  
+  nomad.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "ansible/site.yml"
+  end
 
-	rabbitmq.vm.provider "virtualbox" do |vb|
+	nomad.vm.provider "virtualbox" do |vb|
 		vb.memory = 1024
 		vb.cpus = 2
 	end
   end
 
-  config.vm.define "ansible", autostart: false do |ansible|
-	ansible.vm.network "private_network", ip: "192.168.42.14"
-  ansible.vm.network "forwarded_port", guest: 22, host: 2260, auto_correct: false, id: "ssh"
-  # TODO provision with ansible playbook to install ansible and SSH key
-  ansible.vm.provision "shell", path: "scripts/ansible.sh"
-
-	ansible.vm.provider "virtualbox" do |vb|
-		vb.memory = 1024
-		vb.cpus = 2
-	end
-  end
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.

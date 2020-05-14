@@ -5,8 +5,11 @@
     method: GET
     headers:
       X-Vault-Token: "{{ vault_token }}"
-
   register: auth_response
+  delay: 1
+  retries: 10
+  until: auth_response.status == 200
+  # Retries are a workaround for Vault and / or Consul not being ready despite reporting as such
 
 - name: Enable approle auth
   uri:

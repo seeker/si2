@@ -23,19 +23,46 @@
 
   when: mounts_response['json']['data']['rabbitmq/'] is not defined 
 
-- name: Get RabbitMQ admin credentails from Vault
-  uri:
-    url: "{{ vault_api_url }}/kv/rabbitmq/admin"
-    method: GET
-    body_format: json
-    status_code:
-    - 200
-    - 404
-    headers:
-      X-Vault-Token: "{{ vault_token }}"
+- name: RabbitMQ credentials
+  block:
+  - name: Get RabbitMQ admin credentails from Vault
+    uri:
+      url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+      method: GET
+      body_format: json
+      headers:
+        X-Vault-Token: "{{ vault_token }}"
 
-  register: password_response
-  check_mode: no
+    register: password_response
+    check_mode: no
+    diff: no
+
+  - set_fact:
+      rabbitmq_user: "{{ password_response.json.data.username }}"
+      rabbitmq_password: "{{ password_response.json.data.password }}"
+
+  rescue:
+    - debug:
+        msg: "Generating new RabbitMQ admin credentials"
+      changed_when: true
+
+    - set_fact:
+        rabbitmq_user: admin
+        rabbitmq_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+    
+    - name: Store RanbbitMQ credentials in Vault
+      uri:
+        url: "{{ vault_api_url }}/kv/rabbitmq/admin"
+        method: POST
+        status_code:
+          - 200
+          - 204
+        body_format: json
+        body:
+          username: "{{ rabbitmq_user }}"
+          password: "{{ rabbitmq_password }}"
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
 
 - name: Configure RabbitMQ connection details for Vault
   uri:
@@ -46,10 +73,11 @@
     headers:
       X-Vault-Token: "{{ vault_token }}"
     body:
-      connection_uri: "http://192.168.42.12:15672"
-      username: "{{ password_response.json.data.username }}"
-      password: "{{ password_response.json.data.password }}"
-
+      connection_uri: "http://rabbitmq.service.consul:15672"
+      username: "{{ rabbitmq_user }}"
+      password: "{{ rabbitmq_password }}"
+      # Since the job will not be running yet, this task would fail
+      verify_connection: false
 # RabbitMQ role for integration can be found in dev-vault-credentails
 
 - name: Configure RabbitMQ role for database node
