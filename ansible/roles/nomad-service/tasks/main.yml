@@ -1,7 +1,9 @@
 ---
-- name: Install docker package
+- name: Install cleint packages
   apt:
-    name: docker.io
+    name:
+      - docker.io
+      - openjdk-11-jre-headless
     state: present
   when: nomad_client
   tags: package
