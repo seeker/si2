@@ -31,6 +31,7 @@ public class ConnectionProvider {
 	private final ConsulClient consul;
 	private final Vault vault;
 	private final ConsulConfiguration consulConfig;
+	private final boolean overrideVirtualBoxAddress;
 	
 	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";
 	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
@@ -41,12 +42,18 @@ public class ConnectionProvider {
 	public ConnectionProvider(ConsulConfiguration consulConfig) throws VaultException {
 		this(consulConfig, new VaultIntegrationCredentials(Approle.integration));
 	} 
-	
+
+	@Deprecated
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds) throws VaultException {
+		this(consulConfig, vaultCreds, true);
+	}
+
+	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds, boolean overrideVirtualBoxAddress) throws VaultException {
 		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
+		this.overrideVirtualBoxAddress = overrideVirtualBoxAddress;
 	}
 	
 	public ConsulClient getConsulClient() {
@@ -106,8 +113,12 @@ public class ConnectionProvider {
 		return vaultClient;
 	}
 	
-	protected static String overrideVirtualBoxNatAddress(String originalAddress) {
-		if (VIRTUALBOX_NAT_ADDRESS.equals(originalAddress)) {
+	protected String overrideVirtualBoxNatAddress(String originalAddress) {
+		return ConnectionProvider.overrideVirtualBoxNatAddress(originalAddress, this.overrideVirtualBoxAddress);
+	}
+	
+	protected static String overrideVirtualBoxNatAddress(String originalAddress, boolean overrideVirtualBoxAddress) {
+		if (overrideVirtualBoxAddress && VIRTUALBOX_NAT_ADDRESS.equals(originalAddress)) {
 			LOGGER.debug("Rewrote VirtualBox NAT address {} to {}", originalAddress, LOCALHOST_ADDRESS);
 			return LOCALHOST_ADDRESS;
 		} else {
