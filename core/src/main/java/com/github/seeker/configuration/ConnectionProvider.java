@@ -50,10 +50,10 @@ public class ConnectionProvider {
 
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds, boolean overrideVirtualBoxAddress) throws VaultException {
 		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());
+		this.overrideVirtualBoxAddress = overrideVirtualBoxAddress;
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
-		this.overrideVirtualBoxAddress = overrideVirtualBoxAddress;
 	}
 	
 	public ConsulClient getConsulClient() {
