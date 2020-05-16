@@ -15,6 +15,7 @@ import org.cfg4j.source.ConfigurationSource;
 import org.cfg4j.source.classpath.ClasspathConfigurationSource;
 import org.cfg4j.source.compose.FallbackConfigurationSource;
 import org.cfg4j.source.compose.MergeConfigurationSource;
+import org.cfg4j.source.context.environment.ImmutableEnvironment;
 import org.cfg4j.source.context.filesprovider.ConfigFilesProvider;
 import org.cfg4j.source.files.FilesConfigurationSource;
 import org.cfg4j.source.inmemory.InMemoryConfigurationSource;
@@ -60,9 +61,10 @@ public class ConfigurationBuilder {
 		
 		InMemoryConfigurationSource defaultConfig = new InMemoryConfigurationSource(defaultValues());
 		
-		ConfigurationSource configWithFallback = new FallbackConfigurationSource(classPathConfig, fileConfig);
+		ConfigurationSource configWithFallback = new FallbackConfigurationSource(fileConfig, classPathConfig);
 		ConfigurationSource mergedConfig = new MergeConfigurationSource(defaultConfig, configWithFallback);
-		return new ConfigurationProviderBuilder().withConfigurationSource(mergedConfig).build();
+		
+		return new ConfigurationProviderBuilder().withConfigurationSource(mergedConfig).withEnvironment(new ImmutableEnvironment("local/")).build();
 	}
 	
 	private Properties defaultValues() {
