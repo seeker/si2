@@ -25,9 +25,9 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.configuration.VaultCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.messaging.HashMessageBuilder;
-import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -54,18 +54,7 @@ public class DBNodeIT {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
-		connectionProvider = new ConnectionProvider(consulConfig, new VaultCredentials() {
-			private final String role = "integration";
-			@Override
-			public String secretId() {
-				return role;
-			}
-			
-			@Override
-			public String approleId() {
-				return role;
-			}
-		});
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 	}
 
 	@AfterClass

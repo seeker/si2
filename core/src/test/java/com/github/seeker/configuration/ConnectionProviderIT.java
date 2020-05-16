@@ -27,7 +27,7 @@ public class ConnectionProviderIT {
 
 	@Before
 	public void setUp() throws Exception {
-		cut = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration));
+		cut = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 	}
 
 	@Test

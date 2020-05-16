@@ -36,7 +36,7 @@ public class MessageITBase {
 	public static void baseSetUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		
-		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration));
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 	}
 

@@ -13,7 +13,6 @@ import com.bettercloud.vault.VaultException;
 import com.bettercloud.vault.response.AuthResponse;
 import com.bettercloud.vault.response.LogicalResponse;
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
-import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.orbitz.consul.model.health.Node;
 import com.orbitz.consul.model.health.Service;
@@ -37,16 +36,6 @@ public class ConnectionProvider {
 	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
 	private static final String PRODUCTION_DB_CONSUL_KEY = "config/mongodb/database/si2";
 	public static final String INTEGRATION_DB_CONSUL_KEY = "config/mongodb/database/integration";
-
-	@Deprecated
-	public ConnectionProvider(ConsulConfiguration consulConfig) throws VaultException {
-		this(consulConfig, new VaultIntegrationCredentials(Approle.integration));
-	} 
-
-	@Deprecated
-	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds) throws VaultException {
-		this(consulConfig, vaultCreds, true);
-	}
 
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds, boolean overrideVirtualBoxAddress) throws VaultException {
 		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());

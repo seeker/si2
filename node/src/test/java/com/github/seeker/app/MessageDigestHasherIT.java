@@ -33,7 +33,9 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.VaultCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
@@ -81,18 +83,7 @@ public class MessageDigestHasherIT {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
-		connectionProvider = new ConnectionProvider(consulConfig, new VaultCredentials() {
-			
-			@Override
-			public String secretId() {
-				return "integration";
-			}
-			
-			@Override
-			public String approleId() {
-				return "integration";
-			}
-		});
+		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 		
 		assertThat(connectionProvider, is(notNullValue()));
 	}

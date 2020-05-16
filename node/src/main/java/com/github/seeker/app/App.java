@@ -7,6 +7,7 @@ package com.github.seeker.app;
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
+import com.github.seeker.configuration.ConsulConfiguration;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -53,7 +54,10 @@ public class App {
 	private static void processArgs(Namespace namespace) throws VaultException {
 		System.out.println(namespace);
 		
-		ConnectionProvider connectionProvider = new ConnectionProvider(new ConfigurationBuilder().getConsulConfiguration());
+		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
+		
+		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
 		
 		if(LOADER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {

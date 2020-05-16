@@ -1,3 +1,4 @@
 consul.ip: "127.0.0.1"
 consul.port: 8500
 consul.datacenter: "vagrant"
+consul.overrideVirtualBoxAddress: true

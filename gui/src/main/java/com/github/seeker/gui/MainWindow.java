@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
+import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -36,8 +37,9 @@ public class MainWindow extends Application{
 
 	private void setUpVars() throws IOException, TimeoutException, VaultException {
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
 		
-		ConnectionProvider connectionProvider = new ConnectionProvider(configBuilder.getConsulConfiguration(), configBuilder.getVaultCredentials());
+		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
 		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
 		
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel(), connectionProvider.getConsulClient());

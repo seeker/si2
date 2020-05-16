@@ -35,6 +35,8 @@ import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.configuration.VaultIntegrationCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
@@ -87,8 +89,9 @@ public class MongoDbMapperIT {
 	
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
-		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfiguration);
+		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
+		ConsulConfiguration consulConfiguration = configBuilder.getConsulConfiguration();
+		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfiguration, new VaultIntegrationCredentials(Approle.integration), consulConfiguration.overrideVirtualBoxAddress());
 				
 		morphium = connectionProvider.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 		mapper = connectionProvider.getMongoDbMapper(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
