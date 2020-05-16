@@ -20,6 +20,11 @@ client {
     path      = "{{ mongodb_data_directory }}"
     read_only = false
   }
+
+  host_volume "thumbnail" {
+    path      = "{{ thumbnail_data_directory }}"
+    read_only = false
+  }
 }
 
 {% endif %}

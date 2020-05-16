@@ -34,6 +34,12 @@
     path: "{{ mongodb_data_directory }}"
     recurse: yes
 
+- name: Create thumbnail persistent data directory
+  file:
+    state: directory
+    path: "{{ thumbnail_data_directory }}"
+    recurse: yes
+
 - name: Create systemd unit for Nomad
   template:
     src: nomad.service.j2
