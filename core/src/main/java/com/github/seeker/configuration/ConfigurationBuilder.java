@@ -7,14 +7,17 @@ package com.github.seeker.configuration;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Properties;
 
 import org.cfg4j.provider.ConfigurationProvider;
 import org.cfg4j.provider.ConfigurationProviderBuilder;
 import org.cfg4j.source.ConfigurationSource;
 import org.cfg4j.source.classpath.ClasspathConfigurationSource;
 import org.cfg4j.source.compose.FallbackConfigurationSource;
+import org.cfg4j.source.compose.MergeConfigurationSource;
 import org.cfg4j.source.context.filesprovider.ConfigFilesProvider;
 import org.cfg4j.source.files.FilesConfigurationSource;
+import org.cfg4j.source.inmemory.InMemoryConfigurationSource;
 
 public class ConfigurationBuilder {
 	private static final String CONFIG_FILE_NAME = "si2.yaml";
@@ -55,9 +58,19 @@ public class ConfigurationBuilder {
 		ConfigurationSource fileConfig = new FilesConfigurationSource(configFilesProvider);
 		ConfigurationSource classPathConfig = new ClasspathConfigurationSource(configFilesProvider);
 		
+		InMemoryConfigurationSource defaultConfig = new InMemoryConfigurationSource(defaultValues());
+		
 		ConfigurationSource configWithFallback = new FallbackConfigurationSource(classPathConfig, fileConfig);
-
-		return new ConfigurationProviderBuilder().withConfigurationSource(configWithFallback).build();
+		ConfigurationSource mergedConfig = new MergeConfigurationSource(defaultConfig, configWithFallback);
+		return new ConfigurationProviderBuilder().withConfigurationSource(mergedConfig).build();
+	}
+	
+	private Properties defaultValues() {
+		Properties defaultProperties = new Properties();
+		
+		defaultProperties.put("consul.overrideVirtualBoxAddress", false);
+		
+		return defaultProperties;
 	}
 	
 	public ConsulConfiguration getConsulConfiguration() {
