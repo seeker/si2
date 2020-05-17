@@ -39,6 +39,7 @@
     state: directory
     path: "{{ thumbnail_data_directory }}"
     recurse: yes
+    owner: nobody
 
 - name: Create systemd unit for Nomad
   template:
