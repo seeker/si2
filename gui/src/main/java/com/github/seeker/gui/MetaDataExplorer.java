@@ -77,8 +77,6 @@ public class MetaDataExplorer extends Stage {
         pageFactory.updatePaginator();
 		
         imageView = new ImageView();
-        imageView.setFitWidth(200);
-        imageView.setFitHeight(200);
         imageView.setPreserveRatio(true);
         imageView.setVisible(true);
         
