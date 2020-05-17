@@ -57,7 +57,7 @@ job "si2" {
 
       resources {
         cpu    = 500 # 500 MHz
-        memory = 512
+        memory = 768
 
         network {
           mbits = 900
