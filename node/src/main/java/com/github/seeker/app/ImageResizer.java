@@ -105,7 +105,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	//TODO store in custom preprocessor class
 	private static final int IMAGE_SIZE = 32; 
 	
-	private final int thumbnailSize;
+	private int thumbnailSize;
 	private final QueueConfiguration queueConfig;
 	
 	public ImageFileMessageConsumer(Channel channel, int thumbnailSize, QueueConfiguration queueConfig) {
