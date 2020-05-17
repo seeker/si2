@@ -43,13 +43,13 @@ public class ImageMetaDataTest {
 	
 	@Test
 	public void hasThumbnail() throws Exception {
-		cut.setThumbnailId(UUID.randomUUID());
+		cut.setThumbnailId(new Thumbnail(123, UUID.randomUUID()));
 		
 		assertThat(cut.hasThumbnail(), is(true));
 	}
 	
 	@Test
 	public void verifyEqualsAndHash() throws Exception {
-		EqualsVerifier.forClass(ImageMetaData.class).allFieldsShouldBeUsedExcept("id", "creationTime", "fileSize", "hashes", "thumbnailId", "tags").suppress(Warning.NONFINAL_FIELDS).verify();
+		EqualsVerifier.forClass(ImageMetaData.class).allFieldsShouldBeUsedExcept("id", "creationTime", "fileSize", "hashes", "thumbnail", "tags").suppress(Warning.NONFINAL_FIELDS).verify();
 	}
 }

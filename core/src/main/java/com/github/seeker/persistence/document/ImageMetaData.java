@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -57,7 +56,7 @@ public class ImageMetaData {
 	 * Id of the thumbnail
 	 */
 	@Index
-	private UUID thumbnailId;
+	private Thumbnail thumbnail;
 	
 	/**
 	 * Tags assigned to this image
@@ -106,12 +105,12 @@ public class ImageMetaData {
 		this.fileSize = fileSize;
 	}
 
-	public UUID getThumbnailId() {
-		return thumbnailId;
+	public Thumbnail getThumbnail() {
+		return thumbnail;
 	}
 
-	public void setThumbnailId(UUID thumbnailId) {
-		this.thumbnailId = thumbnailId;
+	public void setThumbnailId(Thumbnail thumbnail) {
+		this.thumbnail = thumbnail;
 	}
 	
 	/**
@@ -119,7 +118,7 @@ public class ImageMetaData {
 	 * @return true if there is a thumbnail
 	 */
 	public boolean hasThumbnail() {
-		return this.thumbnailId != null;
+		return this.thumbnail != null;
 	}
 	
 	@Override

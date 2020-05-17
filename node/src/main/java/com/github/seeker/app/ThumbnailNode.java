@@ -23,6 +23,7 @@ import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.github.seeker.persistence.document.Thumbnail;
 import com.google.common.io.ByteStreams;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP;
@@ -171,21 +172,23 @@ class ThumbnailStore extends DefaultConsumer {
 		}
 		
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
+		int imageSize = Integer.parseInt(header.get(MessageHeaderKeys.THUMBNAIL_SIZE).toString());
 		
-		UUID uuid;
+		Thumbnail thumbnail;
 		
 		if(meta.hasThumbnail()) {
-			uuid = meta.getThumbnailId();
+			thumbnail = meta.getThumbnail();
+			thumbnail.setMaxImageSize(imageSize);
 		} else {
-			uuid = UUID.randomUUID();
-			meta.setThumbnailId(uuid);
+			thumbnail = new Thumbnail(imageSize, UUID.randomUUID());
+			meta.setThumbnailId(thumbnail);
 		}
 		
-		Path thumbnailDirectory = generateDirectories(uuid);
-		storeThumbnail(thumbnailDirectory, uuid, body);
+		Path thumbnailDirectory = generateDirectories(thumbnail.getImageId());
+		storeThumbnail(thumbnailDirectory, thumbnail.getImageId(), body);
 
 		mapper.storeDocument(meta);
-		LOGGER.info("Stored thumbnail for {} - {} in {}", anchor, relativeAnchorPath, thumbnailDirectory.resolve(uuid.toString()));
+		LOGGER.info("Stored thumbnail for {} - {} in {}", anchor, relativeAnchorPath, thumbnailDirectory.resolve(thumbnail.getImageId().toString()));
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}

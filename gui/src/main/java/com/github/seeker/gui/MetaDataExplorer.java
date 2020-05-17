@@ -196,7 +196,7 @@ public class MetaDataExplorer extends Stage {
 				
 				AMQP.BasicProperties props = new AMQP.BasicProperties().builder().correlationId(correlationId).replyTo(replyQueue).build();
 				
-				UUID thumbnailID = newValue.getThumbnailId();
+				UUID thumbnailID = newValue.getThumbnail().getImageId();
 				
 				ByteArrayDataOutput data = ByteStreams.newDataOutput(16);
 				data.writeLong(thumbnailID.getMostSignificantBits());
@@ -208,7 +208,7 @@ public class MetaDataExplorer extends Stage {
 					LOGGER.debug("Requesting thumbnail with ID {}", thumbnailID);
 					channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnailRequests), props, raw);
 				} catch (IOException e) {
-					LOGGER.warn("Failed to send thumbnail request for {}: {}", newValue.getThumbnailId(), e);
+					LOGGER.warn("Failed to send thumbnail request for {}: {}", newValue.getThumbnail(), e);
 					e.printStackTrace();
 				}
 			}
