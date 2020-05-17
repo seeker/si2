@@ -192,4 +192,12 @@ public class ImageResizerIT {
 		
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(1));
 	}
+	
+	@Test
+	public void thumbnailMessageContainsThumbnailSize() throws Exception {
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), false);
+		
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(200));
+	}
 }

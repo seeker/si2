@@ -178,7 +178,9 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	}
 
 	private void createThumbnail(Map<String, Object> receivedMessageHeader, BufferedImage originalImage) throws IOException {
-		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, thumbnailSize);
+		int currentThumbnailSize = this.thumbnailSize;
+		
+		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, currentThumbnailSize);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		ImageIO.write(thumbnail, "jpg", os);
 		thumbnail.flush();
@@ -186,6 +188,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
+		thumbnailHeaders.put(MessageHeaderKeys.THUMBNAIL_SIZE, currentThumbnailSize);
 		
 		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
 		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnails), thumbnailProps, os.toByteArray());
