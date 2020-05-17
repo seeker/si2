@@ -26,7 +26,7 @@
   file:
     state: directory
     path: "{{ nomad_data_directory }}"
-    recurse: yes
+    recurse: false
 
 - name: Create MongoDB persistent data directory
   file:
