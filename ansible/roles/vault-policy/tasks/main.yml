@@ -62,7 +62,12 @@
     headers:
       X-Vault-Token: "{{ vault_token }}"
     body:
-      policy: >-
+      policy: |-
           path "rabbitmq/creds/{{ '{{' }}identity.entity.aliases.{{auth_methods["json"]["approle/"]["accessor"]}}.name{{ '}}' }}" {
+            capabilities = ["read"]
+          }
+          
+          #FIXME use metadata from approle to limit access
+          path "rabbitmq/creds/*" {
             capabilities = ["read"]
           }
