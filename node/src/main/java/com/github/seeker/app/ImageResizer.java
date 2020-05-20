@@ -189,6 +189,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
 		thumbnailHeaders.put(MessageHeaderKeys.THUMBNAIL_SIZE, currentThumbnailSize);
+
 		
 		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
 		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnails), thumbnailProps, os.toByteArray());
