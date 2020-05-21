@@ -25,6 +25,11 @@ client {
     path      = "{{ thumbnail_data_directory }}"
     read_only = false
   }
+
+  host_volume "registry" {
+    path      = "{{ docker_registry_directory }}"
+    read_only = false
+  }
 }
 
 {% endif %}

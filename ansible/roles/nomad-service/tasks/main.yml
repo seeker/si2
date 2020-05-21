@@ -41,6 +41,12 @@
     recurse: yes
     owner: nobody
 
+- name: Create Docker registry persistent data directory
+  file:
+    state: directory
+    path: "{{ docker_registry_directory }}"
+    recurse: yes
+
 - name: Create systemd unit for Nomad
   template:
     src: nomad.service.j2
