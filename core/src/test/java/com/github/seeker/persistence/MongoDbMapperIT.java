@@ -104,13 +104,13 @@ public class MongoDbMapperIT {
 		hashes.put(HASH_NAME_PHASH, new Hash(new byte[]{6,37,3,1,5,85,2}));
 		
 		metadataExisting = new ImageMetaData();
-		metadataExisting.setThumbnailId(THUMBNAIL_ID);
+		metadataExisting.setThumbnailId(new Thumbnail(123, THUMBNAIL_ID));
 		metadataExisting.setHashes(hashes);
 		metadataExisting.setAnchor(TEST_ANCHOR);
 		metadataExisting.setPath(TEST_PATH.toString());
 		
 		metadataNew = new ImageMetaData();
-		metadataNew.setThumbnailId(THUMBNAIL_ID_NEW);
+		metadataNew.setThumbnailId(new Thumbnail(321, THUMBNAIL_ID_NEW));
 
 		
 		setUpTestData();

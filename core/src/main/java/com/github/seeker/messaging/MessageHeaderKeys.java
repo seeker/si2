@@ -11,6 +11,11 @@ public class MessageHeaderKeys {
 	public static final String HASH_PHASH = "phash";
 	public static final String THUMBNAIL_FOUND = "thumbnail-found";
 	/**
+	 * Thumbnail size parameter that was used to generate the thumbnail.
+	 */
+	public static final String THUMBNAIL_SIZE = "tn-size";
+
+	/**
 	 * Hash algorithms that the body should be hashed with, or the resulting hashes are contained in the body.
 	 */
 	public static final String HASH_ALGORITHMS = "hash-algo";

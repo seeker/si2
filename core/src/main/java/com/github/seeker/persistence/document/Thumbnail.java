@@ -1,5 +1,7 @@
 package com.github.seeker.persistence.document;
 
+import java.util.UUID;
+
 import de.caluga.morphium.annotations.Embedded;
 
 /**
@@ -11,28 +13,32 @@ public class Thumbnail {
 	 * Create a new thumbnail document.
 	 * 
 	 * @param maxImageSize the size in pixels, of the longest side of the thumbnail
-	 * @param imageData The image in encoded (JPG, PNG, etc.) binary form
+	 * @param imageId The UUID of the image
 	 */
-	public Thumbnail(int maxImageSize, byte[] imageData) {
+	public Thumbnail(int maxImageSize, UUID imageId) {
 		this.maxImageSize = maxImageSize;
-		this.imageData = imageData;
+		this.imageId = imageId;
 	}
 
 	/**
-	 * The size in pixels, of the longest side of the thumbnail
+	 * The size in pixels, of the longest side of the thumbnail.
 	 */
 	private int maxImageSize;
 	
 	/**
-	 * The image in encoded (JPG, PNG, etc.) binary form.
+	 * The image ID as a UUID.
 	 */
-	private byte[] imageData;
+	private UUID imageId;
 
 	public int getMaxImageSize() {
 		return maxImageSize;
 	}
 
-	public byte[] getImageData() {
-		return imageData;
+	public void setMaxImageSize(int maxImageSize) {
+		this.maxImageSize = maxImageSize;
+	}
+
+	public UUID getImageId() {
+		return imageId;
 	}
 }
