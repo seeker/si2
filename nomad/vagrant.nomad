@@ -65,7 +65,7 @@ job "si2" {
         memory = 768
 
         network {
-          mbits = 900
+          mbits = 500
           
           port "http" {
             static = 15672
