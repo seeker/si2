@@ -30,11 +30,6 @@ job "si2" {
       source    = "mongodb"
     }
 
-    volume "registry" {
-      type      = "host"
-      source    = "registry"
-    }
-
     restart {
       attempts = 2
       interval = "30m"
@@ -182,6 +177,16 @@ job "si2" {
       driver = "docker"
       config {
         image = "registry:2.7.1"
+
+        mounts =
+          [
+            {
+              type = "bind"
+              target = "/var/lib/registry"
+              source = "/var/lib/docker-registry"
+              readonly = false
+            }
+          ]
       }
 
       vault {
