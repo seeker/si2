@@ -15,7 +15,7 @@
   consul_kv:
 
     key: config/general/thumbnail-size
-    value: "200"
+    value: "300"
 
 - name: Set empty anchors for vagrant
   consul_kv:

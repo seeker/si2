@@ -199,7 +199,7 @@ public class ImageResizerIT {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), false);
 		
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
-		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(200));
+		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(300));
 	}
 	
 	public void thumbnailMessageHasSizeHeader() throws Exception {
