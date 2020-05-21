@@ -58,6 +58,15 @@
     dest: "{{ nomad_config_directory }}/nomad.hcl"
   notify: Restart Nomad
 
+- name: Create Docker daemon configuration
+  template:
+    src: daemon.json.j2
+    dest: "/etc/docker/daemon.json"
+    owner: root
+    group: root
+    mode: u=rw,g=rw,o=r
+  notify: Restart Nomad
+
 - name: Enable and start Nomad agent
   systemd:
     name: nomad
