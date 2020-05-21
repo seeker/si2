@@ -159,6 +159,9 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			} catch (IllegalArgumentException iae) {
 				//TODO send a error message
 				LOGGER.warn("Failed to create thumbnail due to {}", iae);
+			} catch (IIOException iioe) {
+				//TODO send a error message
+				LOGGER.warn("Failed to create thumbnail for {}-{} due to an image error}", anchor, relativePath, iioe);
 			}
 		}else {
 			LOGGER.debug("{}:{} already has a thumbnail, skipping...", anchor, relativePath);
