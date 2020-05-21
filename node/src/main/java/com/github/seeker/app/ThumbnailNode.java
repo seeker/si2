@@ -168,6 +168,7 @@ class ThumbnailStore extends DefaultConsumer {
 			relativeAnchorPath = Paths.get(header.get("path").toString());
 		} catch (InvalidPathException e) {
 			LOGGER.warn("Invalid path {}", e);
+			getChannel().basicReject(envelope.getDeliveryTag(), false);
 			return;
 		}
 		
