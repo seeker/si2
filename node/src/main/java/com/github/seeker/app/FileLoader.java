@@ -21,7 +21,7 @@ import com.github.seeker.configuration.AnchorParser;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.processor.FileToQueueVistor;
@@ -95,7 +95,7 @@ public class FileLoader {
 		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
 		
 		try {
-			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getFileLoaderExchangeName()));
+			Files.walkFileTree(anchorAbsolutePath, new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader)));
 		} catch (IOException e) {
 			LOGGER.warn("Failed to walk file tree for {}: {}", anchorAbsolutePath, e.getMessage());
 		}

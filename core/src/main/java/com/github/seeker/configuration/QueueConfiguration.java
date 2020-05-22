@@ -206,15 +206,4 @@ public class QueueConfiguration {
 
 		return exchangeNames.get(exchange);
 	}
-	
-	/**
-	 * Get the name of the exchange for file loading.
-	 * This is a fanout exchange that sends messages to the digest hasher and resizer.
-	 * 
-	 * @return the name of the exchange
-	 */
-	@Deprecated
-	public String getFileLoaderExchangeName() {
-		return getExchangeName(ConfiguredExchanges.loader);
-	}
 }
