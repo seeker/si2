@@ -17,12 +17,6 @@
     key: config/general/thumbnail-size
     value: "300"
 
-- name: Set empty anchors for vagrant
-  consul_kv:
-
-    key: config/fileloader/anchors/vagrant
-    value: ""
-
 - name: Set value for integration database name
   consul_kv:
 

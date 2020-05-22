@@ -44,7 +44,6 @@ public class FileLoader {
 	private final RateLimiter fileLoadRateLimiter;
 	private final KVCache rateLimitCache;
 	
-	//TODO use JSON and parser lib (retrofit?) to get data from consul, load data with curl?
 	//TODO get file types from consul
 	
 	public FileLoader(String id, ConnectionProvider connectionProvider) throws IOException, TimeoutException, VaultException {
@@ -52,10 +51,6 @@ public class FileLoader {
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.file_loader).newConnection();
 		channel = conn.createChannel();
 		queueConfig = new QueueConfiguration(channel, consul);
-		
-		LOGGER.info("Loading anchors for ID {}...", id);
-		String encodedAnchors = consul.getKvAsString("config/fileloader/anchors/" + id);
-		LOGGER.debug("Loaded encoded anchors {} for ID {}", encodedAnchors, id);
 		
 		long rateLimit = consul.getKvAsLong("config/fileloader/load-rate-limit");
 		fileLoadRateLimiter = RateLimiter.create(rateLimit, 5, TimeUnit.SECONDS);
