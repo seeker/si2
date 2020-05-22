@@ -137,4 +137,14 @@ public class QueueConfigurationTest {
 	public void getLoaderCommandIntegrationExchangeName() throws Exception {
 		assertThat(cutIntegration.getExchangeName(ConfiguredExchanges.loaderCommand), is("integration-loaderCommand"));
 	}
+	
+	@Test
+	public void getFileLoaderExchangeName() throws Exception {
+		assertThat(cut.getFileLoaderExchangeName(), is("loader"));
+	}
+	
+	@Test
+	public void getFileLoaderExchangeIntegrationName() throws Exception {
+		assertThat(cutIntegration.getFileLoaderExchangeName(), is("integration-loader"));
+	}
 }

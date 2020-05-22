@@ -17,15 +17,11 @@ import com.rabbitmq.client.Channel;
 public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
 	
-	private static final String FILE_LOADER_EXCHANGE = "loader";
-	private static final String FILE_LOADER_INTEGRATION_EXCHANGE = "integration-loader";
-	
 	private Channel channel;
 	private ConsulClient consulClient;
 	private boolean integration;
 	private Map<ConfiguredQueues, String> queueNames;
 	private Map<ConfiguredExchanges, String> exchangeNames;
-	private String fileLoaderExchangeName;
 	
 	public enum ConfiguredQueues 
 	{
@@ -63,7 +59,11 @@ public class QueueConfiguration {
 		/**
 		 * Exchange for sending commands to loader instances.
 		 */
-		loaderCommand
+		loaderCommand,
+		/**
+		 * Exchange for loader to place loaded image data.
+		 */
+		loader
 	};
 
 	/**
@@ -158,13 +158,7 @@ public class QueueConfiguration {
 	private void declareExchanges() throws IOException {
 		LOGGER.info("Declaring exchanges...");
 		
-		fileLoaderExchangeName = FILE_LOADER_EXCHANGE;
-		
-		if(integration) {
-			fileLoaderExchangeName = FILE_LOADER_INTEGRATION_EXCHANGE;
-		}
-		
-		channel.exchangeDeclare(fileLoaderExchangeName, BuiltinExchangeType.FANOUT);
+		channel.exchangeDeclare(getExchangeName(ConfiguredExchanges.loader), BuiltinExchangeType.FANOUT);
 	}
 	
 	private void declareQueues() throws IOException {
@@ -174,8 +168,8 @@ public class QueueConfiguration {
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
 		
-		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), fileLoaderExchangeName, "");
-		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), fileLoaderExchangeName, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), getExchangeName(ConfiguredExchanges.loader), "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), getExchangeName(ConfiguredExchanges.loader), "");
 	}
 	
 	/**
@@ -219,7 +213,8 @@ public class QueueConfiguration {
 	 * 
 	 * @return the name of the exchange
 	 */
+	@Deprecated
 	public String getFileLoaderExchangeName() {
-		return fileLoaderExchangeName;
+		return getExchangeName(ConfiguredExchanges.loader);
 	}
 }
