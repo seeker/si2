@@ -4,7 +4,7 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.rabbitmq.client.Channel;
 
@@ -125,5 +126,15 @@ public class QueueConfigurationTest {
 	@Test(expected=IllegalStateException.class)
 	public void noNameForQueue() throws Exception {
 		cutIntegration.getQueueName(null);
+	}
+	
+	@Test
+	public void getLoaderCommandExchangeName() throws Exception {
+		assertThat(cut.getExchangeName(ConfiguredExchanges.loaderCommand), is("loaderCommand"));
+	}
+	
+	@Test
+	public void getLoaderCommandIntegrationExchangeName() throws Exception {
+		assertThat(cutIntegration.getExchangeName(ConfiguredExchanges.loaderCommand), is("integration-loaderCommand"));
 	}
 }

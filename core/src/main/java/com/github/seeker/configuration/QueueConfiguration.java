@@ -24,6 +24,7 @@ public class QueueConfiguration {
 	private ConsulClient consulClient;
 	private boolean integration;
 	private Map<ConfiguredQueues, String> queueNames;
+	private Map<ConfiguredExchanges, String> exchangeNames;
 	private String fileLoaderExchangeName;
 	
 	public enum ConfiguredQueues 
@@ -57,6 +58,13 @@ public class QueueConfiguration {
 		 */
 		thumbnailRequests
 	};
+	
+	public enum ConfiguredExchanges {
+		/**
+		 * Exchange for sending commands to loader instances.
+		 */
+		loaderCommand
+	};
 
 	/**
 	 * Create a new Queue configuration.
@@ -86,6 +94,7 @@ public class QueueConfiguration {
 		this.integration = integration;
 		
 		setupQueueNames(setupConsulKeys());
+		setupExchangeNames();
 		declareExchanges();
 		declareQueues();
 	}
@@ -130,6 +139,22 @@ public class QueueConfiguration {
 		}
 	}
 	
+	private void setupExchangeNames() {
+		exchangeNames = new HashMap<QueueConfiguration.ConfiguredExchanges, String>();
+
+		LOGGER.debug("Fetching exchange names for {} exchanges", ConfiguredExchanges.values().length);
+
+		for (ConfiguredExchanges exchange : ConfiguredExchanges.values()) {
+			String exchangeName = exchange.toString();
+
+			if (integration) {
+				exchangeName = "integration-" + exchangeName;
+			}
+
+			exchangeNames.put(exchange, exchangeName);
+		}
+	}
+	
 	private void declareExchanges() throws IOException {
 		LOGGER.info("Declaring exchanges...");
 		
@@ -168,6 +193,24 @@ public class QueueConfiguration {
 		}
 		
 		return queueNames.get(queue);
+	}
+	
+	/**
+	 * Get the exchange name for the configured exchange.
+	 * 
+	 * @param exchange to get the name for
+	 * @return the exchange name
+	 * @throws IllegalStateException if there is no name for the exchange
+	 */
+	public String getExchangeName(ConfiguredExchanges exchange) {
+		String queueName = exchangeNames.get(exchange);
+
+		if (queueName == null) {
+			LOGGER.error("No exchange name found for {}", exchange);
+			throw new IllegalStateException("No exchange name found for " + exchange);
+		}
+
+		return exchangeNames.get(exchange);
 	}
 	
 	/**
