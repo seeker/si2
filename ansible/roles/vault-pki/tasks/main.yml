@@ -54,3 +54,21 @@
     headers:
       X-Vault-Token: "{{ vault_token }}"
     status_code: 204
+
+- name: Create / Update docker registry PKI role
+  uri:
+    url: "{{ vault_api_url }}/pki/roles/registry"
+    method: POST
+    body_format: json
+    body:
+      allow_any_name: true
+      # Recommended according to Nomad template docs
+      generate_lease: true
+      enforce_hostnames: false
+      allowed_domains:
+        - "{{ ssl_domain }}"
+      allow_subdomains: true
+      ttl: 720h
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    status_code: 204

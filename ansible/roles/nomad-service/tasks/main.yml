@@ -3,7 +3,6 @@
   apt:
     name:
       - docker.io
-      - openjdk-11-jre-headless
     state: present
   when: nomad_client
   tags: package
@@ -41,6 +40,12 @@
     recurse: yes
     owner: nobody
 
+- name: Create Docker registry persistent data directory
+  file:
+    state: directory
+    path: "{{ docker_registry_directory }}"
+    recurse: yes
+
 - name: Create systemd unit for Nomad
   template:
     src: nomad.service.j2
@@ -51,6 +56,15 @@
   template:
     src: nomad.hcl.j2
     dest: "{{ nomad_config_directory }}/nomad.hcl"
+  notify: Restart Nomad
+
+- name: Create Docker daemon configuration
+  template:
+    src: daemon.json.j2
+    dest: "/etc/docker/daemon.json"
+    owner: root
+    group: root
+    mode: u=rw,g=rw,o=r
   notify: Restart Nomad
 
 - name: Enable and start Nomad agent

@@ -42,6 +42,21 @@
             capabilities = ["read"]
           }
 
+- name: Create SI2 Docker registry policy
+# TLS required for external registry access?
+  uri:
+    url: "{{ vault_api_url }}/sys/policy/si2-registry-nomad"
+    method: PUT
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      policy: >-
+          path "pki/issue/registry" {
+            capabilities = ["read","create","update"]
+          }
+
 - name: Read auth methods
   uri:
     url: "{{ vault_api_url }}/sys/auth"

@@ -60,7 +60,7 @@ job "si2" {
         memory = 768
 
         network {
-          mbits = 900
+          mbits = 500
           
           port "http" {
             static = 15672
@@ -172,5 +172,82 @@ job "si2" {
           }
         }
       }
+
+    task "registry" {
+      driver = "docker"
+      config {
+        image = "registry:2.7.1"
+
+        mounts =
+          [
+            {
+              type = "bind"
+              target = "/var/lib/registry"
+              source = "/var/lib/docker-registry"
+              readonly = false
+            }
+          ]
+      }
+
+      vault {
+        policies = ["si2-registry-nomad"]
+
+        change_mode   = "signal"
+        change_signal = "SIGHUP"
+      }
+
+      template {
+        data = <<EOH
+      {{ with secret "pki/issue/registry" "common_name=docker-registry.service.consul" "ip_sans=127.0.0.1" }}
+      {{- .Data.certificate -}}
+      {{ end }}
+      EOH
+        destination   = "${NOMAD_TASK_DIR}/certificate.crt"
+        change_mode   = "restart"
+      }
+
+      template {
+        data = <<EOH
+      {{ with secret "pki/issue/registry" "common_name=docker-registry.service.consul" "ip_sans=127.0.0.1" }}
+      {{- .Data.private_key -}}
+      {{ end }}
+      EOH
+        destination   = "${NOMAD_TASK_DIR}/private_key.key"
+        change_mode   = "restart"
+      }
+
+      env {
+        REGISTRY_HTTP_ADDR            = "0.0.0.0:5000"
+        #REGISTRY_HTTP_TLS_CERTIFICATE = "/certs/certificate.crt"
+        #REGISTRY_HTTP_TLS_KEY         = "/certs/private_key.key"
+      }
+
+      resources {
+        cpu    = 500 # 500 MHz
+        memory = 256
+
+        network {
+          mbits = 100
+          
+          port "docker_registry" {
+            static = 5000
+          }
+        }
+      }
+
+      service {
+        name = "docker-registry"
+        tags = ["docker", "registry"]
+        port = "docker_registry"
+
+        check {
+          name     = "Docker registry check"
+          type     = "tcp"
+          port     = "docker_registry"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+    }
   }
 }
