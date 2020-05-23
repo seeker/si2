@@ -44,6 +44,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final String anchor;
 	private final Path anchorPath;
 	private final RateLimiter fileLoadRateLimiter;
+	private boolean terminate = false;
 	
 	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
@@ -58,9 +59,29 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		requiredCustomHashes = new ArrayList<String>();
 		requiredCustomHashes.add(PHASH_CUSTOM_HASH_ALGORITHM_NAME);
 	}
+	
+	/**
+	 * Gracefully terminate this {@link FileToQueueVistor}.
+	 */
+	public void terminate() {
+		this.terminate = true;
+	}
+	
+	/**
+	 * Check if the termination flag has been set. This does not mean that the FileVisitor has terminated. 
+	 * @return true if the terminate flag has been set
+	 */
+	public boolean isTerminated() {
+		return terminate;
+	}
 
 	@Override
 	public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+		if (this.terminate) {
+			LOGGER.info("Terminate flag set, terminating file walk...");
+			return FileVisitResult.TERMINATE;
+		}
+		
 		if(fileFilter.accept(file)) {
 			try {
 				loadFileIntoQueue(file, attrs);
