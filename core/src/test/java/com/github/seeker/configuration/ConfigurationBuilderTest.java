@@ -1,8 +1,11 @@
 package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
+import static org.hamcrest.collection.IsMapContaining.hasValue;
+import static org.junit.Assert.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,14 +14,21 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ConfigurationBuilderTest {
+	private static final String LOADER_ANCHOR_KEY1 = "anchorOne";
+	private static final String LOADER_ANCHOR_KEY2 = "anchorTwo";
+	private static final String LOADER_ANCHOR_VALUE1 = "/var/test/data";
+	private static final String LOADER_ANCHOR_VALUE2 = "D:\\test\\path";
+	
 	private ConfigurationBuilder cut;
 	private ConsulConfiguration consulConfig;
+	private FileLoaderConfiguration fileLoaderConfig;
 	private static final Path TEST_CONFIG = Paths.get("unittest.yaml"); 
 	
 	@Before
 	public void setUp() throws Exception {
 		cut = new ConfigurationBuilder(TEST_CONFIG);
 		consulConfig = cut.getConsulConfiguration();
+		fileLoaderConfig = cut.getFileLoaderConfiguration();
 	}
 	
 	@Test
@@ -41,4 +51,23 @@ public class ConfigurationBuilderTest {
 		assertThat(consulConfig.port(), is(42));
 	}
 	
+	@Test
+	public void fileLoader1stAnchorKey() throws Exception {
+		assertThat(fileLoaderConfig.anchors(),  hasKey(containsString(LOADER_ANCHOR_KEY1)));
+	}
+	
+	@Test
+	public void fileLoader2ndAnchorKey() throws Exception {
+		assertThat(fileLoaderConfig.anchors(), hasKey(containsString(LOADER_ANCHOR_KEY2)));
+	}
+	
+	@Test
+	public void fileLoader1stAnchorValue() throws Exception {
+		assertThat(fileLoaderConfig.anchors(),  hasValue(containsString(LOADER_ANCHOR_VALUE1)));
+	}
+	
+	@Test
+	public void fileLoader2ndAnchorValue() throws Exception {
+		assertThat(fileLoaderConfig.anchors(), hasValue(containsString(LOADER_ANCHOR_VALUE2)));
+	}
 }

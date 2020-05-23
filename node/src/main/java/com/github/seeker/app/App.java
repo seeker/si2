@@ -61,7 +61,7 @@ public class App {
 		
 		if(LOADER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new FileLoader(namespace.getString("id"), connectionProvider);
+				new FileLoader(namespace.getString("id"), connectionProvider, configBuilder.getFileLoaderConfiguration());
 				System.exit(0);
 			} catch (Exception e) {
 				e.printStackTrace();

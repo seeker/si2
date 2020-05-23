@@ -75,6 +75,10 @@ public class FileLoader {
 		mapper = connectionProvider.getMongoDbMapper();
 		
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
+		
+		Map<String, String> anchors = fileLoaderConfig.anchors();
+		
+		LOGGER.info("Loaded anchors from config:\n {}", anchors);
 	}
 	
 	public void loadFiles(String encodedAnchors) {

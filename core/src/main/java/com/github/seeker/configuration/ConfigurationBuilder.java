@@ -82,4 +82,8 @@ public class ConfigurationBuilder {
 	public VaultCredentials getVaultCredentials() {
 		return configProvider.bind("vault", VaultCredentials.class);
 	}
+	
+	public FileLoaderConfiguration getFileLoaderConfiguration() {
+		return configProvider.bind("loader", FileLoaderConfiguration.class);
+	}
 }
