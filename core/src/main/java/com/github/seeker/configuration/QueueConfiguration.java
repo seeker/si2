@@ -159,6 +159,7 @@ public class QueueConfiguration {
 		LOGGER.info("Declaring exchanges...");
 		
 		channel.exchangeDeclare(getExchangeName(ConfiguredExchanges.loader), BuiltinExchangeType.FANOUT);
+		channel.exchangeDeclare(getExchangeName(ConfiguredExchanges.loaderCommand), BuiltinExchangeType.FANOUT);
 	}
 	
 	private void declareQueues() throws IOException {
