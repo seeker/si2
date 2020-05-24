@@ -47,4 +47,9 @@ public class FileLoaderJobTest {
 	public void pathCannotBeNull() throws Exception {
 		new FileLoaderJob(ANCHOR, null);
 	}
+	
+	@Test
+	public void generateThumbnailsSetViaConstructor() throws Exception {
+		assertThat(new FileLoaderJob(ANCHOR, PATH, true).isGenerateThumbnail(), is(true));
+	}
 }

@@ -88,7 +88,6 @@ public class FileLoaderJob {
 		this.relativePath = relativePath;
 		this.generateThumbnail = generateThumbnail;
 		this.completed = false;
-		this.generateThumbnail = false;
 	}
 
 	public boolean isCompleted() {
