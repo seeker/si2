@@ -41,6 +41,7 @@ public class MainWindow extends Application{
 	
 	private MongoDbMapper mapper;
 	private MetaDataExplorer metaDataExplorer;
+	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
 	
 	private Channel channel;
@@ -61,6 +62,7 @@ public class MainWindow extends Application{
 		
 		mapper = connectionProvider.getMongoDbMapper();
 		metaDataExplorer = new MetaDataExplorer(mapper, rabbitConnection, queueConfig);
+		fileLoaderJobs = new FileLoaderJobs(mapper);
 	}
 	
 	private MenuBar buildMenuBar() {
@@ -72,6 +74,14 @@ public class MainWindow extends Application{
 			@Override
 			public void handle(ActionEvent event) {
 				metaDataExplorer.show();
+			}
+		});
+
+		MenuItem viewFileLoaderJobs = new MenuItem("File loader jobs");
+		viewFileLoaderJobs.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				fileLoaderJobs.show();
 			}
 		});
 		
@@ -92,6 +102,7 @@ public class MainWindow extends Application{
 		});
 		
 		actions.getItems().add(exploreMetaData);
+		actions.getItems().add(viewFileLoaderJobs);
 		actions.getItems().add(startLoader);
 		actions.getItems().add(stoploader);
 		
