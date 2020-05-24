@@ -143,7 +143,7 @@ public class FileLoader {
 				LOGGER.info("Working on Job ID {}, {}-{}", job.getJobId(), job.getAnchor(), job.getRelativePath());
 				Path anchorAbsolutePath = Paths.get(anchors.get(anchor), job.getRelativePath());
 				
-				loadFilesForAnchor(anchor, anchorAbsolutePath);
+				loadFilesForAnchor(anchor, anchorAbsolutePath, Paths.get(anchors.get(anchor)));
 				job.markCompleted();
 				mapper.storeFileLoadJob(job);
 			}
@@ -154,10 +154,10 @@ public class FileLoader {
 		walking.set(false);
 	}
 	
-	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath) {
+	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath, Path anchorRootPath) {
 		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
 
-		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
+		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, anchorRootPath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
 		
 		try {
 			Files.walkFileTree(anchorAbsolutePath, fileToQueueVistor);

@@ -43,14 +43,16 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final String fileLoadExchange;
 	private final String anchor;
 	private final Path anchorPath;
+	private final Path anchorRootPath;
 	private final RateLimiter fileLoadRateLimiter;
 	private boolean terminate = false;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.anchor = anchor;
 		this.anchorPath = anchorPath;
+		this.anchorRootPath = anchorRootPath;
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;
 		this.fileLoadRateLimiter = fileLoadRateLimiter;
@@ -103,7 +105,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	}
 	
 	private void loadFileIntoQueue(Path file, BasicFileAttributes attrs) throws IOException {
-		Path relativeToAnchor = anchorPath.relativize(file);
+		Path relativeToAnchor = anchorRootPath.relativize(file);
 		
 		LOGGER.trace("Fetching meta data for {} {}", anchor, relativeToAnchor);
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeToAnchor);
