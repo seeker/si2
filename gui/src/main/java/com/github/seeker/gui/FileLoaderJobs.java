@@ -18,6 +18,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
@@ -64,13 +65,15 @@ public class FileLoaderJobs extends Stage {
 	private HBox createJobEntryPane() {
 		TextField anchor = new TextField();
 		TextField relativePath = new TextField();
+		CheckBox thumbnails = new CheckBox("Gen. Thumbnails");
+		
 		Button submit = new Button("Submit");
 		Button refresh = new Button("Refresh");
 
 		EventHandler<ActionEvent> storeJob = new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				FileLoaderJob job = new FileLoaderJob(anchor.getText(), relativePath.getText());
+				FileLoaderJob job = new FileLoaderJob(anchor.getText(), relativePath.getText(), thumbnails.isSelected());
 				mapper.storeFileLoadJob(job);
 				refreshJobList();
 			}
@@ -85,7 +88,7 @@ public class FileLoaderJobs extends Stage {
 
 		submit.setOnAction(storeJob);
 		refresh.setOnAction(refreshJobs);
-		HBox filterPane = new HBox(anchor, relativePath, submit, refresh);
+		HBox filterPane = new HBox(anchor, relativePath, thumbnails, submit, refresh);
 
 		return filterPane;
 	}
