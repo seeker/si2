@@ -144,6 +144,8 @@ public class FileLoader {
 				Path anchorAbsolutePath = Paths.get(anchors.get(anchor), job.getRelativePath());
 				
 				loadFilesForAnchor(anchor, anchorAbsolutePath);
+				job.markCompleted();
+				mapper.storeFileLoadJob(job);
 			}
 			
 		}
