@@ -130,6 +130,11 @@ public class FileLoader {
 			LOGGER.info("Processing loading jobs for {}", anchor);
 			
 			while(true) {
+				if(!walking.get()) {
+					LOGGER.info("File walk interrupted, aborting...");
+					break;
+				}
+				
 				FileLoaderJob job = mapper.getOpenFileLoadJobsForAnchor(anchor);
 				
 				if(Objects.isNull(job)) {
