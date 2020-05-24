@@ -24,7 +24,11 @@ public class MessageHeaderKeys {
 	 * Custom hash algorithms that the body should be hashed with, or the resulting hashes are contained in the body.
 	 */
 	public static final String CUSTOM_HASH_ALGORITHMS = "cust-hash-algo";
-	
+
+	/**
+	 * Command message for the fileloader.
+	 */
+	public static final String FILE_LOADER_COMMAND = "loader-command";
 	
 	private MessageHeaderKeys() {
 	}
