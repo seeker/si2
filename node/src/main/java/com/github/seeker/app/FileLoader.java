@@ -140,7 +140,7 @@ public class FileLoader {
 				if(Objects.isNull(job)) {
 					break;
 				}
-				
+				LOGGER.info("Working on Job ID {}, {}-{}", job.getJobId(), job.getAnchor(), job.getRelativePath());
 				Path anchorAbsolutePath = Paths.get(anchors.get(anchor), job.getRelativePath());
 				
 				loadFilesForAnchor(anchor, anchorAbsolutePath);
