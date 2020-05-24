@@ -23,6 +23,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
@@ -64,9 +65,13 @@ public class FileLoaderJobs extends Stage {
 
 	private HBox createJobEntryPane() {
 		TextField anchor = new TextField();
+		anchor.setTooltip(new Tooltip("Anchor"));
+
 		TextField relativePath = new TextField();
+		relativePath.setTooltip(new Tooltip("Relative path to anchor"));
+
 		CheckBox thumbnails = new CheckBox("Gen. Thumbnails");
-		
+
 		Button submit = new Button("Submit");
 		Button refresh = new Button("Refresh");
 
