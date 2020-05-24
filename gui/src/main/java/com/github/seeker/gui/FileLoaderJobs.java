@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.FileLoaderJob;
 
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,11 +20,13 @@ import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
@@ -102,8 +105,8 @@ public class FileLoaderJobs extends Stage {
 		TableColumn<FileLoaderJob, String> jobId = new TableColumn<FileLoaderJob, String>("Job ID");
 		TableColumn<FileLoaderJob, String> anchor = new TableColumn<FileLoaderJob, String>("Anchor");
 		TableColumn<FileLoaderJob, String> relativePath = new TableColumn<FileLoaderJob, String>("Relative Path");
-		TableColumn<FileLoaderJob, String> generateThumb = new TableColumn<FileLoaderJob, String>("Generate Thumb");
-		TableColumn<FileLoaderJob, String> completed = new TableColumn<FileLoaderJob, String>("Completed");
+		TableColumn<FileLoaderJob, Boolean> generateThumb = new TableColumn<FileLoaderJob, Boolean>("Generate Thumb");
+		TableColumn<FileLoaderJob, Boolean> completed = new TableColumn<FileLoaderJob, Boolean>("Completed");
 
 		jobId.setCellValueFactory(
 				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, String>, ObservableValue<String>>() {
@@ -130,20 +133,33 @@ public class FileLoaderJobs extends Stage {
 				});
 
 		generateThumb.setCellValueFactory(
-				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, String>, ObservableValue<String>>() {
+				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, Boolean>, ObservableValue<Boolean>>() {
 					@Override
-					public ObservableValue<String> call(CellDataFeatures<FileLoaderJob, String> param) {
-						return new SimpleStringProperty(Boolean.toString(param.getValue().isGenerateThumbnail()));
+					public ObservableValue<Boolean> call(CellDataFeatures<FileLoaderJob, Boolean> param) {
+						return new SimpleBooleanProperty(param.getValue().isGenerateThumbnail());
 					}
 				});
+		generateThumb.setCellFactory(new Callback<TableColumn<FileLoaderJob,Boolean>, TableCell<FileLoaderJob,Boolean>>() {
+			@Override
+			public TableCell<FileLoaderJob, Boolean> call(TableColumn<FileLoaderJob, Boolean> param) {
+				return new CheckBoxTableCell<FileLoaderJob, Boolean>();
+			}
+		});
 
 		completed.setCellValueFactory(
-				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, String>, ObservableValue<String>>() {
+				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, Boolean>, ObservableValue<Boolean>>() {
 					@Override
-					public ObservableValue<String> call(CellDataFeatures<FileLoaderJob, String> param) {
-						return new SimpleStringProperty(Boolean.toString(param.getValue().isCompleted()));
+					public ObservableValue<Boolean> call(CellDataFeatures<FileLoaderJob, Boolean> param) {
+						return new SimpleBooleanProperty(param.getValue().isCompleted());
 					}
 				});
+		
+		completed.setCellFactory(new Callback<TableColumn<FileLoaderJob,Boolean>, TableCell<FileLoaderJob,Boolean>>() {
+			@Override
+			public TableCell<FileLoaderJob, Boolean> call(TableColumn<FileLoaderJob, Boolean> param) {
+				return new CheckBoxTableCell<FileLoaderJob, Boolean>();
+			}
+		});
 
 		table.getColumns().setAll(Arrays.asList(jobId, anchor, relativePath, generateThumb, completed));
 	}
