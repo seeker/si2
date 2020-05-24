@@ -104,6 +104,13 @@ public class FileLoader {
 		
 		LOGGER.info("Loaded anchors from config:\n {}", fileLoaderConfig.anchors());
 		
+		LOGGER.info("Setting up command queue...");
+		String queue = channel.queueDeclare().getQueue();
+		channel.queueBind(queue, queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "");
+		channel.basicConsume(queue, true, new FileLoaderCommandConsumer(channel, this));
+		
+		LOGGER.info("Ready and waiting for commands.");
+		
 		try {
 			synchronized(this) {
 			    while (true) {
@@ -135,9 +142,9 @@ public class FileLoader {
 			}
 			
 		}
-
-		rateLimitCache.stop();
-		LOGGER.info("Finished walking anchors, terminating...");
+		
+		LOGGER.info("Finished processing Jobs, waiting for more work...");
+		walking.set(false);
 	}
 	
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath) {
