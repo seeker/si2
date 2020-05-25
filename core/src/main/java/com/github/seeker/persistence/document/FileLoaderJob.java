@@ -100,6 +100,14 @@ public class FileLoaderJob {
 	public void markCompleted() {
 		this.completed = true;
 	}
+	
+	public void setCompleted(boolean completed) {
+		this.completed = completed;
+	}
+	
+	public void setGenerateThumbnail(boolean generateThumbnail) {
+		this.generateThumbnail = generateThumbnail;
+	}
 
 	public UUID getJobId() {
 		return jobId;

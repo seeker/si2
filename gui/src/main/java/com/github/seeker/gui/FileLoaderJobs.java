@@ -65,6 +65,10 @@ public class FileLoaderJobs extends Stage {
 		jobList.clear();
 		jobList.addAll(mapper.getAllFileLoadJobs());
 	}
+	
+	private void persistJobList() {
+		jobList.forEach(job -> mapper.storeFileLoadJob(job));
+	}
 
 	private HBox createJobEntryPane() {
 		TextField anchor = new TextField();
@@ -75,8 +79,10 @@ public class FileLoaderJobs extends Stage {
 
 		CheckBox thumbnails = new CheckBox("Gen. Thumbnails");
 
-		Button submit = new Button("Submit");
+		Button submit = new Button("Add");
 		Button refresh = new Button("Refresh");
+		Button persist = new Button("Persist table");
+		persist.setTooltip(new Tooltip("Persist the currently displayed table to the datanase"));
 
 		EventHandler<ActionEvent> storeJob = new EventHandler<ActionEvent>() {
 			@Override
@@ -93,15 +99,27 @@ public class FileLoaderJobs extends Stage {
 				refreshJobList();
 			}
 		};
+		
+		EventHandler<ActionEvent> persistJobs = new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				persistJobList();
+			}
+		};
+		
+		
 
 		submit.setOnAction(storeJob);
 		refresh.setOnAction(refreshJobs);
-		HBox filterPane = new HBox(anchor, relativePath, thumbnails, submit, refresh);
+		persist.setOnAction(persistJobs);
+		HBox filterPane = new HBox(anchor, relativePath, thumbnails, submit, refresh, persist);
 
 		return filterPane;
 	}
 
 	private void setUpTable(TableView<FileLoaderJob> table) {
+		table.setEditable(true);
+
 		TableColumn<FileLoaderJob, String> jobId = new TableColumn<FileLoaderJob, String>("Job ID");
 		TableColumn<FileLoaderJob, String> anchor = new TableColumn<FileLoaderJob, String>("Anchor");
 		TableColumn<FileLoaderJob, String> relativePath = new TableColumn<FileLoaderJob, String>("Relative Path");
@@ -136,9 +154,20 @@ public class FileLoaderJobs extends Stage {
 				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, Boolean>, ObservableValue<Boolean>>() {
 					@Override
 					public ObservableValue<Boolean> call(CellDataFeatures<FileLoaderJob, Boolean> param) {
-						return new SimpleBooleanProperty(param.getValue().isGenerateThumbnail());
+						SimpleBooleanProperty sbp = new SimpleBooleanProperty(param.getValue().isGenerateThumbnail());
+						
+						sbp.addListener(new ChangeListener<Boolean>() {
+							@Override
+							public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue,
+									Boolean newValue) {
+								param.getValue().setGenerateThumbnail(newValue);
+							}
+						});
+						
+						return sbp;
 					}
 				});
+
 		generateThumb.setCellFactory(new Callback<TableColumn<FileLoaderJob,Boolean>, TableCell<FileLoaderJob,Boolean>>() {
 			@Override
 			public TableCell<FileLoaderJob, Boolean> call(TableColumn<FileLoaderJob, Boolean> param) {
@@ -150,7 +179,17 @@ public class FileLoaderJobs extends Stage {
 				new Callback<TableColumn.CellDataFeatures<FileLoaderJob, Boolean>, ObservableValue<Boolean>>() {
 					@Override
 					public ObservableValue<Boolean> call(CellDataFeatures<FileLoaderJob, Boolean> param) {
-						return new SimpleBooleanProperty(param.getValue().isCompleted());
+						SimpleBooleanProperty sbp = new SimpleBooleanProperty(param.getValue().isCompleted());
+						
+						sbp.addListener(new ChangeListener<Boolean>() {
+							@Override
+							public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue,
+									Boolean newValue) {
+								param.getValue().setCompleted(newValue);
+							}
+						});
+						
+						return sbp;
 					}
 				});
 		
