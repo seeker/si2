@@ -118,6 +118,7 @@ public class MetaDataExplorer extends Stage {
 		TextField anchorFilter = new TextField();
 		TextField pathFilter = new TextField();
 		Button filter = new Button("Filter");
+		Button reload = new Button("Reload");
 		
 		EventHandler<ActionEvent> updateFilterAction = new EventHandler<ActionEvent>() {
 			@Override
@@ -132,13 +133,22 @@ public class MetaDataExplorer extends Stage {
 				pageFactory.updatePaginator();
 			}
 		}; 
+
+		EventHandler<ActionEvent> reloadAction = new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				LOGGER.debug("User triggered table reload");
+				pageFactory.updatePaginator();
+			}
+		}; 
 		
 		filter.setOnAction(updateFilterAction);
+		reload.setOnAction(reloadAction);
 		anchorFilter.setOnAction(updateFilterAction);
 		pathFilter.setOnAction(updateFilterAction);
 		
 		
-		HBox filterPane = new HBox(anchorFilter, pathFilter, filter);
+		HBox filterPane = new HBox(anchorFilter, pathFilter, filter, reload);
 		
 		return filterPane;
 	}

@@ -35,6 +35,7 @@ import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.VaultCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.configuration.RabbitMqRole;
@@ -157,7 +158,7 @@ public class ImageResizerIT {
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish(queueConfig.getFileLoaderExchangeName(), "", props, rawImageData);
+		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, rawImageData);
 	}
 
 	@After

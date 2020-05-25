@@ -17,14 +17,11 @@ import com.rabbitmq.client.Channel;
 public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
 	
-	private static final String FILE_LOADER_EXCHANGE = "loader";
-	private static final String FILE_LOADER_INTEGRATION_EXCHANGE = "integration-loader";
-	
 	private Channel channel;
 	private ConsulClient consulClient;
 	private boolean integration;
 	private Map<ConfiguredQueues, String> queueNames;
-	private String fileLoaderExchangeName;
+	private Map<ConfiguredExchanges, String> exchangeNames;
 	
 	public enum ConfiguredQueues 
 	{
@@ -57,6 +54,17 @@ public class QueueConfiguration {
 		 */
 		thumbnailRequests
 	};
+	
+	public enum ConfiguredExchanges {
+		/**
+		 * Exchange for sending commands to loader instances.
+		 */
+		loaderCommand,
+		/**
+		 * Exchange for loader to place loaded image data.
+		 */
+		loader
+	};
 
 	/**
 	 * Create a new Queue configuration.
@@ -86,6 +94,7 @@ public class QueueConfiguration {
 		this.integration = integration;
 		
 		setupQueueNames(setupConsulKeys());
+		setupExchangeNames();
 		declareExchanges();
 		declareQueues();
 	}
@@ -130,16 +139,27 @@ public class QueueConfiguration {
 		}
 	}
 	
+	private void setupExchangeNames() {
+		exchangeNames = new HashMap<QueueConfiguration.ConfiguredExchanges, String>();
+
+		LOGGER.debug("Fetching exchange names for {} exchanges", ConfiguredExchanges.values().length);
+
+		for (ConfiguredExchanges exchange : ConfiguredExchanges.values()) {
+			String exchangeName = exchange.toString();
+
+			if (integration) {
+				exchangeName = "integration-" + exchangeName;
+			}
+
+			exchangeNames.put(exchange, exchangeName);
+		}
+	}
+	
 	private void declareExchanges() throws IOException {
 		LOGGER.info("Declaring exchanges...");
 		
-		fileLoaderExchangeName = FILE_LOADER_EXCHANGE;
-		
-		if(integration) {
-			fileLoaderExchangeName = FILE_LOADER_INTEGRATION_EXCHANGE;
-		}
-		
-		channel.exchangeDeclare(fileLoaderExchangeName, BuiltinExchangeType.FANOUT);
+		channel.exchangeDeclare(getExchangeName(ConfiguredExchanges.loader), BuiltinExchangeType.FANOUT);
+		channel.exchangeDeclare(getExchangeName(ConfiguredExchanges.loaderCommand), BuiltinExchangeType.FANOUT);
 	}
 	
 	private void declareQueues() throws IOException {
@@ -149,8 +169,8 @@ public class QueueConfiguration {
 			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
 		}
 		
-		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), fileLoaderExchangeName, "");
-		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), fileLoaderExchangeName, "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), getExchangeName(ConfiguredExchanges.loader), "");
+		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), getExchangeName(ConfiguredExchanges.loader), "");
 	}
 	
 	/**
@@ -171,12 +191,20 @@ public class QueueConfiguration {
 	}
 	
 	/**
-	 * Get the name of the exchange for file loading.
-	 * This is a fanout exchange that sends messages to the digest hasher and resizer.
+	 * Get the exchange name for the configured exchange.
 	 * 
-	 * @return the name of the exchange
+	 * @param exchange to get the name for
+	 * @return the exchange name
+	 * @throws IllegalStateException if there is no name for the exchange
 	 */
-	public String getFileLoaderExchangeName() {
-		return fileLoaderExchangeName;
+	public String getExchangeName(ConfiguredExchanges exchange) {
+		String queueName = exchangeNames.get(exchange);
+
+		if (queueName == null) {
+			LOGGER.error("No exchange name found for {}", exchange);
+			throw new IllegalStateException("No exchange name found for " + exchange);
+		}
+
+		return exchangeNames.get(exchange);
 	}
 }

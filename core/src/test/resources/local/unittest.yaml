@@ -1,3 +1,6 @@
 consul.ip: "localhost"
 consul.port: 42
 consul.datacenter: "unittest"
+loader.anchors:
+  - "anchorOne=/var/test/data"
+  - "anchorTwo=D:\\test\\path"

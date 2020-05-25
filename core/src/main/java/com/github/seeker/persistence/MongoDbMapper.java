@@ -5,6 +5,8 @@
 package com.github.seeker.persistence;
 
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,6 +14,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.persistence.document.FileLoaderJob;
 import com.github.seeker.persistence.document.ImageMetaData;
 
 import de.caluga.morphium.Morphium;
@@ -115,6 +118,38 @@ public class MongoDbMapper {
 	
 	public List<ImageMetaData> getMetadataByHash(String hashName, byte[] hash) {
 		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).f("hashes."+ hashName +".hash").eq(hash);
+		return query.asList();
+	}
+
+	/**
+	 * Store a file load job.
+	 * 
+	 * @param job to store
+	 */
+	public void storeFileLoadJob(FileLoaderJob job) {
+		client.store(job);
+	}
+
+	/**
+	 * Return the first job for the given anchor that has not been completed, if
+	 * any.
+	 * 
+	 * @param anchor to search for jobs
+	 * @return the first open job or null if there are no jobs
+	 */
+	public FileLoaderJob getOpenFileLoadJobsForAnchor(String anchor) {
+		Query<FileLoaderJob> query = client.createQueryFor(FileLoaderJob.class).f("anchor").eq(anchor).f("completed")
+				.eq(false);
+		return query.get();
+	}
+
+	/**
+	 * Get all file load jobs.
+	 * 
+	 * @return a list of all file load jobs, if any
+	 */
+	public List<FileLoaderJob> getAllFileLoadJobs() {
+		Query<FileLoaderJob> query = client.createQueryFor(FileLoaderJob.class);
 		return query.asList();
 	}
 }

@@ -1,15 +1,25 @@
 package com.github.seeker.gui;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import javafx.application.Application;
@@ -27,9 +37,14 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class MainWindow extends Application{
+	private static final Logger LOGGER = LoggerFactory.getLogger(MainWindow.class); 
+	
 	private MongoDbMapper mapper;
 	private MetaDataExplorer metaDataExplorer;
+	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
+	
+	private Channel channel;
 	
 	public static void main(String[] args) {
 		launch(args);
@@ -41,11 +56,13 @@ public class MainWindow extends Application{
 		
 		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
 		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
+		this.channel = rabbitConnection.createChannel();
 		
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel(), connectionProvider.getConsulClient());
 		
 		mapper = connectionProvider.getMongoDbMapper();
 		metaDataExplorer = new MetaDataExplorer(mapper, rabbitConnection, queueConfig);
+		fileLoaderJobs = new FileLoaderJobs(mapper);
 	}
 	
 	private MenuBar buildMenuBar() {
@@ -59,12 +76,52 @@ public class MainWindow extends Application{
 				metaDataExplorer.show();
 			}
 		});
+
+		MenuItem viewFileLoaderJobs = new MenuItem("File loader jobs");
+		viewFileLoaderJobs.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				fileLoaderJobs.show();
+			}
+		});
+		
+		MenuItem startLoader = new MenuItem("Start Loader");
+		startLoader.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				sendLoaderCommand("start");
+			}
+		});
+		
+		MenuItem stoploader = new MenuItem("Stop loader");
+		stoploader.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				sendLoaderCommand("stop");
+			}
+		});
 		
 		actions.getItems().add(exploreMetaData);
+		actions.getItems().add(viewFileLoaderJobs);
+		actions.getItems().add(startLoader);
+		actions.getItems().add(stoploader);
 		
 		menuBar.getMenus().add(actions);
 		
 		return menuBar;
+	}
+	
+	private void sendLoaderCommand(String command) {
+		Map<String, Object> headers = new HashMap<String, Object>();
+		headers.put(MessageHeaderKeys.FILE_LOADER_COMMAND, command);
+		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+		
+		try {
+			LOGGER.info("Sending {} command to file loaders", command);
+			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
+		} catch (IOException e) {
+			LOGGER.error("Failed to send file loader command {}", command, e);
+		}
 	}
 	
 	@Override

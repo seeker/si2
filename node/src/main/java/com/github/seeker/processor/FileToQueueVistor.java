@@ -43,13 +43,16 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final String fileLoadExchange;
 	private final String anchor;
 	private final Path anchorPath;
+	private final Path anchorRootPath;
 	private final RateLimiter fileLoadRateLimiter;
+	private boolean terminate = false;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.anchor = anchor;
 		this.anchorPath = anchorPath;
+		this.anchorRootPath = anchorRootPath;
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;
 		this.fileLoadRateLimiter = fileLoadRateLimiter;
@@ -58,9 +61,29 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		requiredCustomHashes = new ArrayList<String>();
 		requiredCustomHashes.add(PHASH_CUSTOM_HASH_ALGORITHM_NAME);
 	}
+	
+	/**
+	 * Gracefully terminate this {@link FileToQueueVistor}.
+	 */
+	public void terminate() {
+		this.terminate = true;
+	}
+	
+	/**
+	 * Check if the termination flag has been set. This does not mean that the FileVisitor has terminated. 
+	 * @return true if the terminate flag has been set
+	 */
+	public boolean isTerminated() {
+		return terminate;
+	}
 
 	@Override
 	public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+		if (this.terminate) {
+			LOGGER.info("Terminate flag set, terminating file walk...");
+			return FileVisitResult.TERMINATE;
+		}
+		
 		if(fileFilter.accept(file)) {
 			try {
 				loadFileIntoQueue(file, attrs);
@@ -82,7 +105,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	}
 	
 	private void loadFileIntoQueue(Path file, BasicFileAttributes attrs) throws IOException {
-		Path relativeToAnchor = anchorPath.relativize(file);
+		Path relativeToAnchor = anchorRootPath.relativize(file);
 		
 		LOGGER.trace("Fetching meta data for {} {}", anchor, relativeToAnchor);
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeToAnchor);
