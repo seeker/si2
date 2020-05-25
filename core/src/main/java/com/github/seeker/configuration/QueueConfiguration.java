@@ -1,6 +1,7 @@
 package com.github.seeker.configuration;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -166,7 +167,17 @@ public class QueueConfiguration {
 		LOGGER.info("Declaring {} queues...", queueNames.size());
 		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
 			LOGGER.debug("Declaring queue {} ...", getQueueName(queue));
-			channel.queueDeclare(getQueueName(queue), false, false, integration, null);
+
+			Map<String, Object> queueProperties;
+
+			if (integration) {
+				queueProperties = new HashMap<String, Object>();
+				queueProperties.put("x-expires", 60000);
+			} else {
+				queueProperties = Collections.emptyMap();
+			}
+
+			channel.queueDeclare(getQueueName(queue), false, false, integration, queueProperties);
 		}
 		
 		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), getExchangeName(ConfiguredExchanges.loader), "");
