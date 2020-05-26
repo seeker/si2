@@ -1,6 +1,7 @@
 package com.github.seeker.configuration;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -60,6 +61,7 @@ public class ConnectionProvider {
 		String serverAddress = overrideVirtualBoxNatAddress(rabbitmqService.getNode().getAddress());
 		int serverPort = rabbitmqService.getService().getPort();
 		String rabbitMqCredsPath = "/rabbitmq/creds/" + role.toString();
+		
 		LOGGER.debug("Requesting RabbitMQ credentials from {}", rabbitMqCredsPath);
 		LogicalResponse rabbitCreds = vault.logical().read(rabbitMqCredsPath);
 		
@@ -71,6 +73,27 @@ public class ConnectionProvider {
 			LOGGER.error("Failed to read credentails from Vault with response code {}", status);
 			throw new IllegalArgumentException("Failed with response " + Integer.toString(status));
 		}
+
+		String lease = rabbitCreds.getLeaseId();
+		long leaseDuration = 1800;
+		long renewInterval = leaseDuration / 2;
+
+		Map<String, Object> renewParams = new HashMap<>();
+		renewParams.put("lease_id", lease);
+		renewParams.put("increment", leaseDuration);
+
+		renewPool.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					LogicalResponse renewResponse = vault.logical().write("sys/leases/renew", renewParams);
+					LOGGER.debug("Successfully renewed rabbitmq lease");
+					LOGGER.debug("Response code: {} for lease {}", renewResponse.getRestResponse().getStatus(), lease);
+				} catch (VaultException e) {
+					LOGGER.warn("Failed to renewdrabbitmq lease: {}", lease, e);
+				}
+			}
+		}, 5, renewInterval, TimeUnit.SECONDS);
 		
 		Map<String, String> creds = rabbitCreds.getData();
 		
@@ -102,6 +125,7 @@ public class ConnectionProvider {
 		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/digest_hasher/", "1");
 		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/thumbnail/", "1");
 		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/file_loader/", "1");
+		vc.putSecretsEngineVersionForPath("sys/leases/renew/", "1");
 		
 		Vault vaultClient = new Vault(vc);
 		AuthResponse auth = vaultClient.auth().loginByAppRole(vaultCreds.approleId(), vaultCreds.secretId());
