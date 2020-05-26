@@ -2,6 +2,9 @@ package com.github.seeker.configuration;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -31,6 +34,7 @@ public class ConnectionProvider {
 	private final Vault vault;
 	private final ConsulConfiguration consulConfig;
 	private final boolean overrideVirtualBoxAddress;
+	private final ScheduledExecutorService renewPool;
 	
 	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";
 	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
@@ -40,6 +44,7 @@ public class ConnectionProvider {
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds, boolean overrideVirtualBoxAddress) throws VaultException {
 		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());
 		this.overrideVirtualBoxAddress = overrideVirtualBoxAddress;
+		this.renewPool = Executors.newSingleThreadScheduledExecutor();
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
@@ -51,8 +56,6 @@ public class ConnectionProvider {
 	
 	public ConnectionFactory getRabbitMQConnectionFactory(RabbitMqRole role) throws IOException, TimeoutException, VaultException {
 		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-		vault.auth().renewSelf();
-		
 		
 		String serverAddress = overrideVirtualBoxNatAddress(rabbitmqService.getNode().getAddress());
 		int serverPort = rabbitmqService.getService().getPort();
@@ -103,6 +106,24 @@ public class ConnectionProvider {
 		Vault vaultClient = new Vault(vc);
 		AuthResponse auth = vaultClient.auth().loginByAppRole(vaultCreds.approleId(), vaultCreds.secretId());
 		vc.token(auth.getAuthClientToken());
+
+		long leaseDuration = vaultClient.auth().renewSelf().getAuthLeaseDuration();
+		long renewInterval = leaseDuration / 2;
+
+		LOGGER.info("Token lease duration is {} seconds, setting refresh interval at {} seconds", leaseDuration,
+				renewInterval);
+
+		renewPool.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					vaultClient.auth().renewSelf();
+					LOGGER.debug("Successfully renewed Vault token");
+				} catch (VaultException e) {
+					LOGGER.warn("Failed to renew Vault token: ", e);
+				}
+			}
+		}, renewInterval, renewInterval, TimeUnit.SECONDS);
 		
 		return vaultClient;
 	}
