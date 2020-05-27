@@ -101,15 +101,7 @@ public class ConnectionProvider {
 		String vaultAddress = "http://" + overrideVirtualBoxNatAddress(vaultNode.getAddress()) + ":" + vaultSerivce.getPort();
 		LOGGER.debug("Created Vault config with address {}", vaultAddress);
 		
-		// Trailing slash is due to bug in library?
-		VaultConfig vc = new VaultConfig().address(vaultAddress).putSecretsEngineVersionForPath("/rabbitmq/creds/dbnode/", "1").build();
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/integration/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/hash_processor/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/image_resizer/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/digest_hasher/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/thumbnail/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/file_loader/", "1");
-		vc.putSecretsEngineVersionForPath("sys/leases/renew/", "1");
+		VaultConfig vc = new VaultConfig().address(vaultAddress).engineVersion(1).build();
 		
 		Vault vaultClient = new Vault(vc);
 		AuthResponse auth = vaultClient.auth().loginByAppRole(vaultCreds.approleId(), vaultCreds.secretId());
