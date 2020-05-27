@@ -33,6 +33,7 @@ public class ConnectionProvider {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionProvider.class);
 	private final ConsulClient consul;
 	private final Vault vault;
+	private final VaultWorkaround vaultWA;
 	private final ConsulConfiguration consulConfig;
 	private final boolean overrideVirtualBoxAddress;
 	private final ScheduledExecutorService renewPool;
@@ -49,6 +50,7 @@ public class ConnectionProvider {
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
+		this.vaultWA = new VaultWorkaround(this.vault);
 	}
 	
 	public ConsulClient getConsulClient() {
@@ -60,19 +62,8 @@ public class ConnectionProvider {
 		
 		String serverAddress = overrideVirtualBoxNatAddress(rabbitmqService.getNode().getAddress());
 		int serverPort = rabbitmqService.getService().getPort();
-		String rabbitMqCredsPath = "/rabbitmq/creds/" + role.toString();
-		
-		LOGGER.debug("Requesting RabbitMQ credentials from {}", rabbitMqCredsPath);
-		LogicalResponse rabbitCreds = vault.logical().read(rabbitMqCredsPath);
-		
-		int status = rabbitCreds.getRestResponse().getStatus();
-		
-		if(status == 400) {
-			throw new IllegalArgumentException("Response returned '400 Bad Request'");
-		} else if(rabbitCreds.getRestResponse().getStatus() != 200) {
-			LOGGER.error("Failed to read credentails from Vault with response code {}", status);
-			throw new IllegalArgumentException("Failed with response " + Integer.toString(status));
-		}
+
+		LogicalResponse rabbitCreds = vaultWA.readRabbitMqCredentials(role.toString());
 
 		String lease = rabbitCreds.getLeaseId();
 		long leaseDuration = 1800;
