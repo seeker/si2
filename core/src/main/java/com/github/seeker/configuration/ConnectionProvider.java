@@ -1,7 +1,6 @@
 package com.github.seeker.configuration;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -69,17 +68,11 @@ public class ConnectionProvider {
 		long leaseDuration = 1800;
 		long renewInterval = leaseDuration / 2;
 
-		Map<String, Object> renewParams = new HashMap<>();
-		renewParams.put("lease_id", lease);
-		renewParams.put("increment", leaseDuration);
-
 		renewPool.scheduleAtFixedRate(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					LogicalResponse renewResponse = vault.logical().write("sys/leases/renew", renewParams);
-					LOGGER.debug("Successfully renewed rabbitmq lease");
-					LOGGER.debug("Response code: {} for lease {}", renewResponse.getRestResponse().getStatus(), lease);
+					vaultWA.renewLease(lease, leaseDuration);
 				} catch (VaultException e) {
 					LOGGER.warn("Failed to renewdrabbitmq lease: {}", lease, e);
 				}

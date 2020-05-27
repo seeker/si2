@@ -4,6 +4,9 @@
  */
 package com.github.seeker.configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,5 +47,30 @@ public class VaultWorkaround {
 		}
 
 		return rabbitCreds;
+	}
+
+	/**
+	 * Renew the lease with the given id for the specified increment.
+	 * 
+	 * @param leaseId   for the lease to renew
+	 * @param increment the new TTL value for the lease
+	 * @return the renew response
+	 * @throws VaultException if there is an issue renewing the lease
+	 */
+	public LogicalResponse renewLease(String leaseId, long increment) throws VaultException {
+		Map<String, Object> renewParams = new HashMap<>();
+		renewParams.put("lease_id", leaseId);
+		renewParams.put("increment", increment);
+
+		LogicalResponse renewResponse = vault.logical().write("sys/leases/renew", renewParams);
+		int statusCode = renewResponse.getRestResponse().getStatus();
+
+		if (statusCode == 200) {
+			LOGGER.debug("Successfully renewed  lease {}", leaseId);
+		} else {
+			LOGGER.error("Failed to renew lease {} with status code {}", leaseId, statusCode);
+		}
+
+		return renewResponse;
 	}
 }

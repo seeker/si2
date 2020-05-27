@@ -4,8 +4,11 @@
  */
 package com.github.seeker.configuration;
 
+import static org.hamcrest.CoreMatchers.both;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 import java.util.Map;
 
@@ -52,5 +55,29 @@ public class VaultWorkaroundIT {
 
 		assertThat(creds, hasKey("username"));
 		assertThat(creds, hasKey("password"));
+	}
+
+	@Test
+	public void renewLease() throws Exception {
+		LogicalResponse credResponse = cut.readRabbitMqCredentials("dbnode");
+
+		String leaseId = credResponse.getLeaseId();
+		LogicalResponse renewResponse = cut.renewLease(leaseId, 300);
+
+		assertThat(renewResponse.getRestResponse().getStatus(), is(200));
+	}
+
+	@Test
+	public void leaseTTLisExtended() throws Exception {
+		LogicalResponse credResponse = cut.readRabbitMqCredentials("dbnode");
+
+		String leaseId = credResponse.getLeaseId();
+		LogicalResponse renewResponse = cut.renewLease(leaseId, 250);
+
+		assertThat(renewResponse.getLeaseDuration(), is(both(greaterThan(200L)).and(lessThan(300L))));
+
+		LogicalResponse extendResponse = cut.renewLease(leaseId, 1500);
+
+		assertThat(extendResponse.getLeaseDuration(), is(greaterThan(1400L)));
 	}
 }
