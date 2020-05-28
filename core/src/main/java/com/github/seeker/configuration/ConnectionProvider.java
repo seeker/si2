@@ -2,6 +2,9 @@ package com.github.seeker.configuration;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -29,8 +32,10 @@ public class ConnectionProvider {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionProvider.class);
 	private final ConsulClient consul;
 	private final Vault vault;
+	private final VaultWorkaround vaultWA;
 	private final ConsulConfiguration consulConfig;
 	private final boolean overrideVirtualBoxAddress;
+	private final ScheduledExecutorService renewPool;
 	
 	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";
 	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
@@ -40,9 +45,11 @@ public class ConnectionProvider {
 	public ConnectionProvider(ConsulConfiguration consulConfig, VaultCredentials vaultCreds, boolean overrideVirtualBoxAddress) throws VaultException {
 		LOGGER.debug("Connecting to Consul @ {}:{} based on config",consulConfig.ip(), consulConfig.port());
 		this.overrideVirtualBoxAddress = overrideVirtualBoxAddress;
+		this.renewPool = Executors.newSingleThreadScheduledExecutor();
 		this.consul = new ConsulClient(consulConfig);
 		this.consulConfig = consulConfig;
 		this.vault = getVaultClient(vaultCreds);
+		this.vaultWA = new VaultWorkaround(this.vault);
 	}
 	
 	public ConsulClient getConsulClient() {
@@ -51,23 +58,26 @@ public class ConnectionProvider {
 	
 	public ConnectionFactory getRabbitMQConnectionFactory(RabbitMqRole role) throws IOException, TimeoutException, VaultException {
 		ServiceHealth rabbitmqService = consul.getFirstHealtyInstance(ConfiguredService.rabbitmq);
-		vault.auth().renewSelf();
-		
 		
 		String serverAddress = overrideVirtualBoxNatAddress(rabbitmqService.getNode().getAddress());
 		int serverPort = rabbitmqService.getService().getPort();
-		String rabbitMqCredsPath = "/rabbitmq/creds/" + role.toString();
-		LOGGER.debug("Requesting RabbitMQ credentials from {}", rabbitMqCredsPath);
-		LogicalResponse rabbitCreds = vault.logical().read(rabbitMqCredsPath);
-		
-		int status = rabbitCreds.getRestResponse().getStatus();
-		
-		if(status == 400) {
-			throw new IllegalArgumentException("Response returned '400 Bad Request'");
-		} else if(rabbitCreds.getRestResponse().getStatus() != 200) {
-			LOGGER.error("Failed to read credentails from Vault with response code {}", status);
-			throw new IllegalArgumentException("Failed with response " + Integer.toString(status));
-		}
+
+		LogicalResponse rabbitCreds = vaultWA.readRabbitMqCredentials(role.toString());
+
+		String lease = rabbitCreds.getLeaseId();
+		long leaseDuration = 1800;
+		long renewInterval = leaseDuration / 2;
+
+		renewPool.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					vaultWA.renewLease(lease, leaseDuration);
+				} catch (VaultException e) {
+					LOGGER.warn("Failed to renewdrabbitmq lease: {}", lease, e);
+				}
+			}
+		}, 5, renewInterval, TimeUnit.SECONDS);
 		
 		Map<String, String> creds = rabbitCreds.getData();
 		
@@ -91,18 +101,29 @@ public class ConnectionProvider {
 		String vaultAddress = "http://" + overrideVirtualBoxNatAddress(vaultNode.getAddress()) + ":" + vaultSerivce.getPort();
 		LOGGER.debug("Created Vault config with address {}", vaultAddress);
 		
-		// Trailing slash is due to bug in library?
-		VaultConfig vc = new VaultConfig().address(vaultAddress).putSecretsEngineVersionForPath("/rabbitmq/creds/dbnode/", "1").build();
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/integration/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/hash_processor/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/image_resizer/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/digest_hasher/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/thumbnail/", "1");
-		vc.putSecretsEngineVersionForPath("/rabbitmq/creds/file_loader/", "1");
+		VaultConfig vc = new VaultConfig().address(vaultAddress).engineVersion(1).build();
 		
 		Vault vaultClient = new Vault(vc);
 		AuthResponse auth = vaultClient.auth().loginByAppRole(vaultCreds.approleId(), vaultCreds.secretId());
 		vc.token(auth.getAuthClientToken());
+
+		long leaseDuration = vaultClient.auth().renewSelf().getAuthLeaseDuration();
+		long renewInterval = leaseDuration / 2;
+
+		LOGGER.info("Token lease duration is {} seconds, setting refresh interval at {} seconds", leaseDuration,
+				renewInterval);
+
+		renewPool.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					vaultClient.auth().renewSelf();
+					LOGGER.debug("Successfully renewed Vault token");
+				} catch (VaultException e) {
+					LOGGER.warn("Failed to renew Vault token: ", e);
+				}
+			}
+		}, renewInterval, renewInterval, TimeUnit.SECONDS);
 		
 		return vaultClient;
 	}

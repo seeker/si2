@@ -18,8 +18,6 @@
           X-Vault-Token: "{{ vault_token }}"
         body:
           type: rabbitmq
-          config:
-            max_lease_ttl: 1h
 
   when: mounts_response['json']['data']['rabbitmq/'] is not defined 
 
@@ -79,6 +77,18 @@
       # Since the job will not be running yet, this task would fail
       verify_connection: false
 # RabbitMQ role for integration can be found in dev-vault-credentails
+
+- name: Configure RabbitMQ lease
+  uri:
+    url: "{{ vault_api_url }}/rabbitmq/config/lease"
+    method: POST
+    body_format: json
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+    body:
+      ttl: 300
+      max_ttl: 1800
 
 - name: Configure RabbitMQ role for database node
   uri:
