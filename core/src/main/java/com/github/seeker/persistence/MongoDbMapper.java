@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
@@ -56,6 +57,22 @@ public class MongoDbMapper {
 		}
 		
 		return meta.getHashes().containsKey(hashName);
+	}
+
+	/**
+	 * Check if any {@link ImageMetaData} has a thumbnail with the given image ID;
+	 * @param imageId to check for
+	 * @return true if there is at least one thumbnail with this ID
+	 */
+	public boolean hasImageId(String imageId) {
+		Query<ImageMetaData>  query = client.createQueryFor(ImageMetaData.class).f("thumbnail.imageId").eq(UUID.fromString(imageId));
+		ImageMetaData meta = query.get();
+		
+		if(meta == null) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 	
 	/**
