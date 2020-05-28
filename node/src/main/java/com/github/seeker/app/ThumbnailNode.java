@@ -15,9 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.bettercloud.vault.VaultException;
+import com.github.seeker.app.ThumbnailNode.Command;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
@@ -45,6 +47,10 @@ public class ThumbnailNode {
 	private final Channel channelThumbRequ;
 	private final MongoDbMapper mapper;
 	private final QueueConfiguration queueConfig;
+	
+	public enum Command {
+		prune_thumbnails
+	}
 	
 	public ThumbnailNode(ConnectionProvider connectionProvider, String thumbnailDirectory) throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", ThumbnailNode.class.getSimpleName());
@@ -75,6 +81,11 @@ public class ThumbnailNode {
 		
 		LOGGER.info("Starting consumer on queue {}", thumbnailRequestQueue);
 		channelThumbRequ.basicConsume(thumbnailRequestQueue, new ThumbnailLoad(channelThumbRequ,thumbnailDirectory));
+		
+		LOGGER.info("Setting up thumbnail node command queue...");
+		String queue = channel.queueDeclare().getQueue();
+		channel.queueBind(queue, queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "");
+		channel.basicConsume(queue, true, new ThumbnailCommand(channel));
 	}
 }
 
@@ -210,5 +221,27 @@ class ThumbnailStore extends DefaultConsumer {
 	
 	private void storeThumbnail(Path thumbnailDirectory, UUID thumbnailID, byte[] imageData) throws IOException {
 		Files.write(thumbnailDirectory.resolve(thumbnailID.toString()), imageData);
+	}
+}
+
+class ThumbnailCommand extends DefaultConsumer {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ThumbnailCommand.class);
+	
+	public ThumbnailCommand(Channel channel) {
+		super(channel);
+	}
+
+	@Override
+	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
+		Map<String, Object> headers = properties.getHeaders();
+		
+		if(!headers.containsKey(MessageHeaderKeys.THUMB_NODE_COMMAND)) {
+			LOGGER.debug("Discarded command message that was not for this node.");
+			return;
+		}
+		
+		if(headers.get(MessageHeaderKeys.THUMB_NODE_COMMAND).toString().equals(Command.prune_thumbnails.toString())) {
+			LOGGER.info("Pruning thumbnails!");
+		}
 	}
 }

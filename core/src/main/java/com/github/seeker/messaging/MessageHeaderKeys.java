@@ -30,6 +30,11 @@ public class MessageHeaderKeys {
 	 */
 	public static final String FILE_LOADER_COMMAND = "loader-command";
 	
+	/**
+	 * Command message for the thumbnail node.
+	 */
+	public static final String THUMB_NODE_COMMAND = "thumb-command";
+	
 	private MessageHeaderKeys() {
 	}
 }

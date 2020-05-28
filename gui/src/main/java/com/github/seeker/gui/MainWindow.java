@@ -101,10 +101,19 @@ public class MainWindow extends Application{
 			}
 		});
 		
+		MenuItem pruneThumbs = new MenuItem("Prune thumbs");
+		pruneThumbs.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				sendThumbnailCommand("prune_thumbnails");
+			}
+		});
+		
 		actions.getItems().add(exploreMetaData);
 		actions.getItems().add(viewFileLoaderJobs);
 		actions.getItems().add(startLoader);
 		actions.getItems().add(stoploader);
+		actions.getItems().add(pruneThumbs);
 		
 		menuBar.getMenus().add(actions);
 		
@@ -121,6 +130,19 @@ public class MainWindow extends Application{
 			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
 		} catch (IOException e) {
 			LOGGER.error("Failed to send file loader command {}", command, e);
+		}
+	}
+	
+	private void sendThumbnailCommand(String command) {
+		Map<String, Object> headers = new HashMap<String, Object>();
+		headers.put(MessageHeaderKeys.THUMB_NODE_COMMAND, command);
+		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+		
+		try {
+			LOGGER.info("Sending {} command to nodes loaders", command);
+			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
+		} catch (IOException e) {
+			LOGGER.error("Failed to send node command {}", command, e);
 		}
 	}
 	
