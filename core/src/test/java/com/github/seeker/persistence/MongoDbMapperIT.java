@@ -298,6 +298,16 @@ public class MongoDbMapperIT {
 				)));
 	}
 	
+	@Test
+	public void imageIdExists() throws Exception {
+		assertThat(mapper.hasImageId(THUMBNAIL_ID.toString()), is(true));
+	}
+	
+	@Test
+	public void imageIdDoesNotExist() throws Exception {
+		assertThat(mapper.hasImageId(THUMBNAIL_ID_NEW.toString()), is(false));
+	}
+	
 	private void cleanUpCollection(Class<? extends Object> clazz) {
 		morphium.dropCollection(clazz);
 		morphium.clearCachefor(clazz);
