@@ -250,7 +250,7 @@ class ThumbnailCommand extends DefaultConsumer {
 			LOGGER.info("Pruning thumbnails...");
 			ThumbnailPruneVisitor visitor = new ThumbnailPruneVisitor(mapper);
 			Files.walkFileTree(baseThumbnailDirectory, visitor);
-			LOGGER.info("Finished pruning thumbnails");
+			LOGGER.info("Finished pruning thumbnails, {} files pruned", visitor.getPrunedThumbnailCount());
 		}
 	}
 }

@@ -18,6 +18,8 @@ import com.github.seeker.persistence.MongoDbMapper;
 public class ThumbnailPruneVisitor extends SimpleFileVisitor<Path> {
 	private final MongoDbMapper mapper;
 	private final FileSystemProvider fsProvider;
+	
+	private long prunedThumbnailCount; 
 
 	public ThumbnailPruneVisitor(MongoDbMapper mapper, FileSystem fs) {
 		this.mapper = mapper;
@@ -27,15 +29,27 @@ public class ThumbnailPruneVisitor extends SimpleFileVisitor<Path> {
 	public ThumbnailPruneVisitor(MongoDbMapper mapper) {
 		this(mapper, FileSystems.getDefault());
 	}
-
+	
 	@Override
 	public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 		String filename = file.getFileName().toString();
 		
 		if(!mapper.hasImageId(filename)) {
 			fsProvider.delete(file);
+			prunedThumbnailCount++;
 		}
 		
 		return FileVisitResult.CONTINUE;
+	}
+
+	/**
+	 * Get the number of thumbnail files that this visitor has pruned. The counter
+	 * is not synchronized and the value will only be reliable once the file walk
+	 * has finished.
+	 * 
+	 * @return the number of thumbnail files pruned
+	 */
+	public long getPrunedThumbnailCount() {
+		return prunedThumbnailCount;
 	}
 }

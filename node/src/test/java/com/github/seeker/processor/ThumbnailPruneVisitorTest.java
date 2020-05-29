@@ -82,4 +82,11 @@ public class ThumbnailPruneVisitorTest {
 		assertThat(Files.exists(imagePathB), is(true));
 		assertThat(Files.exists(imagePathC), is(false));
 	}
+
+	@Test
+	public void getPrunedThumbnailCount() throws Exception {
+		Files.walkFileTree(fs.getPath(BASE_THUMB_PATH), cut);
+		
+		assertThat(cut.getPrunedThumbnailCount(), is(2L));
+	}
 }
