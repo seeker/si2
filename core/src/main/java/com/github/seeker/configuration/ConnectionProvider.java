@@ -125,6 +125,18 @@ public class ConnectionProvider {
 			}
 		}, renewInterval, renewInterval, TimeUnit.SECONDS);
 		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					LOGGER.info("Revoking vault token...");
+					vaultClient.auth().revokeSelf();
+				} catch (VaultException e) {
+					LOGGER.error("Failed to revoke token");
+				}
+			}
+		}));
+		
 		return vaultClient;
 	}
 	
