@@ -30,9 +30,14 @@ public class ThumbnailPruneVisitorTest {
 	private static final String IMAGE_ID_B = "938e003d-ac55-426d-b177-6af12c66e40d";
 	private static final String IMAGE_ID_C = "c685b6d5-8b0b-4447-a125-e775d78010fb";
 
+	private static final String NOT_A_THUMBNAIL = "someotherfile.txt";
+	
 	private Path imagePathA;
 	private Path imagePathB;
 	private Path imagePathC;
+	private Path notThumbnailA;
+	private Path notThumbnailB;
+	private Path notInDir;
 
 	private FileSystem fs;
 	private ThumbnailPruneVisitor cut;
@@ -56,22 +61,35 @@ public class ThumbnailPruneVisitorTest {
 	private void setUpTestFilesystem() throws IOException {
 		Path baseDir = fs.getPath(BASE_THUMB_PATH);
 
-		imagePathA = baseDir.resolve("9").resolve("5").resolve(IMAGE_ID_A);
-		imagePathB = baseDir.resolve("9").resolve("3").resolve(IMAGE_ID_B);
-		imagePathC = baseDir.resolve("c").resolve("6").resolve(IMAGE_ID_C);
+		imagePathA = baseDir.resolve("9").resolve("95").resolve(IMAGE_ID_A);
+		imagePathB = baseDir.resolve("9").resolve("93").resolve(IMAGE_ID_B);
+		imagePathC = baseDir.resolve("c").resolve("c6").resolve(IMAGE_ID_C);
+		
+		notThumbnailA = baseDir.resolve(NOT_A_THUMBNAIL);
+		notThumbnailB = baseDir.resolve("9").resolve("95").resolve(NOT_A_THUMBNAIL);
+		
+		notInDir = baseDir.resolve("other").resolve(IMAGE_ID_A);
 
 		Files.createDirectory(baseDir);
-		Files.createDirectories(baseDir.resolve("9").resolve("3"));
-		Files.createDirectories(baseDir.resolve("9").resolve("5"));
-		Files.createDirectories(baseDir.resolve("c").resolve("6"));
+		Files.createDirectories(baseDir.resolve("other"));
+		Files.createDirectories(baseDir.resolve("9").resolve("93"));
+		Files.createDirectories(baseDir.resolve("9").resolve("95"));
+		Files.createDirectories(baseDir.resolve("c").resolve("c6"));
 
 		Files.createFile(imagePathA);
 		Files.createFile(imagePathB);
 		Files.createFile(imagePathC);
 
+		Files.createFile(notThumbnailA);
+		Files.createFile(notThumbnailB);
+		Files.createFile(notInDir);
+
 		assertThat(Files.exists(imagePathA), is(true));
 		assertThat(Files.exists(imagePathB), is(true));
 		assertThat(Files.exists(imagePathC), is(true));
+		assertThat(Files.exists(notThumbnailA), is(true));
+		assertThat(Files.exists(notThumbnailB), is(true));
+		assertThat(Files.exists(notInDir), is(true));
 	}
 
 	@Test
@@ -88,5 +106,26 @@ public class ThumbnailPruneVisitorTest {
 		Files.walkFileTree(fs.getPath(BASE_THUMB_PATH), cut);
 		
 		assertThat(cut.getPrunedThumbnailCount(), is(2L));
+	}
+
+	@Test
+	public void nonThumbnailFileInBaseDirIsNotDeleted() throws Exception {
+		Files.walkFileTree(fs.getPath(BASE_THUMB_PATH), cut);
+
+		assertThat(Files.exists(notThumbnailA), is(true));
+	}
+
+	@Test
+	public void nonThumbnailFileInSubDirIsNotDeleted() throws Exception {
+		Files.walkFileTree(fs.getPath(BASE_THUMB_PATH), cut);
+
+		assertThat(Files.exists(notThumbnailB), is(true));
+	}
+
+	@Test
+	public void thumbnailFileOutSideSubDirIsNotDeleted() throws Exception {
+		Files.walkFileTree(fs.getPath(BASE_THUMB_PATH), cut);
+
+		assertThat(Files.exists(notInDir), is(true));
 	}
 }
