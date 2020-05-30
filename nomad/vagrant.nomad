@@ -127,6 +127,7 @@ job "si2" {
                     RABBITMQ_DEFAULT_USER = "{{ .Data.username }}"
                     RABBITMQ_DEFAULT_PASS = {{ .Data.password | toJSON }}
                   {{ end }}
+                    RABBITMQ_DEFAULT_VHOST = "{{key "config/rabbitmq/vhost"}}"
                 EOH
         
         destination = "${NOMAD_SECRETS_DIR}/env"

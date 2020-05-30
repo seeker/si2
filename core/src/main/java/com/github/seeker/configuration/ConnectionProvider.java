@@ -80,13 +80,14 @@ public class ConnectionProvider {
 		}, 5, renewInterval, TimeUnit.SECONDS);
 		
 		Map<String, String> creds = rabbitCreds.getData();
+		String rabbitMqVhost = consul.getKvAsString("config/rabbitmq/vhost");
 		
 		ConnectionFactory connFactory = new ConnectionFactory();
 		connFactory.setUsername(creds.get("username"));
 		connFactory.setPassword(creds.get("password"));
 		connFactory.setHost(serverAddress);
 		connFactory.setPort(serverPort);
-		connFactory.setVirtualHost("/"); //TODO change this to /si2
+		connFactory.setVirtualHost(rabbitMqVhost);
 
 		LOGGER.info("Connecting to Rabbitmq server {}:{}", serverAddress, serverPort);
 
