@@ -12,6 +12,7 @@
     - vault-service
     - dev-vault-init
     - nomad-service
+    - dev-docker-server
     - vault-approle-auth
     - vault-policy
     - vault-pki

@@ -1,0 +1,11 @@
+---
+- name: Allow TCP access to docker daemon
+  copy:
+    src: docker.service
+    dest: /lib/systemd/system/docker.service
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  notify:
+    - Restart docker daemon
+
