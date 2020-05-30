@@ -106,7 +106,7 @@ public class MessageDigestHasherIT {
 		
 		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
 		
-		queueConfig = new QueueConfiguration(channel, consul, true);
+		queueConfig = new QueueConfiguration(channel, true);
 		
 		cut = new MessageDigestHasher(rabbitConn, consul, queueConfig);
 		
@@ -172,6 +172,12 @@ public class MessageDigestHasherIT {
 
 	@After
 	public void tearDown() throws Exception {
+		Channel channel = rabbitConn.createChannel();
+		
+		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
+			channel.queueDelete(queue.toString());
+		}
+		
 		if (Objects.nonNull(rabbitConn)) {
 			rabbitConn.close();
 		}

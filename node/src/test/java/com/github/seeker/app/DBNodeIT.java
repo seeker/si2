@@ -24,6 +24,7 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
@@ -71,7 +72,7 @@ public class DBNodeIT {
 		Channel channel = rabbitConn.createChannel();
 		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
 		
-		QueueConfiguration queueConfig = new QueueConfiguration(channel, consul, true);
+		QueueConfiguration queueConfig = new QueueConfiguration(channel, true);
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
@@ -90,6 +91,12 @@ public class DBNodeIT {
 
 	@After
 	public void tearDown() throws Exception {
+		Channel channel = rabbitConn.createChannel();
+		
+		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
+			channel.queueDelete(queue.toString());
+		}
+		
 		rabbitConn.close();
 		
 		Morphium dbClient = connectionProvider.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);

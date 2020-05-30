@@ -48,7 +48,7 @@ public class DBNode {
 	}
 	
 	public DBNode(ConsulClient consul, MongoDbMapper mapper, Connection rabbitMqConnection) throws IOException, TimeoutException, InterruptedException {
-		this(consul, mapper, rabbitMqConnection, new QueueConfiguration(rabbitMqConnection.createChannel(), consul));
+		this(consul, mapper, rabbitMqConnection, new QueueConfiguration(rabbitMqConnection.createChannel()));
 	}
 	
 	public DBNode(ConsulClient consul, MongoDbMapper mapper, Connection rabbitMqConnection, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {

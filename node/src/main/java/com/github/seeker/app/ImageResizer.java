@@ -71,7 +71,7 @@ public class ImageResizer {
 		ConsulClient consul = connectionProvider.getConsulClient();
 		rabbitMqConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.image_resizer).newConnection();
 		
-		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel(), consul);
+		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel());
 		
 		hashMessageHelper = new HashMessageHelper();
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
