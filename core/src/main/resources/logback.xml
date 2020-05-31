@@ -13,7 +13,7 @@
 		<includeCallerData>true</includeCallerData>
 	</appender>
 	
-	<root level="INFO">
+	<root level="${root-level:-INFO}">
 		<appender-ref ref="ASYNC_STDOUT" />
 	</root>
 	
