@@ -172,11 +172,7 @@ public class MessageDigestHasherIT {
 
 	@After
 	public void tearDown() throws Exception {
-		Channel channel = rabbitConn.createChannel();
-		
-		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
-			channel.queueDelete(queue.toString());
-		}
+		queueConfig.deleteAllQueues();
 		
 		if (Objects.nonNull(rabbitConn)) {
 			rabbitConn.close();

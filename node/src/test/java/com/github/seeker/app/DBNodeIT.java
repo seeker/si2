@@ -51,6 +51,7 @@ public class DBNodeIT {
 	private Connection rabbitConn;
 	private HashMessageBuilder hashMessage;
 	private Duration duration;
+	private QueueConfiguration queueConfig;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -72,7 +73,7 @@ public class DBNodeIT {
 		Channel channel = rabbitConn.createChannel();
 		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
 		
-		QueueConfiguration queueConfig = new QueueConfiguration(channel, true);
+		queueConfig = new QueueConfiguration(channel, true);
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
@@ -91,12 +92,7 @@ public class DBNodeIT {
 
 	@After
 	public void tearDown() throws Exception {
-		Channel channel = rabbitConn.createChannel();
-		
-		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
-			channel.queueDelete(queue.toString());
-		}
-		
+		queueConfig.deleteAllQueues();
 		rabbitConn.close();
 		
 		Morphium dbClient = connectionProvider.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);

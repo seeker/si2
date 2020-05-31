@@ -61,17 +61,7 @@ public class QueueConfigurationTestIT {
 
 	@After
 	public void tearDown() throws Exception {
-		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
-			String queueName = cut.getQueueName(queue);
-
-			try {
-				testChan.queueDelete(queueName);
-				testChan.close();
-			} catch (AlreadyClosedException e) {
-				LOGGER.debug("Queue {} already closed", queueName);
-			}
-		}
-
+		cut.deleteAllQueues();
 		cutChan.close();
 	}
 
