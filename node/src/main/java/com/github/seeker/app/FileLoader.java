@@ -76,7 +76,7 @@ public class FileLoader {
 		ConsulClient consul = connectionProvider.getConsulClient();
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.file_loader).newConnection();
 		channel = conn.createChannel();
-		queueConfig = new QueueConfiguration(channel, consul);
+		queueConfig = new QueueConfiguration(channel);
 		
 		long rateLimit = consul.getKvAsLong("config/fileloader/load-rate-limit");
 		fileLoadRateLimiter = RateLimiter.create(rateLimit, 5, TimeUnit.SECONDS);

@@ -73,7 +73,7 @@ public class CustomHashProcessor {
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.hash_processor).newConnection();
 		channel = conn.createChannel();
 		
-		queueConfig = new QueueConfiguration(channel, consul);
+		queueConfig = new QueueConfiguration(channel);
 		
 		channel.basicQos(20);
 

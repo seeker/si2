@@ -3,7 +3,7 @@
   rabbitmq_user:
     user: integration
     password: "{{integration_pwd}}"
-    vhost: /
+    vhost: "{{ rabbitmq_vhost }}"
     configure_priv: .*
     read_priv: .*
     write_priv: .*

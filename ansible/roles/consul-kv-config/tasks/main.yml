@@ -29,38 +29,7 @@
     key: config/mongodb/database/si2
     value: "si2"
 
-- name: Set queue name for file digest queue
+- name: Set vhost for SI2 on RabbitMQ
   consul_kv:
-
-    key: config/rabbitmq/queue/file-digest
-    value: "file-digest"
-
-- name: Set queue name for file resize queue
-  consul_kv:
-
-    key: config/rabbitmq/queue/file-resize
-    value: "file-resize"
-
-- name: Set queue name for thumbnails
-  consul_kv:
-
-    key: config/rabbitmq/queue/thumbnail
-    value: "thumbnails"
-
-- name: Set queue name for hash
-  consul_kv:
-
-    key: config/rabbitmq/queue/hash
-    value: "hashes"
-
-- name: Set queue name for thumbnail requests
-  consul_kv:
-
-    key: config/rabbitmq/queue/thumbnail-request
-    value: "thumbnail-request"
-
-- name: Set queue name for pre processed files
-  consul_kv:
-
-    key: config/rabbitmq/queue/file-pre-processed
-    value: "file-pre-processed"
+    key: config/rabbitmq/vhost
+    value: "{{ rabbitmq_vhost }}"

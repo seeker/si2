@@ -50,7 +50,7 @@ public class MessageITBase {
 		consul = connectionProvider.getConsulClient();
 		channel = rabbitConn.createChannel();
 		
-		queueConfig = new QueueConfiguration(channel, consul, true);
+		queueConfig = new QueueConfiguration(channel, true);
 		assertThat(queueConfig.isIntegrationConfig(), is(true));
 	}
 }

@@ -67,7 +67,7 @@ public class ThumbnailNode {
 		channelThumbRequ = conn.createChannel();
 		channelThumbRequ.basicQos(1);
 		
-		queueConfig = new QueueConfiguration(channel, consul);
+		queueConfig = new QueueConfiguration(channel);
 		mapper = connectionProvider.getMongoDbMapper();
 		
 		startConsumers();

@@ -108,5 +108,8 @@
   consul_kv:
     key: config/rabbitmq/queue/file-pre-processed
     value: "file-pre-processed"
-    
 
+- name: Set vhost for SI2 on RabbitMQ
+  consul_kv:
+    key: config/rabbitmq/vhost
+    value: "{{ rabbitmq_vhost }}"

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +19,7 @@ public class QueueConfiguration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueueConfiguration.class);
 	
 	private Channel channel;
-	private ConsulClient consulClient;
 	private boolean integration;
-	private Map<ConfiguredQueues, String> queueNames;
 	private Map<ConfiguredExchanges, String> exchangeNames;
 	
 	public enum ConfiguredQueues 
@@ -71,11 +69,10 @@ public class QueueConfiguration {
 	 * Create a new Queue configuration.
 	 * 
 	 * @param channel a channel to declare the queues on
-	 * @param consulClient to get the queue names from consul
 	 * @throws IOException if there is an error declaring queues
 	 */
-	public QueueConfiguration(Channel channel, ConsulClient consulClient) throws IOException {
-		this(channel, consulClient, false);
+	public QueueConfiguration(Channel channel) throws IOException {
+		this(channel, false);
 	}
 	
 	/**
@@ -85,16 +82,13 @@ public class QueueConfiguration {
 	 * and the queue names will be prefixed with `integration-` 
 	 * 
 	 * @param channel a channel to declare the queues on
-	 * @param consulClient to get the queue names from consul
 	 * @param integration if the queues will be used for integration testing 
 	 * @throws IOException if there is an error declaring queues
 	 */
-	public QueueConfiguration(Channel channel, ConsulClient consulClient, boolean integration) throws IOException {
+	public QueueConfiguration(Channel channel, boolean integration) throws IOException {
 		this.channel = channel;
-		this.consulClient = consulClient;
 		this.integration = integration;
 		
-		setupQueueNames(setupConsulKeys());
 		setupExchangeNames();
 		declareExchanges();
 		declareQueues();
@@ -107,37 +101,6 @@ public class QueueConfiguration {
 	 */
 	public boolean isIntegrationConfig() {
 		return this.integration;
-	}
-
-	private Map<ConfiguredQueues, String> setupConsulKeys() {
-		LOGGER.debug("Preparing consul keys for queue names");
-		
-		Map<ConfiguredQueues, String> keyToQueues = new HashMap<QueueConfiguration.ConfiguredQueues, String>();
-		
-		keyToQueues.put(ConfiguredQueues.hashes, "config/rabbitmq/queue/hash");
-		keyToQueues.put(ConfiguredQueues.thumbnails, "config/rabbitmq/queue/thumbnail");
-		keyToQueues.put(ConfiguredQueues.thumbnailRequests, "config/rabbitmq/queue/thumbnail-request");		
-		keyToQueues.put(ConfiguredQueues.fileDigest, "config/rabbitmq/queue/file-digest");
-		keyToQueues.put(ConfiguredQueues.fileResize, "config/rabbitmq/queue/file-resize");
-		keyToQueues.put(ConfiguredQueues.filePreProcessed, "config/rabbitmq/queue/file-pre-processed");
-		
-		return keyToQueues;
-	}
-
-	private void setupQueueNames(Map<ConfiguredQueues, String> keyToQueues) {
-		queueNames = new HashMap<QueueConfiguration.ConfiguredQueues, String>();
-		
-		LOGGER.debug("Fetching queue names for {} queues", ConfiguredQueues.values().length);
-		
-		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
-			String queueName = consulClient.getKvAsString(keyToQueues.get(queue));
-			
-			if(integration) {
-				queueName = "integration-" + queueName + "-" + UUID.randomUUID().toString();
-			}
-			
-			queueNames.put(queue, queueName);
-		}
 	}
 	
 	private void setupExchangeNames() {
@@ -164,7 +127,8 @@ public class QueueConfiguration {
 	}
 	
 	private void declareQueues() throws IOException {
-		LOGGER.info("Declaring {} queues...", queueNames.size());
+		LOGGER.info("Declaring {} queues...", ConfiguredQueues.values().length);
+		
 		for(ConfiguredQueues queue : ConfiguredQueues.values()) {
 			LOGGER.debug("Declaring queue {} ...", getQueueName(queue));
 
@@ -183,22 +147,25 @@ public class QueueConfiguration {
 		channel.queueBind(getQueueName(ConfiguredQueues.fileDigest), getExchangeName(ConfiguredExchanges.loader), "");
 		channel.queueBind(getQueueName(ConfiguredQueues.fileResize), getExchangeName(ConfiguredExchanges.loader), "");
 	}
-	
+
 	/**
-	 * Get the queue name for the configured queue.
+	 * Get the queue name for the configured queue. If the configuration is in
+	 * integration test mode, the queue names will be prefixed with integration-
+	 * 
 	 * @param queue to get the name for
 	 * @return the queue name
-	 * @throws IllegalStateException if there is no name for the queue
 	 */
 	public String getQueueName(ConfiguredQueues queue) {
-		String queueName = queueNames.get(queue);
-		
-		if(queueName == null) {
-			LOGGER.error("No quque name found for {}", queue);
-			throw new IllegalStateException("No queue name found for " + queue);
+		if (Objects.isNull(queue)) {
+			LOGGER.error("Queue cannot be null");
+			throw new IllegalStateException("Queue cannot be null");
 		}
-		
-		return queueNames.get(queue);
+
+		if (integration) {
+			return "integration-" + queue.toString();
+		} else {
+			return queue.toString();
+		}
 	}
 	
 	/**

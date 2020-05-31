@@ -58,7 +58,7 @@ public class MainWindow extends Application{
 		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
 		this.channel = rabbitConnection.createChannel();
 		
-		queueConfig = new QueueConfiguration(rabbitConnection.createChannel(), connectionProvider.getConsulClient());
+		queueConfig = new QueueConfiguration(rabbitConnection.createChannel());
 		
 		mapper = connectionProvider.getMongoDbMapper();
 		metaDataExplorer = new MetaDataExplorer(mapper, rabbitConnection, queueConfig);

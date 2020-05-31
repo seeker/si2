@@ -48,8 +48,7 @@ public class MessageDigestHasher {
 		this(
 				connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection(),
 				connectionProvider.getConsulClient(),
-				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel(),
-				connectionProvider.getConsulClient())
+				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel())
 		);
 	}
 	

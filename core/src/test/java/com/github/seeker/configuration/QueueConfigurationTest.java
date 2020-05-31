@@ -5,8 +5,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -20,19 +18,15 @@ import com.rabbitmq.client.Channel;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueueConfigurationTest {
-	private static final String HASH_QUEUE_NAME = "foo";
-	private static final String THUMBNAIL_QUEUE_NAME = "bar";
-	private static final String THUMBNAIL_REQ_QUEUE_NAME = "boo";
-	private static final String FILE_QUEUE_NAME = "baz";
-	private static final String FILE_RESIZE_NAME = "resize";
-	private static final String FILE_PREPROCESS_NAME = "preprocess";
+	private static final String HASH_QUEUE_NAME = "hashes";
+	private static final String THUMBNAIL_QUEUE_NAME = "thumbnails";
+	private static final String THUMBNAIL_REQ_QUEUE_NAME = "thumbnailRequests";
+	private static final String FILE_QUEUE_NAME = "fileDigest";
+	private static final String FILE_RESIZE_NAME = "fileResize";
 	
 	@Mock
 	private Channel channel;
 
-	@Mock
-	private ConsulClient consulClient;
-	
 	private QueueConfiguration cut;
 	private QueueConfiguration cutIntegration;
 
@@ -42,15 +36,8 @@ public class QueueConfigurationTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/hash"))).thenReturn(HASH_QUEUE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail"))).thenReturn(THUMBNAIL_QUEUE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/thumbnail-request"))).thenReturn(THUMBNAIL_REQ_QUEUE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-digest"))).thenReturn(FILE_QUEUE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-resize"))).thenReturn(FILE_RESIZE_NAME);
-		when(consulClient.getKvAsString(eq("config/rabbitmq/queue/file-pre-processed"))).thenReturn(FILE_PREPROCESS_NAME);
-		
-		cut = new QueueConfiguration(channel, consulClient);
-		cutIntegration = new QueueConfiguration(channel, consulClient, true);
+		cut = new QueueConfiguration(channel);
+		cutIntegration = new QueueConfiguration(channel, true);
 	}
 
 	@Test
@@ -103,26 +90,6 @@ public class QueueConfigurationTest {
 		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileDigest), is(startsWith(prefixWithIntegration(FILE_QUEUE_NAME))));
 	}
 	
-	@Test
-	public void queueNameForHashIntegrationWithUUIDsuffix() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.hashes), is(not(endsWith(HASH_QUEUE_NAME))));
-	}
-	
-	@Test
-	public void queueNameForThumbnailIntegrationUUIDsuffix() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.thumbnails), is(not(endsWith(THUMBNAIL_QUEUE_NAME))));
-	}
-	
-	@Test
-	public void queueNameForFilesIntegrationUUIDsuffix() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileDigest), is(not(endsWith(FILE_QUEUE_NAME))));
-	}
-
-	@Test
-	public void queueNameForResizeIntegrationUUIDsuffix() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileResize), is(not(endsWith(FILE_RESIZE_NAME))));
-	}
-	
 	@Test(expected=IllegalStateException.class)
 	public void noNameForQueue() throws Exception {
 		cutIntegration.getQueueName(null);
@@ -136,5 +103,21 @@ public class QueueConfigurationTest {
 	@Test
 	public void getLoaderCommandIntegrationExchangeName() throws Exception {
 		assertThat(cutIntegration.getExchangeName(ConfiguredExchanges.loaderCommand), is("integration-loaderCommand"));
+	}
+	
+	@Test
+	public void normalQueuesMustReturnSameName() throws Exception {
+		String firstCall = cut.getQueueName(ConfiguredQueues.fileDigest);
+		String secondCall = cut.getQueueName(ConfiguredQueues.fileDigest);
+		
+		assertThat(firstCall, is(secondCall));
+	}
+	
+	@Test
+	public void integrationQueuesMustReturnSameName() throws Exception {
+		String firstCall = cutIntegration.getQueueName(ConfiguredQueues.fileDigest);
+		String secondCall = cutIntegration.getQueueName(ConfiguredQueues.fileDigest);
+		
+		assertThat(firstCall, is(secondCall));
 	}
 }

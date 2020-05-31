@@ -110,7 +110,7 @@ public class ImageResizerIT {
 		
 		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
 		
-		queueConfig = new QueueConfiguration(channel, consul, true);
+		queueConfig = new QueueConfiguration(channel, true);
 		
 		cut = new ImageResizer(rabbitConn, consul, queueConfig);
 		
@@ -163,6 +163,12 @@ public class ImageResizerIT {
 
 	@After
 	public void tearDown() throws Exception {
+		Channel channel = rabbitConn.createChannel();
+		
+		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
+			channel.queueDelete(queue.toString());
+		}
+		
 		if (Objects.nonNull(rabbitConn)) {
 			rabbitConn.close();
 		}
