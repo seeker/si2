@@ -185,4 +185,34 @@ public class QueueConfiguration {
 
 		return exchangeNames.get(exchange);
 	}
+
+	private int getQueueCount() {
+		return ConfiguredQueues.values().length;
+	}
+
+	/**
+	 * Delete the queue. Will throw an exception if the queue does not exist.
+	 * 
+	 * @param queue to delete
+	 * @throws IOException if there is an error
+	 */
+	public void deleteQueue(ConfiguredQueues queue) throws IOException {
+		LOGGER.info("Deleting queue {}", queue);
+		String queueName = getQueueName(queue);
+
+		channel.queueDelete(queueName);
+	}
+
+	/**
+	 * Delete all queues in {@link ConfiguredQueues}.
+	 * 
+	 * @throws IOException if there is an error
+	 */
+	public void deleteAllQueues() throws IOException {
+		LOGGER.info("Deleting all {} queues...", getQueueCount());
+
+		for (ConfiguredQueues queue : ConfiguredQueues.values()) {
+			deleteQueue(queue);
+		}
+	}
 }
