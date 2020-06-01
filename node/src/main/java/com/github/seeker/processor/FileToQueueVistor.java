@@ -42,16 +42,14 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final List<String> requiredCustomHashes;
 	private final String fileLoadExchange;
 	private final String anchor;
-	private final Path anchorPath;
 	private final Path anchorRootPath;
 	private final RateLimiter fileLoadRateLimiter;
 	private boolean terminate = false;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorPath, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.anchor = anchor;
-		this.anchorPath = anchorPath;
 		this.anchorRootPath = anchorRootPath;
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;

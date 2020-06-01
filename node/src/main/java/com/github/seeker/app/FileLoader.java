@@ -155,9 +155,9 @@ public class FileLoader {
 	}
 	
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath, Path anchorRootPath) {
-		LOGGER.info("Walking {} for anchor {}", anchorAbsolutePath, anchor);
+		LOGGER.info("Walking {} for anchor {}", anchorRootPath, anchor);
 
-		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor,anchorAbsolutePath, anchorRootPath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
+		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor, anchorRootPath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
 		
 		try {
 			Files.walkFileTree(anchorAbsolutePath, fileToQueueVistor);
