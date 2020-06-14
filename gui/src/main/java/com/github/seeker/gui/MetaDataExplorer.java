@@ -98,8 +98,8 @@ public class MetaDataExplorer extends Stage {
 					throws IOException {
 				String thumbnailFound = properties.getHeaders().get(MessageHeaderKeys.THUMBNAIL_FOUND).toString();
 				
-				if(! Boolean.parseBoolean(thumbnailFound)) {
-					LOGGER.warn("No thumbnail found for image");
+				if (!Boolean.parseBoolean(thumbnailFound)) {
+					LOGGER.warn("Thumbnail response message did not contain image");
 					return;
 				}
 				
@@ -195,8 +195,9 @@ public class MetaDataExplorer extends Stage {
 					return;
 				}
 				
-				if(! newValue.hasThumbnail()) {
-					LOGGER.warn("No thumbnail available for {}:{}", newValue.getAnchor(), newValue.getPath());
+				if (!newValue.hasThumbnail()) {
+					LOGGER.debug("No thumbnail available for {}:{}", newValue.getAnchor(), newValue.getPath());
+					imageView.setImage(null);
 					return;
 				}
 				
