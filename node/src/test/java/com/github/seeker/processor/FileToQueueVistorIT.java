@@ -223,4 +223,14 @@ public class FileToQueueVistorIT {
 
 		assertThat(Boolean.parseBoolean(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.THUMBNAIL_FOUND).toString()), is(false));
 	}
+
+	@Test
+	public void setFlagToNotGenerateThumbnails() throws Exception {
+		cut.setGenerateThumbnails(false);
+		Files.walkFileTree(fileWalkRoot, cut);
+
+		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
+
+		assertThat(Boolean.parseBoolean(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.THUMBNAIL_FOUND).toString()), is(true));
+	}
 }
