@@ -45,6 +45,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final Path anchorRootPath;
 	private final RateLimiter fileLoadRateLimiter;
 	private boolean terminate = false;
+	private boolean generateThumbnails = true;
 	
 	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
@@ -147,11 +148,29 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
 		headers.put(MessageHeaderKeys.ANCHOR, anchor);
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
-		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(meta.hasThumbnail()));
+		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(Boolean.logicalOr(!generateThumbnails, meta.hasThumbnail())));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		fileLoadRateLimiter.acquire();
 		
 		channel.basicPublish(fileLoadExchange, "", props, rawImageData);
+	}
+
+	/**
+	 * Should thumbnails be generated for found images?
+	 * 
+	 * @return true if thumbnails should be generated
+	 */
+	public boolean isGenerateThumbnails() {
+		return generateThumbnails;
+	}
+
+	/**
+	 * Set if thumbnails should be generated for found images
+	 * 
+	 * @param generateThumbnails if set to true, thumbnails will be generated
+	 */
+	public void setGenerateThumbnails(boolean generateThumbnails) {
+		this.generateThumbnails = generateThumbnails;
 	}
 }
