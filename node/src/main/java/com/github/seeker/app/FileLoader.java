@@ -205,12 +205,11 @@ class FileLoaderCommandConsumer extends DefaultConsumer {
 		Map<String, Object> headers = properties.getHeaders();
 
 		if (!headers.containsKey(MessageHeaderKeys.FILE_LOADER_COMMAND)) {
-			LOGGER.warn("Received message without command header, rejecting message...");
+			LOGGER.warn("Received message without command header, discarding message...");
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("{}", headers);
 			}
 			
-			getChannel().basicReject(envelope.getDeliveryTag(), false);
 			return;
 		}
 		
