@@ -10,7 +10,6 @@ vault {
   address = "http://127.0.0.1:8200"
   token = "{{ vault_token }}"
 }
-
 {% endif %}
 {% if nomad_client %}
 client {
@@ -31,7 +30,6 @@ client {
     read_only = false
   }
 }
-
 {% endif %}
 
 consul {
