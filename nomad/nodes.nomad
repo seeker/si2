@@ -24,6 +24,15 @@ job "si2-nodes" {
 
   group "nodes" {
     count = 1
+    network {
+      mode = "bridge"
+    }
+
+    service {
+      connect {
+        sidecar_service {}
+      }
+    }
 
     volume "thumbnail" {
       type      = "host"
