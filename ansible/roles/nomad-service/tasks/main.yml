@@ -72,3 +72,31 @@
     name: nomad
     state: started
     enabled: yes
+
+- name: Create CNI binary directory
+  file:
+    state: directory
+    path: "{{ cni_binary_directory }}"
+    recurse: yes
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+
+- name: Download CNI plugin
+  get_url:
+    url: https://github.com/containernetworking/plugins/releases/download/v0.8.2/cni-plugins-linux-amd64-v0.8.2.tgz
+    dest: /var/tmp/cni.tgz
+
+- name: Extract CNI plugin
+  unarchive:
+    remote_src: yes
+    src: /var/tmp/cni.tgz
+    dest: "{{ cni_binary_directory }}"
+
+- name: Configure bride netfilter calls
+  template:
+    src: 90-cni-nomad.conf.j2
+    dest: /etc/sysctl.d/90-cni-nomad.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
