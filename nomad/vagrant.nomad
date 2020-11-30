@@ -21,13 +21,90 @@ job "si2" {
     min_healthy_time = "10s"
     healthy_deadline = "5m"
   }
-
-  group "admin" {
+  
+  group "database" {
     count = 1
+    network {
+      mode = "bridge"
+      port "db" {
+        static = 27017
+        to = 27017
+      }
+    }
+
+    service {
+      connect {
+        sidecar_service {}
+      }
+
+      name = "mongodb"
+      tags = ["mongodb", "database"]
+      port = "27017"
+    }
 
     volume "mongodb" {
       type      = "host"
       source    = "mongodb"
+    }
+
+    restart {
+      attempts = 2
+      interval = "30m"
+
+      delay = "15s"
+      mode = "fail"
+    }
+
+    ephemeral_disk {
+      size = 300
+    }
+
+    task "mongodb" {
+        driver = "docker"
+        config {
+          image = "mongo:4.2.6"
+        }
+
+        volume_mount {
+          volume      = "mongodb"
+          destination = "/data/db"
+        }
+
+        resources {
+          cpu    = 500 # 500 MHz
+          memory = 256
+
+          network {
+            mbits = 100
+          }
+        }
+      }
+  }
+
+  group "rabbitmq" {
+    count = 1
+    network {
+      mode = "bridge"
+      port "http" {
+        static = 15672
+        to = 15672
+      }
+
+      port "https" {
+        static = 15671
+        to = 15671
+      }
+
+      port "amqp" {
+        static = 5672
+        to = 5672
+      }
+    }
+
+    service {
+      connect {
+        sidecar_service {}
+      }
     }
 
     restart {
@@ -48,11 +125,6 @@ job "si2" {
         image = "rabbitmq:3.8.3"
 
         volumes = ["local/enabled_plugins:/etc/rabbitmq/enabled_plugins"]
-
-        port_map {
-          amqp = 5672
-          amqps = 5671
-        }
       }
 
       resources {
@@ -61,49 +133,6 @@ job "si2" {
 
         network {
           mbits = 500
-          
-          port "http" {
-            static = 15672
-          }
-
-          port "https" {
-            static = 15671
-          }
-
-          port "amqp" {
-            static = 5672
-          }
-
-          port "amqps" {}
-        }
-      }
-
-      service {
-        name = "rabbitmq-management"
-        tags = ["message-broker", "http"]
-        port = "http"
-
-        check {
-          name     = "HTTP check"
-          type     = "http"
-          port     = "http"
-          path     = "/"
-          interval = "10s"
-          timeout  = "2s"
-        }
-      }
-
-      service {
-        name = "rabbitmq"
-        tags = ["message-broker", "amqp"]
-        port = "amqp"
-
-        check {
-          name     = "AMQP check"
-          type     = "tcp"
-          port     = "amqp"
-          interval = "10s"
-          timeout  = "2s"
         }
       }
 
@@ -134,45 +163,39 @@ job "si2" {
         env = true
       }
     }
+  }
 
-    task "mongodb" {
-        driver = "docker"
-        config {
-          image = "mongo:4.2.6"
-        }
-
-        volume_mount {
-          volume      = "mongodb"
-          destination = "/data/db"
-        }
-
-        resources {
-          cpu    = 500 # 500 MHz
-          memory = 256
-
-          network {
-            mbits = 100
-            
-            port "db" {
-              static = 27017
-            }
-          }
-        }
-
-        service {
-          name = "mongodb"
-          tags = ["mongodb", "database"]
-          port = "db"
-
-          check {
-            name     = "Mongodb check"
-            type     = "tcp"
-            port     = "db"
-            interval = "10s"
-            timeout  = "2s"
-          }
-        }
+  group "registry" {
+    count = 1
+    network {
+      mode = "bridge"
+      port "docker_registry" {
+        static = 5000
+        to = 5000
       }
+    }
+
+    service {
+      connect {
+        sidecar_service {}
+      }
+
+      name = "docker-registry"
+      tags = ["docker", "registry"]
+      port = "5000"
+    }
+
+    restart {
+      attempts = 2
+      interval = "30m"
+
+      delay = "15s"
+      mode = "fail"
+    }
+
+    ephemeral_disk {
+      size = 300
+    }
 
     task "registry" {
       driver = "docker"
@@ -229,24 +252,6 @@ job "si2" {
 
         network {
           mbits = 100
-          
-          port "docker_registry" {
-            static = 5000
-          }
-        }
-      }
-
-      service {
-        name = "docker-registry"
-        tags = ["docker", "registry"]
-        port = "docker_registry"
-
-        check {
-          name     = "Docker registry check"
-          type     = "tcp"
-          port     = "docker_registry"
-          interval = "10s"
-          timeout  = "2s"
         }
       }
     }
