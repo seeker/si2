@@ -105,6 +105,8 @@ job "si2" {
       connect {
         sidecar_service {}
       }
+      name = "rabbitmq"
+      port = "5672"
     }
 
     restart {
