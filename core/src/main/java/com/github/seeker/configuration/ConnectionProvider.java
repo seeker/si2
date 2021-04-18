@@ -65,8 +65,7 @@ public class ConnectionProvider {
 		LogicalResponse rabbitCreds = vaultWA.readRabbitMqCredentials(role.toString());
 
 		String lease = rabbitCreds.getLeaseId();
-		long leaseDuration = 1800;
-		long renewInterval = leaseDuration / 2;
+		long leaseDuration = TimeUnit.SECONDS.convert(15, TimeUnit.MINUTES);
 
 		renewPool.scheduleAtFixedRate(new Runnable() {
 			@Override
@@ -77,7 +76,7 @@ public class ConnectionProvider {
 					LOGGER.warn("Failed to renewdrabbitmq lease: {}", lease, e);
 				}
 			}
-		}, 5, renewInterval, TimeUnit.SECONDS);
+		}, 1, 5, TimeUnit.MINUTES);
 		
 		Map<String, String> creds = rabbitCreds.getData();
 		String rabbitMqVhost = consul.getKvAsString("config/rabbitmq/vhost");
