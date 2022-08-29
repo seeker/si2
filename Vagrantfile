@@ -46,4 +46,18 @@ Vagrant.configure("2") do |config|
 		d.env = {"VAULT_LOCAL_CONFIG" => '{\"backend\": {\"file\": {\"path\": \"/vault/file\"}}, \"default_lease_ttl\": \"168h\", \"max_lease_ttl\": \"720h\"}'}
 	end
   end
+
+  config.vm.define "rabbitmq" do |rabbitmq|
+	rabbitmq.vm.provider "docker" do |d|
+	    d.image = "rabbitmq"
+		d.ports = ["15672:15672", "15671:15671", "5672:5672"]
+	end
+  end
+
+  config.vm.define "mongodb" do |mongodb|
+	mongodb.vm.provider "docker" do |d|
+	    d.image = "mongo"
+		d.ports = ["26017:27017"]
+	end
+  end
 end
