@@ -6,9 +6,8 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/bionic64"
-  
-  config.vm.define "nomad" do |nomad|
+  config.vm.define "nomad", autostart: false do |nomad|
+  nomad.vm.box = "ubuntu/bionic64"
   nomad.vm.network "forwarded_port", guest: 22, host: 2270, auto_correct: false, id: "ssh"
   nomad.vm.network "forwarded_port", guest: 4646, host: 4646, id: "nomad"
   nomad.vm.network "forwarded_port", guest: 8500, host: 8500, id: "consul"
@@ -26,6 +25,25 @@ Vagrant.configure("2") do |config|
 	nomad.vm.provider "virtualbox" do |vb|
 		vb.memory = 5120
 		vb.cpus = 4
+	end
+  end
+
+  config.vm.define "consul" do |consul|
+	consul.vm.provider "docker" do |d|
+	    d.image = "consul"
+		d.ports = ["8500:8500"]
+	    d.cmd = ["consul", "agent", "-server", "-bootstrap-expect=1", "-data-dir=/consul/data/"]
+		d.env = {"CONSUL_LOCAL_CONFIG" => '{"skip_leave_on_interrupt": true}'}
+	end
+  end
+
+  config.vm.define "vault" do |consul|
+	consul.vm.provider "docker" do |d|
+	    d.image = "vault"
+		d.ports = ["8200:8200"]
+		d.create_args = ["--cap-add=IPC_LOCK"]
+	    d.cmd = ["vault", "server","-config=/vault/config/"]
+		d.env = {"VAULT_LOCAL_CONFIG" => '{\"backend\": {\"file\": {\"path\": \"/vault/file\"}}, \"default_lease_ttl\": \"168h\", \"max_lease_ttl\": \"720h\"}'}
 	end
   end
 end
