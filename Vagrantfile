@@ -32,7 +32,7 @@ Vagrant.configure("2") do |config|
 	consul.vm.provider "docker" do |d|
 	    d.image = "consul"
 		d.ports = ["8500:8500"]
-	    d.cmd = ["consul", "agent", "-server", "-bootstrap-expect=1", "-data-dir=/consul/data/"]
+	    d.cmd = ["consul", "agent", "-server", "-ui", "-client=0.0.0.0", "-bootstrap-expect=1", "-data-dir=/consul/data/"]
 		d.env = {"CONSUL_LOCAL_CONFIG" => '{"skip_leave_on_interrupt": true}'}
 	end
   end
