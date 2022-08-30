@@ -1,0 +1,3 @@
+From vault:latest
+COPY ./server.hcl /vault/config/server.hcl
+CMD ["vault", "server", "-dev"]

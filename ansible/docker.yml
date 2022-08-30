@@ -1,0 +1,15 @@
+---
+- hosts: localhost
+
+  roles:
+    - consul-kv-config
+    #- dev-vault-init
+    #- vault-approle-auth
+    #- vault-policy
+    #- vault-pki
+    #- vault-kv
+    #- dev-rabbitmq-credentials #TODO create RabbitMQ integration user via Vault?
+    #- vault-rabbitmq-secrets
+    #- dev-vault-
+  vars:
+    host: consul
