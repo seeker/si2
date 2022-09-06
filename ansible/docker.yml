@@ -3,7 +3,7 @@
 
   roles:
     - consul-kv-config
-    #- dev-vault-init
+    - docker-vault-init
     #- vault-approle-auth
     #- vault-policy
     #- vault-pki

@@ -1,0 +1,70 @@
+---
+# DO NOT use this role in production, it is unsafe
+
+- name: Check if Vault has been initialized
+  uri:
+    url: http://vault:8200/v1/sys/init
+    validate_certs: no
+    body_format: json
+    return_content: yes
+  delay: 1
+  retries: 10
+  register: vault_init_response
+  check_mode: no
+
+- name: Initialize Vault with a single key
+  block:
+    - name: Initialize Vault
+      uri:
+        url: http://vault:8200/v1/sys/init
+        method: post
+        body: '{"secret_shares" : 1, "secret_threshold" : 1}'
+      register: init_response
+
+    - set_fact:
+        root_token: "{{ init_response['json']['root_token'] }}"
+        cacheable: yes
+        unseal_key: "{{ init_response['json']['keys'][0] }}"
+
+    - name: Create Vault token file
+      template:
+        src: vault-token.j2
+        dest: "{{ vault_token_path }}"
+
+    - name: Create Vault seal key file
+      template:
+        src: vault-seal.j2
+        dest: "{{ vault_seal_path }}"
+
+  when: vault_init_response.json.initialized == false
+
+- name: Get Vault seal state
+  uri:
+    body_format: json
+    url: http://vault:8200/v1/sys/seal-status
+  delay: 1
+  retries: 10
+  register: seal_state
+
+- name: Submit unseal request
+  uri:
+    body_format: json
+    method: POST
+    url: http://vault:8200/v1/sys/unseal
+    body:
+      key: "{{ lookup('file', vault_seal_path) }}"
+  when: seal_state.json.sealed == true
+
+- name: Wait for Vault to be unsealed
+  uri:
+    body_format: json
+    url: http://vault:8200/v1/sys/seal-status
+  delay: 1
+  retries: 10
+  register: seal_state
+  until: seal_state.json.sealed == false
+  when: not ansible_check_mode
+
+- set_fact:
+    vault_token: "{{ lookup('file', vault_token_path) }}"
+    cached: true
