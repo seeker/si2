@@ -4,6 +4,7 @@
     service_name: rabbitmq
     service_port: 5672
     tags: message-broker,rabbitmq
+    service_address: rabbitmq
     host: "{{ host }}"
 
 - name: Check if RabbitMQ admin credentails exist in Vault

@@ -9,6 +9,7 @@
     - vault-pki
     - vault-kv
     #- dev-rabbitmq-credentials #TODO create RabbitMQ integration user via Vault?
+    - consul-docker-service-config
     - rabbitmq-server
     - vault-rabbitmq-secrets
     - dev-vault-credentials

@@ -1,6 +1,6 @@
 consul.ip: "127.0.0.1"
 consul.port: 8500
-consul.datacenter: "vagrant"
+consul.datacenter: "dc1"
 consul.overrideVirtualBoxAddress: true
 vault.approleId: "integration"
 vault.secretId: "integration"
