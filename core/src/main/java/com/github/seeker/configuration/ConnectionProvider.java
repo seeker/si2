@@ -170,7 +170,7 @@ public class ConnectionProvider {
 		MorphiumConfig cfg = new MorphiumConfig();
 		LOGGER.info("Conneting to mongodb database {} on {}", database, mongoDBserverAddress);
 		cfg.setDatabase(database);
-		cfg.addHostToSeed(mongoDBserverAddress);
+		cfg.addHostToSeed(mongoDBserverAddress, mongodbService.getService().getPort());
 		//TODO use replica sets at some point, disabled to prevent exception spam
 		cfg.setReplicasetMonitoring(false);
 				
