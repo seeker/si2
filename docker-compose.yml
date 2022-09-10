@@ -38,6 +38,7 @@ services:
         dockerfile: ansible
       volumes:
         - ./ansible:/ansible/:ro
+        - ./vault-tmp:/var/ansible/
       depends_on:
         - consul
         - vault
