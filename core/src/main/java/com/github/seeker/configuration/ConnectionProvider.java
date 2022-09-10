@@ -143,9 +143,9 @@ public class ConnectionProvider {
 	protected String overrideVirtualBoxNatAddress(String originalAddress) {
 		return ConnectionProvider.overrideVirtualBoxNatAddress(originalAddress, this.overrideVirtualBoxAddress);
 	}
-	
+	// TODO Change to 'forceLocalhost'
 	protected static String overrideVirtualBoxNatAddress(String originalAddress, boolean overrideVirtualBoxAddress) {
-		if (overrideVirtualBoxAddress && VIRTUALBOX_NAT_ADDRESS.equals(originalAddress)) {
+		if (overrideVirtualBoxAddress) {
 			LOGGER.debug("Rewrote VirtualBox NAT address {} to {}", originalAddress, LOCALHOST_ADDRESS);
 			return LOCALHOST_ADDRESS;
 		} else {
