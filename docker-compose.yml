@@ -19,7 +19,9 @@ services:
       - IPC_LOCK
 
   rabbitmq:
-    image: "rabbitmq"
+    build:
+      context: ./docker/
+      dockerfile: rabbitmq
     ports:
       - "127.0.0.1:15672:15672"
       - "127.0.0.1:15671:15671"

@@ -14,3 +14,9 @@
   vars:
     host: consul
     vault_server_address: vault
+
+- hosts: localhost
+  roles:
+    - rabbitmq-server
+  vars:
+    host: consul
