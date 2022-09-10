@@ -20,8 +20,8 @@ public class ConnectionProviderTest {
 	}
 	
 	@Test
-	public void nonNatAddressIsNotModified() throws Exception {
-		assertThat(ConnectionProvider.overrideVirtualBoxNatAddress(NORMAL_ADDRESS, true), is(NORMAL_ADDRESS));
+	public void nonNatAddressIsModified() throws Exception {
+		assertThat(ConnectionProvider.overrideVirtualBoxNatAddress(NORMAL_ADDRESS, true), is(LOCALHOST_ADDRESS));
 	}
 	
 	@Test
