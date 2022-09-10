@@ -9,14 +9,9 @@
     - vault-pki
     - vault-kv
     #- dev-rabbitmq-credentials #TODO create RabbitMQ integration user via Vault?
+    - rabbitmq-server
     - vault-rabbitmq-secrets
     - dev-vault-credentials
   vars:
     host: consul
     vault_server_address: vault
-
-- hosts: localhost
-  roles:
-    - rabbitmq-server
-  vars:
-    host: consul
