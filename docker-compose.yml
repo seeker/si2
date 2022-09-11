@@ -38,6 +38,13 @@ services:
     ports:
       - "127.0.0.1:26017:27017"
 
+  minio:
+    image: minio/minio
+    command: ["server", "/data", "--console-address",  ':9001']
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
   ansible:
       build:
         context: ./docker/
