@@ -1,3 +1,0 @@
----
-vault_seal_path: /home/vagrant/vault-seal
-vault_token_path: /home/vagrant/vault-token

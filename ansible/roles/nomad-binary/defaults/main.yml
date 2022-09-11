@@ -1,5 +1,0 @@
----
-nomad_binary: /usr/local/bin/nomad
-nomad_version: "0.11.2"
-force: false
-nomad_binary_download_directory: /tmp/

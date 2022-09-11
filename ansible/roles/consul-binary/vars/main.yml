@@ -1,5 +1,0 @@
----
-consul_binary: /usr/local/bin/consul
-consul_version: "1.6.0"
-force: false
-consul_binary_download_directory: /tmp/

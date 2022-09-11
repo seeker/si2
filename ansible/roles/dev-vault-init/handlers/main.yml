@@ -1,5 +1,0 @@
----
-- name: Restart Vault auto unseal
-  systemd:
-    name: auto-unseal-vault
-    state: restarted

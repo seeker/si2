@@ -1,5 +1,0 @@
----
-- name: Restart Nomad
-  systemd:
-    name: nomad
-    state: restarted

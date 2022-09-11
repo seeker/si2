@@ -1,3 +1,0 @@
-server: false
-bind_ip: localhost
-tls: false

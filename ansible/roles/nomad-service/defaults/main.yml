@@ -1,8 +1,0 @@
-nomad_server: false
-nomad_client: true
-bind_ip: localhost
-nomad_data_directory: "/var/lib/nomad"
-nomad_config_directory: "/etc/nomad.d"
-mongodb_data_directory: "/var/lib/mongodb"
-thumbnail_data_directory: "/var/lib/thumbnails"
-docker_registry_directory: "/var/lib/docker-registry"
