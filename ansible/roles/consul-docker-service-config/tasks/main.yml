@@ -1,0 +1,9 @@
+---
+# Configure Consul service entries for docker containers that do not require an Ansible role for setup
+- name: Register mongodb service with consul
+  consul:
+    service_name: mongodb
+    service_port: 26017
+    tags: database,mongodb
+    service_address: mongodb
+    host: "{{ host }}"

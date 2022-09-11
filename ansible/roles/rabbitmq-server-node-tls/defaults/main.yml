@@ -1,8 +1,0 @@
----
-ssl_domain: "*"
-rabbitmq_config_dir: "/etc/rabbitmq"
-vault_ca_cert: "{{ rabbitmq_config_dir }}/ca.pem"
-rabbitmq_server_cert: "{{ rabbitmq_config_dir }}/server-cert.pem"
-rabbitmq_server_private_key: "{{ rabbitmq_config_dir }}/server-private-key.pem"
-rabbitmq_ssl_config: "{{ rabbitmq_config_dir }}/inter_node_tls.config"
-rabbitmq_client_ssl_config: "{{ rabbitmq_config_dir }}/rabbitmq.conf"

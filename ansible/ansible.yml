@@ -1,8 +1,0 @@
----
-- hosts: ansible
-  connection: local
-  become_user: root
-  become: yes
-
-  roles:
-    - nomad-binary

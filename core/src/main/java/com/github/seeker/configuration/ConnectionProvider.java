@@ -143,9 +143,9 @@ public class ConnectionProvider {
 	protected String overrideVirtualBoxNatAddress(String originalAddress) {
 		return ConnectionProvider.overrideVirtualBoxNatAddress(originalAddress, this.overrideVirtualBoxAddress);
 	}
-	
+	// TODO Change to 'forceLocalhost'
 	protected static String overrideVirtualBoxNatAddress(String originalAddress, boolean overrideVirtualBoxAddress) {
-		if (overrideVirtualBoxAddress && VIRTUALBOX_NAT_ADDRESS.equals(originalAddress)) {
+		if (overrideVirtualBoxAddress) {
 			LOGGER.debug("Rewrote VirtualBox NAT address {} to {}", originalAddress, LOCALHOST_ADDRESS);
 			return LOCALHOST_ADDRESS;
 		} else {
@@ -170,7 +170,7 @@ public class ConnectionProvider {
 		MorphiumConfig cfg = new MorphiumConfig();
 		LOGGER.info("Conneting to mongodb database {} on {}", database, mongoDBserverAddress);
 		cfg.setDatabase(database);
-		cfg.addHostToSeed(mongoDBserverAddress);
+		cfg.addHostToSeed(mongoDBserverAddress, mongodbService.getService().getPort());
 		//TODO use replica sets at some point, disabled to prevent exception spam
 		cfg.setReplicasetMonitoring(false);
 				

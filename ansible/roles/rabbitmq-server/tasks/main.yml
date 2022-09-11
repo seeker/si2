@@ -1,18 +1,11 @@
 ---
-- name: Install RabbitMQ server and ansible dependencies
-  import_tasks: install-rabbitmq-bintray-repo.yml
-  tags: package
-
 - name: Register RabbitMQ service with consul
   consul:
     service_name: rabbitmq
     service_port: 5672
     tags: message-broker,rabbitmq
-
-- name: Remove RabbitMQ guest user
-  rabbitmq_user:
-    name: guest
-    state: absent
+    service_address: rabbitmq
+    host: "{{ host }}"
 
 - name: Check if RabbitMQ admin credentails exist in Vault
   uri:
@@ -30,9 +23,6 @@
 
 - name: Generate RabbitMQ admin credentials
   block:
-  - set_fact:
-      rabbitmq_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
-
   - name: Store RabbitMQ admin credentials
     uri:
       url: "{{ vault_api_url }}/kv/rabbitmq/admin"
@@ -42,8 +32,8 @@
       headers:
         X-Vault-Token: "{{ vault_token }}"
       body:
-        username: admin
-        password: "{{ rabbitmq_password }}"
+        username: guest
+        password: guest
     register: create_rabbitmq_creds
 
   when: password_response.status == 404
@@ -62,54 +52,44 @@
   register: password_response
   check_mode: no
 
-- name: Create RabbitMQ admin user
-  rabbitmq_user:
-    user: "{{ password_response.json.data.username }}"
-    password: "{{ password_response.json.data.password }}"
-    vhost: /
-    configure_priv: .*
-    read_priv: .*
-    write_priv: .*
-    tags: administrator
-    state: present
-
-- name: Enable rabbitmq management and shovel plugin
-  rabbitmq_plugin:
-    names: rabbitmq_management,rabbitmq_shovel,rabbitmq_shovel_management
-    state: enabled
-    new_only: true
-
 - name: Set queue name for file digest queue
   consul_kv:
     key: config/rabbitmq/queue/file-digest
     value: "file-digest"
+    host: "{{ host }}"
 
 - name: Set queue name for file resize queue
   consul_kv:
     key: config/rabbitmq/queue/file-resize
     value: "file-resize"
+    host: "{{ host }}"
 
 - name: Set queue name for thumbnails
   consul_kv:
     key: config/rabbitmq/queue/thumbnail
     value: "thumbnails"
+    host: "{{ host }}"
 
 - name: Set queue name for hash
   consul_kv:
     key: config/rabbitmq/queue/hash
     value: "hashes"
+    host: "{{ host }}"
 
 - name: Set queue name for thumbnail requests
   consul_kv:
     key: config/rabbitmq/queue/thumbnail-request
     value: "thumbnail-request"
+    host: "{{ host }}"
 
 - name: Set queue name for pre processed files
   consul_kv:
     key: config/rabbitmq/queue/file-pre-processed
     value: "file-pre-processed"
+    host: "{{ host }}"
 
 - name: Set vhost for SI2 on RabbitMQ
   consul_kv:
     key: config/rabbitmq/vhost
     value: "{{ rabbitmq_vhost }}"
+    host: "{{ host }}"

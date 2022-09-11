@@ -4,32 +4,38 @@
 
     key: config/general/required-hashes
     value: "SHA-256,SHA-512"
+    host: "{{ host }}"
 
 - name: Set value for load rate limit
   consul_kv:
 
     key: config/fileloader/load-rate-limit
     value: "50"
+    host: "{{ host }}"
 
 - name: Set value for thumbnail size
   consul_kv:
 
     key: config/general/thumbnail-size
     value: "300"
+    host: "{{ host }}"
 
 - name: Set value for integration database name
   consul_kv:
 
     key: config/mongodb/database/integration
     value: "mongodbintegration"
+    host: "{{ host }}"
 
 - name: Set value for production database name
   consul_kv:
 
     key: config/mongodb/database/si2
     value: "si2"
+    host: "{{ host }}"
 
 - name: Set vhost for SI2 on RabbitMQ
   consul_kv:
     key: config/rabbitmq/vhost
     value: "{{ rabbitmq_vhost }}"
+    host: "{{ host }}"

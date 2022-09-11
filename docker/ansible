@@ -1,0 +1,5 @@
+FROM python:3
+RUN pip install --no-cache-dir ansible python-consul
+WORKDIR /ansible/
+VOLUME /var/ansible/
+CMD ["ansible-playbook", "docker.yml"]

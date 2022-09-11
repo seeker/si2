@@ -1,5 +1,0 @@
----
-temp_vault : "{{ vault_setup_directory.path }}/vault.zip"
-vault_binary: /usr/local/bin/vault
-vault_version: "1.2.3"
-force: false

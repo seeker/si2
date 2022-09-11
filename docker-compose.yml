@@ -1,0 +1,52 @@
+---
+version: "3.9"
+services:
+  consul:
+    image: "consul"
+    ports:
+      - "127.0.0.1:8500:8500"
+    command: ["consul", "agent", "-server", "-ui", "-client=0.0.0.0", "-bootstrap-expect=1", "-data-dir=/consul/data/"]
+    environment:
+      CONSUL_LOCAL_CONFIG: '{"skip_leave_on_interrupt": true}'
+
+  vault:
+    build:
+      context: ./docker/
+      dockerfile: vault
+    ports:
+      - "127.0.0.1:8200:8200"
+    environment:
+      VAULT_ADDR: "http://127.0.0.1:8200/"
+    cap_add:
+      - IPC_LOCK
+    depends_on:
+      - consul
+
+  rabbitmq:
+    build:
+      context: ./docker/
+      dockerfile: rabbitmq
+    ports:
+      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:15671:15671"
+      - "127.0.0.1:5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_VHOST: si2
+
+  mongodb:
+    image: "mongo"
+    ports:
+      - "127.0.0.1:26017:27017"
+
+  ansible:
+      build:
+        context: ./docker/
+        dockerfile: ansible
+      volumes:
+        - ./ansible:/ansible/:ro
+        - ./vault-tmp:/var/ansible/
+      depends_on:
+        - consul
+        - vault
+        - mongodb
+        - rabbitmq

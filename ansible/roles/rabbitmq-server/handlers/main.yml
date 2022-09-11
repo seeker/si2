@@ -1,5 +1,0 @@
----
-- name: Restart RabbitMQ server
-  systemd:
-    name: rabbitmq-server
-    state: restarted
