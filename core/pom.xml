@@ -244,5 +244,9 @@
 			<groupId>com.bettercloud</groupId>
 			<artifactId>vault-java-driver</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+		</dependency>
 	</dependencies>
 </project>
