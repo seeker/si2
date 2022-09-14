@@ -29,7 +29,7 @@ public class ConsulClient {
 	
 	public ConsulClient(ConsulConfiguration consulConfig) {
 		this.datacenter = consulConfig.datacenter();
-		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(consulConfig.ip(), consulConfig.port())).build();
+		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(consulConfig.ip(), consulConfig.port())).withReadTimeoutMillis(20000).build();
 	}
 	
 	public ServiceHealth getFirstHealtyInstance(ConfiguredService service) {
