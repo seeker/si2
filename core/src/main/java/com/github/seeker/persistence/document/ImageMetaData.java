@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -65,12 +66,28 @@ public class ImageMetaData {
 	private List<String> tags;
 	
 	/**
+	 * Unique identifier for an image, used for scaled images and thumbnails
+	 */
+	// FIXME make index unique
+	@Index
+	private UUID imageId;
+	
+	/**
 	 * Create a new {@link ImageMetaData} with no hashes and an empty anchor and path.		
 	 */
 	public ImageMetaData() {
 		this.hashes = new HashMap<String, Hash>();
 		this.anchor = StringUtils.EMPTY;
 		this.path = StringUtils.EMPTY;
+		this.imageId = UUID.randomUUID();
+	}
+
+	public UUID getImageId() {
+		return imageId;
+	}
+
+	public void setImageId(UUID imageId) {
+		this.imageId = imageId;
 	}
 
 	public Map<String, Hash> getHashes() {

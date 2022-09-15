@@ -3,7 +3,7 @@ package com.github.seeker.persistence.document;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
 import static org.hamcrest.text.IsEmptyString.emptyString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import java.util.UUID;
 
@@ -50,6 +50,7 @@ public class ImageMetaDataTest {
 	
 	@Test
 	public void verifyEqualsAndHash() throws Exception {
-		EqualsVerifier.forClass(ImageMetaData.class).allFieldsShouldBeUsedExcept("id", "creationTime", "fileSize", "hashes", "thumbnail", "tags").suppress(Warning.NONFINAL_FIELDS).verify();
+		EqualsVerifier.forClass(ImageMetaData.class).allFieldsShouldBeUsedExcept("id", "creationTime", "fileSize", "hashes", "thumbnail", "tags", "imageId")
+				.suppress(Warning.NONFINAL_FIELDS).verify();
 	}
 }

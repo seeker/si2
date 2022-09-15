@@ -23,6 +23,7 @@ import com.github.seeker.app.FileLoader.Command;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.FileLoaderConfiguration;
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
@@ -39,6 +40,8 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
+import io.minio.MinioClient;
+
 /**
  * Loads files from the file system and sends them to the message broker with additional meta data.
  */
@@ -47,6 +50,7 @@ public class FileLoader {
 	
 	private final Channel channel;
 	private final MongoDbMapper mapper;
+	private final MinioClient minio;
 	private final List<String> requriedHashes;
 	private final QueueConfiguration queueConfig;
 	private final RateLimiter fileLoadRateLimiter;
@@ -99,6 +103,7 @@ public class FileLoader {
 		rateLimitCache.start();
 		
 		mapper = connectionProvider.getMongoDbMapper();
+		minio = connectionProvider.getMinioClient();
 		
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
 		
@@ -156,8 +161,8 @@ public class FileLoader {
 	
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath, Path anchorRootPath, boolean generateThumbnails) {
 		LOGGER.info("Walking {} for anchor {}", anchorRootPath, anchor);
-
-		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor, anchorRootPath, mapper, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
+		
+		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor, anchorRootPath, mapper, minio, MinioConfiguration.IMAGE_BUCKET, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
 		fileToQueueVistor.setGenerateThumbnails(generateThumbnails);
 		
 		try {

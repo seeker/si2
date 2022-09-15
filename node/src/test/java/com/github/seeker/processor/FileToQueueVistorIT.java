@@ -4,17 +4,21 @@
  */
 package com.github.seeker.processor;
 
+import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +39,8 @@ import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.collect.ImmutableList;
-import com.google.common.jimfs.Jimfs;
 import com.google.common.util.concurrent.RateLimiter;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -44,12 +48,28 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import de.caluga.morphium.Morphium;
-
-import com.rabbitmq.client.AMQP.BasicProperties;
+import io.minio.BucketExistsArgs;
+import io.minio.ListObjectsArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.RemoveBucketArgs;
+import io.minio.RemoveObjectsArgs;
+import io.minio.Result;
+import io.minio.StatObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
+import io.minio.messages.DeleteError;
+import io.minio.messages.DeleteObject;
+import io.minio.messages.Item;
 
 public class FileToQueueVistorIT {
 	private static final Duration timeout = Duration.FIVE_SECONDS;
 	private static final String ANCHOR = "walk";
+	private static final String TEST_BUCKET_NAME = "integration-" + FileToQueueVistorIT.class.getSimpleName().toLowerCase();
 
 	private static final String APPLE_FILENAME = "apple.jpg";
 	private static final String ORANGE_FILENAME = "orange.png";
@@ -63,11 +83,11 @@ public class FileToQueueVistorIT {
 	private static final List<String> requiredHashes = ImmutableList.of("sha256", "sha512");
 
 	private static MongoDbMapper mapper;
+	private static MinioClient minio;
 	private static ConnectionFactory rabbitConnFactory;
 	private static Morphium morphium;
 
 	private FileToQueueVistor cut;
-	private FileSystem inMemoryFS;
 	private Connection rabbitConn;
 
 	private Path fileWalkRoot;
@@ -81,13 +101,19 @@ public class FileToQueueVistorIT {
 		ConnectionProvider connProv = new ConnectionProvider(config.getConsulConfiguration(), config.getVaultCredentials(), true);
 
 		mapper = connProv.getIntegrationMongoDbMapper();
+		minio = connProv.getMinioClient();
 		rabbitConnFactory = connProv.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		morphium = connProv.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
+
+		if (!minio.bucketExists(BucketExistsArgs.builder().bucket(TEST_BUCKET_NAME).build())) {
+			minio.makeBucket(MakeBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
+		}
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		morphium.close();
+		minio.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
 	@Before
@@ -112,25 +138,50 @@ public class FileToQueueVistorIT {
 			}
 		});
 
-		inMemoryFS = Jimfs.newFileSystem();
+		fileWalkRoot = Files.createTempDirectory("si2-"+ this.getClass().getCanonicalName());
 		setUpTestFileSystem();
 
 		RateLimiter rateLimiter = RateLimiter.create(50);
 
-		cut = new FileToQueueVistor(rabbitConn.createChannel(), rateLimiter, ANCHOR, fileWalkRoot, mapper, requiredHashes,
+
+
+		cut = new FileToQueueVistor(rabbitConn.createChannel(), rateLimiter, ANCHOR, fileWalkRoot, mapper, minio, TEST_BUCKET_NAME, requiredHashes,
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		rabbitConn.close();
-		inMemoryFS.close();
 		morphium.dropCollection(ImageMetaData.class);
+		clearMinioBucket();
+	}
+	
+	private void clearMinioBucket() throws Exception {
+		Iterable<Result<Item>> objects = minio.listObjects(ListObjectsArgs.builder().bucket(TEST_BUCKET_NAME).build());
+		List<DeleteObject> toDelete = new LinkedList<>();
+		
+		objects.forEach(t -> {try {
+			toDelete.add(new DeleteObject(t.get().objectName()));
+		} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
+				| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}});
+		
+		Iterable<Result<DeleteError>> results = minio.removeObjects(RemoveObjectsArgs.builder().bucket(TEST_BUCKET_NAME).objects(toDelete).build());
+		
+		results.forEach(t -> {
+			try {
+				System.out.println(t.get().message());
+			} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
+					| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		});
 	}
 
 	private void setUpTestFileSystem() throws IOException {
-		fileWalkRoot = inMemoryFS.getPath("images");
-
 		Files.createDirectories(fileWalkRoot);
 
 		Files.write(fileWalkRoot.resolve(APPLE_FILENAME), APPLE_DATA);
@@ -232,5 +283,27 @@ public class FileToQueueVistorIT {
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
 		assertThat(Boolean.parseBoolean(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.THUMBNAIL_FOUND).toString()), is(true));
+	}
+
+	@Test
+	public void imageMetadataCreated() throws Exception {
+		cut.setGenerateThumbnails(false);
+		Files.walkFileTree(fileWalkRoot, cut);
+
+		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
+	}
+
+	@Test
+	public void imageUploadedToBucket() throws Exception {
+		cut.setGenerateThumbnails(false);
+		Files.walkFileTree(fileWalkRoot, cut);
+		
+		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
+		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
+
+		StatObjectArgs args = StatObjectArgs.builder().bucket(TEST_BUCKET_NAME).object(meta.getImageId().toString()).build();
+		Awaitility.await().atMost(timeout).untilCall(to(minio).statObject(args), is(notNullValue()));
+
+		assertThat(minio.statObject(args).size(), is(11L));
 	}
 }

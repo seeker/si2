@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -26,6 +29,15 @@ import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.util.concurrent.RateLimiter;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+
+import io.minio.MinioClient;
+import io.minio.UploadObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 
 /**
  * Visits and loads files into the queue.
@@ -38,19 +50,23 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final ImageFileFilter fileFilter = new ImageFileFilter();
 	private final Channel channel;
 	private final MongoDbMapper mapper;
+	private final MinioClient minio;
 	private final List<String> requiredHashes;
 	private final List<String> requiredCustomHashes;
 	private final String fileLoadExchange;
 	private final String anchor;
+	private final String imageBucket;
 	private final Path anchorRootPath;
 	private final RateLimiter fileLoadRateLimiter;
 	private boolean terminate = false;
 	private boolean generateThumbnails = true;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorRootPath, MongoDbMapper mapper, List<String> requiredHashes, String fileLoadExchange) {
+	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorRootPath, MongoDbMapper mapper, MinioClient minio, String imageBucket, List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
+		this.minio = minio;
 		this.anchor = anchor;
+		this.imageBucket = imageBucket;
 		this.anchorRootPath = anchorRootPath;
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;
@@ -139,6 +155,13 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		if(missingHashes.isEmpty() && missingCustomHashes.isEmpty() && meta.hasThumbnail()) {
 			LOGGER.debug("Nothing to do for {}:{}, skipping message", anchor, relativeToAnchor);
 			return;
+		}
+		
+		try {
+			minio.uploadObject(UploadObjectArgs.builder().bucket(this.imageBucket).object(meta.getImageId().toString()).filename(file.toString()).build());
+		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
+				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
+			LOGGER.error("Failed to upload image {} to bucket {} due to error {}", file, MinioConfiguration.IMAGE_BUCKET, e.getMessage());
 		}
 		
 		byte[] rawImageData = Files.readAllBytes(file); 
