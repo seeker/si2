@@ -86,3 +86,7 @@
           path "rabbitmq/creds/*" {
             capabilities = ["read"]
           }
+
+          path "kv/minio/admin" {
+            capabilities = ["read"]
+          }

@@ -181,13 +181,22 @@ public class ConnectionProvider {
 		Morphium morphium = getMorphiumClient(databaseNameConsulKey);
 		return new MongoDbMapper(morphium);
 	}
-	
-	// FIXME use configuration to make this usable in production
-	public MinioClient getMinioClient() {
+
+	public MinioClient getMinioClient() throws VaultException {
 		Service minioSerivce = consul.getFirstHealtyInstance(ConfiguredService.minio).getService();
+		// FIXME generate minio creds for service, should not use admin account
+		LogicalResponse response = this.vault.logical().read("kv/minio/admin");
+		
+		if (response.getRestResponse().getStatus() != 200) {
+			LOGGER.error("Failed to get minio credentials due to unexpected error code {} with message {}", response.getRestResponse().getStatus(),
+					new String(response.getRestResponse().getBody()));
+		}
+
+		String username = response.getData().get("username");
+		String password = response.getData().get("password");
 
 		return MinioClient.builder().endpoint("http://" + overrideVirtualBoxNatAddress(minioSerivce.getAddress()) + ":" + minioSerivce.getPort())
-				.credentials("minioadmin", "minioadmin")
+				.credentials(username, password)
 				.build();
 	}
 }

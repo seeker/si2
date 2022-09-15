@@ -100,3 +100,33 @@
     body:
       secret_id: integration
   when: integration_lookup.status == 204
+
+- name: Check if Minio admin credentails exist in Vault
+  uri:
+    url: "{{ vault_api_url }}/kv/minio/admin"
+    method: GET
+    body_format: json
+    status_code:
+    - 200
+    - 404
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+
+  register: password_response
+  check_mode: no
+
+- name: Generate Minio admin credentials
+  block:
+  - name: Store Minio admin credentials
+    uri:
+      url: "{{ vault_api_url }}/kv/minio/admin"
+      method: POST
+      body_format: json
+      status_code: 204
+      headers:
+        X-Vault-Token: "{{ vault_token }}"
+      body:
+        username: minioadmin
+        password: minioadmin
+
+  when: password_response.status == 404
