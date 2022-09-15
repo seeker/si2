@@ -7,3 +7,11 @@
     tags: database,mongodb
     service_address: mongodb
     host: "{{ host }}"
+
+- name: Register minio service with consul
+  consul:
+    service_name: minio
+    service_port: 9000
+    tags: object-store,minio
+    service_address: minio
+    host: "{{ host }}"
