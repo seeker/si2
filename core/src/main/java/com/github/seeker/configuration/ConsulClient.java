@@ -25,7 +25,9 @@ public class ConsulClient {
 	/**
 	 * Services available for this project
 	 */
-	public enum ConfiguredService {rabbitmq, mongodb, vault}
+	public enum ConfiguredService {
+		rabbitmq, mongodb, vault, minio
+	}
 	
 	public ConsulClient(ConsulConfiguration consulConfig) {
 		this.datacenter = consulConfig.datacenter();

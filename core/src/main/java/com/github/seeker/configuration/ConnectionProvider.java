@@ -24,6 +24,7 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.MorphiumConfig;
+import io.minio.MinioClient;
 
 /**
  * Provides configured connections for used services. 
@@ -37,7 +38,6 @@ public class ConnectionProvider {
 	private final boolean overrideVirtualBoxAddress;
 	private final ScheduledExecutorService renewPool;
 	
-	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";
 	private static final String LOCALHOST_ADDRESS = "127.0.0.1";
 	private static final String PRODUCTION_DB_CONSUL_KEY = "config/mongodb/database/si2";
 	public static final String INTEGRATION_DB_CONSUL_KEY = "config/mongodb/database/integration";
@@ -180,5 +180,14 @@ public class ConnectionProvider {
 	public MongoDbMapper getMongoDbMapper(String databaseNameConsulKey) {
 		Morphium morphium = getMorphiumClient(databaseNameConsulKey);
 		return new MongoDbMapper(morphium);
+	}
+	
+	// FIXME use configuration to make this usable in production
+	public MinioClient getMinioClient() {
+		Service minioSerivce = consul.getFirstHealtyInstance(ConfiguredService.minio).getService();
+
+		return MinioClient.builder().endpoint("http://" + overrideVirtualBoxNatAddress(minioSerivce.getAddress()) + ":" + minioSerivce.getPort())
+				.credentials("minioadmin", "minioadmin")
+				.build();
 	}
 }
