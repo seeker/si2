@@ -36,6 +36,7 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.collect.ImmutableList;
@@ -222,12 +223,13 @@ public class FileToQueueVistorIT {
 	}
 
 	@Test
-	public void imageDataSentInMessage() throws Exception {
+	public void imageUUIDSentInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageData::size, is(3));
 
-		assertThat(messageData.get(APPLE_FILENAME), is(APPLE_DATA));
+		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
+		assertThat(UUIDUtils.ByteToUUID(messageData.get(APPLE_FILENAME)), is(meta.getImageId()));
 	}
 
 	@Test

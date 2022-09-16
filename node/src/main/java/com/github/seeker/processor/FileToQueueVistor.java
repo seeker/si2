@@ -6,7 +6,6 @@ package com.github.seeker.processor;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -23,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -164,8 +164,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 			LOGGER.error("Failed to upload image {} to bucket {} due to error {}", file, MinioConfiguration.IMAGE_BUCKET, e.getMessage());
 		}
 		
-		byte[] rawImageData = Files.readAllBytes(file); 
-		
 		Map<String, Object> headers = new HashMap<String, Object>();
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
 		headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
@@ -176,7 +174,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		
 		fileLoadRateLimiter.acquire();
 		
-		channel.basicPublish(fileLoadExchange, "", props, rawImageData);
+		channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
 	}
 
 	/**

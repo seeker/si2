@@ -1,9 +1,11 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 
@@ -13,17 +15,28 @@ import org.slf4j.LoggerFactory;
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 
 /**
  * Fetches images from the queue and generates hashes based on the requested Algorithms using {@link MessageDigest}.
@@ -33,12 +46,14 @@ public class MessageDigestHasher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHasher.class);
 
 	private final Connection rabbitMqConnection;
+	private final MinioClient minio;
 	private final QueueConfiguration queueConfig;
 	
-	public MessageDigestHasher(Connection rabbitMqConnection, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+	public MessageDigestHasher(Connection rabbitMqConnection, ConsulClient consul, MinioClient minio, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
 		
 		this.rabbitMqConnection = rabbitMqConnection;
+		this.minio = minio;
 		this.queueConfig = queueConfig;
 		
 		processFiles();
@@ -48,6 +63,7 @@ public class MessageDigestHasher {
 		this(
 				connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection(),
 				connectionProvider.getConsulClient(),
+				connectionProvider.getMinioClient(),
 				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel())
 		);
 	}
@@ -74,7 +90,7 @@ public class MessageDigestHasher {
 	
 	private void createMessageConsumer(String queueName) throws IOException {
 		Channel channel = createChannel();
-		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, queueConfig));
+		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, minio, queueConfig));
 	}
 
 	private Channel createChannel() throws IOException {
@@ -90,11 +106,12 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 
 	private final HashMessageBuilder hashMessageBuilder;
 	private final HashMessageHelper hashMessageHelper;
+	private final MinioClient minio;
 	
-	public MessageDigestHashConsumer(Channel channel, QueueConfiguration queueConfig) {
+	public MessageDigestHashConsumer(Channel channel, MinioClient minio, QueueConfiguration queueConfig) {
 		super(channel);
+		this.minio = minio;
 		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
-		
 		this.hashMessageHelper = new HashMessageHelper();
 	}
 
@@ -115,6 +132,15 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		}
 		
 		LOGGER.debug("File {}:{} hash request for algorithms: {}", anchor, relativePath, hashes);
+		
+		UUID imagId = UUIDUtils.ByteToUUID(body);
+		try {
+			minio.getObject(GetObjectArgs.builder().bucket(MinioConfiguration.IMAGE_BUCKET).object(imagId.toString()).build());
+		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
+				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		for (String hash : hashes) {
 			try {
