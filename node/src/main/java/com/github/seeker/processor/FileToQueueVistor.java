@@ -26,7 +26,6 @@ import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.google.common.util.concurrent.RateLimiter;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 
@@ -57,11 +56,11 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 	private final String anchor;
 	private final String imageBucket;
 	private final Path anchorRootPath;
-	private final RateLimiter fileLoadRateLimiter;
 	private boolean terminate = false;
 	private boolean generateThumbnails = true;
 	
-	public FileToQueueVistor(Channel channel, RateLimiter fileLoadRateLimiter, String anchor, Path anchorRootPath, MongoDbMapper mapper, MinioClient minio, String imageBucket, List<String> requiredHashes, String fileLoadExchange) {
+	public FileToQueueVistor(Channel channel, String anchor, Path anchorRootPath, MongoDbMapper mapper, MinioClient minio, String imageBucket,
+			List<String> requiredHashes, String fileLoadExchange) {
 		this.channel = channel;
 		this.mapper = mapper;
 		this.minio = minio;
@@ -70,7 +69,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		this.anchorRootPath = anchorRootPath;
 		this.requiredHashes = requiredHashes;
 		this.fileLoadExchange = fileLoadExchange;
-		this.fileLoadRateLimiter = fileLoadRateLimiter;
 		
 		//TODO get required custom hashes from Consul
 		requiredCustomHashes = new ArrayList<String>();
@@ -171,8 +169,6 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
 		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(Boolean.logicalOr(!generateThumbnails, meta.hasThumbnail())));
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
-		fileLoadRateLimiter.acquire();
 		
 		channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
 	}

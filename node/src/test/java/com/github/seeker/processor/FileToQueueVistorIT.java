@@ -130,7 +130,7 @@ public class FileToQueueVistorIT {
 
 
 
-		cut = new FileToQueueVistor(rabbitConn.createChannel(), rateLimiter, ANCHOR, fileWalkRoot, mapper, minio, TEST_BUCKET_NAME, requiredHashes,
+		cut = new FileToQueueVistor(rabbitConn.createChannel(), ANCHOR, fileWalkRoot, mapper, minio, TEST_BUCKET_NAME, requiredHashes,
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 	}
 

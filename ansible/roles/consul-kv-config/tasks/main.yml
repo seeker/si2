@@ -6,13 +6,6 @@
     value: "SHA-256,SHA-512"
     host: "{{ host }}"
 
-- name: Set value for load rate limit
-  consul_kv:
-
-    key: config/fileloader/load-rate-limit
-    value: "50"
-    host: "{{ host }}"
-
 - name: Set value for thumbnail size
   consul_kv:
 

@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -31,9 +29,6 @@ import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.FileLoaderJob;
 import com.github.seeker.processor.FileToQueueVistor;
-import com.google.common.util.concurrent.RateLimiter;
-import com.orbitz.consul.cache.KVCache;
-import com.orbitz.consul.model.kv.Value;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -53,8 +48,6 @@ public class FileLoader {
 	private final MinioClient minio;
 	private final List<String> requriedHashes;
 	private final QueueConfiguration queueConfig;
-	private final RateLimiter fileLoadRateLimiter;
-	private final KVCache rateLimitCache;
 	
 	private FileToQueueVistor fileToQueueVistor;
 	private final AtomicBoolean walking;
@@ -81,26 +74,6 @@ public class FileLoader {
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.file_loader).newConnection();
 		channel = conn.createChannel();
 		queueConfig = new QueueConfiguration(channel);
-		
-		long rateLimit = consul.getKvAsLong("config/fileloader/load-rate-limit");
-		fileLoadRateLimiter = RateLimiter.create(rateLimit, 5, TimeUnit.SECONDS);
-		LOGGER.info("Rate limiting messages to {}/s", rateLimit);
-		
-		rateLimitCache = consul.getKVCache("config/fileloader/load-rate-limit");
-		rateLimitCache.addListener(newValues -> {
-				Optional<Value> newValue = newValues.values().stream().filter(value -> value.getKey().equals("config/fileloader/load-rate-limit")).findAny();
-				
-				newValue.ifPresent(value -> {
-					Optional<String> decodedLoadRateLimit = newValue.get().getValueAsString();
-					decodedLoadRateLimit.ifPresent(rate -> {
-						fileLoadRateLimiter.setRate(Double.parseDouble(rate));
-						LOGGER.info("Ratelimit updated to {}", rate);
-					});
-					
-				});
-		});
-		
-		rateLimitCache.start();
 		
 		mapper = connectionProvider.getMongoDbMapper();
 		minio = connectionProvider.getMinioClient();
@@ -164,7 +137,8 @@ public class FileLoader {
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath, Path anchorRootPath, boolean generateThumbnails) {
 		LOGGER.info("Walking {} for anchor {}", anchorRootPath, anchor);
 		
-		fileToQueueVistor = new FileToQueueVistor(channel, fileLoadRateLimiter,anchor, anchorRootPath, mapper, minio, MinioConfiguration.IMAGE_BUCKET, requriedHashes, queueConfig.getExchangeName(ConfiguredExchanges.loader));
+		fileToQueueVistor = new FileToQueueVistor(channel, anchor, anchorRootPath, mapper, minio, MinioConfiguration.IMAGE_BUCKET, requriedHashes,
+				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 		fileToQueueVistor.setGenerateThumbnails(generateThumbnails);
 		
 		try {
