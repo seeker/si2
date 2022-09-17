@@ -28,8 +28,8 @@ import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
 import com.github.seeker.processor.ThumbnailPruneVisitor;
 import com.google.common.io.ByteStreams;
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
@@ -193,16 +193,13 @@ class ThumbnailStore extends DefaultConsumer {
 			thumbnail = meta.getThumbnail();
 			thumbnail.setMaxImageSize(imageSize);
 		} else {
-			thumbnail = new Thumbnail(imageSize, UUID.randomUUID());
+			thumbnail = new Thumbnail(imageSize, meta.getImageId());
 			meta.setThumbnailId(thumbnail);
 		}
 		
-		Path thumbnailDirectory = generateDirectories(thumbnail.getImageId());
-		storeThumbnail(thumbnailDirectory, thumbnail.getImageId(), body);
-
+		LOGGER.info("Updated thumbnail information for {} - {} with imageId {}", anchor, relativeAnchorPath, meta.getImageId());
 		mapper.storeDocument(meta);
-		LOGGER.info("Stored thumbnail for {} - {} in {}", anchor, relativeAnchorPath, thumbnailDirectory.resolve(thumbnail.getImageId().toString()));
-		
+
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
 	
