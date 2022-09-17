@@ -1,26 +1,18 @@
 package com.github.seeker.app;
 
-import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorConvertOp;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 
-import org.imgscalr.Scalr;
-import org.imgscalr.Scalr.Method;
-import org.imgscalr.Scalr.Mode;
 import org.jtransforms.dct.DoubleDCT_2D;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +22,13 @@ import com.github.dozedoff.commonj.util.ImageUtil;
 import com.github.seeker.commonhash.helper.TransformHelper;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
+import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageBuilder;
-import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.rabbitmq.client.AMQP;
@@ -45,6 +38,16 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
+import io.minio.MinioClient;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
+
 /**
  * Fetches images from the queue and generates hashes and the thumbnail.
  * The results are sent as a new message.
@@ -53,13 +56,16 @@ public class CustomHashProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CustomHashProcessor.class);
 
 	private final Channel channel;
+	private final MinioClient minio;
 	private final QueueConfiguration queueConfig;
 	
-	public CustomHashProcessor(Channel channel, ConsulClient consul, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+	public CustomHashProcessor(Channel channel, ConsulClient consul, MinioClient minio, QueueConfiguration queueConfig)
+			throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
 		this.channel = channel;
 		this.queueConfig = queueConfig;
+		this.minio = minio;
 		
 		channel.basicQos(20);
 		
@@ -70,6 +76,7 @@ public class CustomHashProcessor {
 		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
 		ConsulClient consul = connectionProvider.getConsulClient();
+		minio = connectionProvider.getMinioClient();
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.hash_processor).newConnection();
 		channel = conn.createChannel();
 		
@@ -83,7 +90,7 @@ public class CustomHashProcessor {
 	public void processFiles() throws IOException, InterruptedException {
 		String queueName =  queueConfig.getQueueName(ConfiguredQueues.filePreProcessed);
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		channel.basicConsume(queueName, new CustomFileMessageConsumer(channel, queueConfig));
+		channel.basicConsume(queueName, new CustomFileMessageConsumer(channel, queueConfig, minio));
 	}
 }
 
@@ -97,13 +104,15 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 	
 	private final QueueConfiguration queueConfig;
 	private final HashMessageBuilder hashMessageBuilder;
+	private final MinioClient minio;
 	
-	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig) {
+	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig, MinioClient minio) {
 		super(channel);
 		
 		this.queueConfig = queueConfig;
 		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
-		
+		this.minio = minio;
+
 		this.jtransformDCT = new DoubleDCT_2D(IMAGE_SIZE, IMAGE_SIZE); 
 		
 		ImageIO.setUseCache(false);
@@ -129,44 +138,52 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 			return;
 		}
 		
-		InputStream is =  new ByteArrayInputStream(body);
+		UUID imageId = UUIDUtils.ByteToUUID(body);
+		
+		try (GetObjectResponse response = minio
+				.getObject(GetObjectArgs.builder().bucket(MinioConfiguration.PREPROCESSED_IMAGES_BUCKET).object(imageId.toString()).build())) {
 		
 		BufferedImage preProcessedImage;
 		
 		try {
-			preProcessedImage = ImageIO.read(is);
-		}catch (IIOException e) {
-			LOGGER.warn("Failed to read image {}:{}: {}", anchor, relativePath,e.getMessage());
+			preProcessedImage = ImageIO.read(response);
+		} catch (IIOException e) {
+			LOGGER.warn("Failed to read image {}:{}: {}", anchor, relativePath, e.getMessage());
 			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 			return;
 		}
-		
+
 		if (preProcessedImage == null) {
-			//TODO send an error message
+			// TODO send an error message
 			LOGGER.warn("Was unable to read image data for {}:{} ", anchor, relativePath);
 			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 			return;
 		}
-		
+
 		long pHash = calculatePhash(preProcessedImage);
 		preProcessedImage.flush();
-		
+
 		Map<String, Object> hashHeaders = new HashMap<String, Object>();
 		hashHeaders.put(MessageHeaderKeys.ANCHOR, header.get(MessageHeaderKeys.ANCHOR));
 		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
 		hashHeaders.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, header.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS));
-		
+
 		ByteArrayDataOutput messageBody = ByteStreams.newDataOutput();
 		messageBody.writeLong(pHash);
-		
-		//TODO include custom hashes in HashMessageBuilder
+
+		// TODO include custom hashes in HashMessageBuilder
 		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
 		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());
-		
-		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"),	header.get("missing-hash"));
-		
+
+		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"), header.get("missing-hash"));
+
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
+	} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException | NoSuchAlgorithmException
+			| ServerException | XmlParserException | IllegalArgumentException e1) {
+		getChannel().basicNack(envelope.getDeliveryTag(), false, false);
+		throw new IOException("Failed to load preprocessed image:", e1);
 	}
+}
 	
 	private boolean hasCustomHashes(String[] customHashes) {
 		return ! (customHashes.length == 0 || customHashes[0].isEmpty());
