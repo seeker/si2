@@ -80,4 +80,31 @@ public class MinioTestHelper {
 		});
 	}
 
+	/**
+	 * Create a bucket name for integration, consists of the si2-integration- prefix
+	 * and class name.
+	 * 
+	 * @param clazz Class of the Test, used as part of the bucket name
+	 * @return a bucket name for the test
+	 */
+	public static String integrationBucketName(Class<?> clazz) {
+		return integrationBucketName(clazz, "");
+	}
+
+	/**
+	 * Create a bucket name for integration, consists of the si2-integration- prefix
+	 * and class name and suffix separated by a dash. If the suffix is blank, no
+	 * dash is appended.
+	 * 
+	 * @param clazz Class of the Test, used as part of the bucket name
+	 * @suffix Suffix to append to the bucket name
+	 * @return a bucket name for the test
+	 */
+	public static String integrationBucketName(Class<?> clazz, String suffix) {
+		if (suffix.isBlank()) {
+			return "si2-integration-" + clazz.getSimpleName().toLowerCase();
+		} else {
+			return "si2-integration-" + clazz.getSimpleName().toLowerCase() + "-" + suffix;
+		}
+	}
 }
