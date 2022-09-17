@@ -15,10 +15,7 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +32,7 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
+import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -49,23 +47,9 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import de.caluga.morphium.Morphium;
-import io.minio.BucketExistsArgs;
-import io.minio.ListObjectsArgs;
-import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
-import io.minio.RemoveObjectsArgs;
-import io.minio.Result;
 import io.minio.StatObjectArgs;
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
-import io.minio.messages.DeleteError;
-import io.minio.messages.DeleteObject;
-import io.minio.messages.Item;
 
 public class FileToQueueVistorIT {
 	private static final Duration timeout = Duration.FIVE_SECONDS;
@@ -87,6 +71,7 @@ public class FileToQueueVistorIT {
 	private static MinioClient minio;
 	private static ConnectionFactory rabbitConnFactory;
 	private static Morphium morphium;
+	private static MinioTestHelper minioTestHelper;
 
 	private FileToQueueVistor cut;
 	private Connection rabbitConn;
@@ -106,9 +91,8 @@ public class FileToQueueVistorIT {
 		rabbitConnFactory = connProv.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		morphium = connProv.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 
-		if (!minio.bucketExists(BucketExistsArgs.builder().bucket(TEST_BUCKET_NAME).build())) {
-			minio.makeBucket(MakeBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
-		}
+		minioTestHelper = new MinioTestHelper(minio);
+		minioTestHelper.createBucket(TEST_BUCKET_NAME);
 	}
 
 	@AfterClass
@@ -154,32 +138,7 @@ public class FileToQueueVistorIT {
 	public void tearDown() throws Exception {
 		rabbitConn.close();
 		morphium.dropCollection(ImageMetaData.class);
-		clearMinioBucket();
-	}
-	
-	private void clearMinioBucket() throws Exception {
-		Iterable<Result<Item>> objects = minio.listObjects(ListObjectsArgs.builder().bucket(TEST_BUCKET_NAME).build());
-		List<DeleteObject> toDelete = new LinkedList<>();
-		
-		objects.forEach(t -> {try {
-			toDelete.add(new DeleteObject(t.get().objectName()));
-		} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
-				| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}});
-		
-		Iterable<Result<DeleteError>> results = minio.removeObjects(RemoveObjectsArgs.builder().bucket(TEST_BUCKET_NAME).objects(toDelete).build());
-		
-		results.forEach(t -> {
-			try {
-				System.out.println(t.get().message());
-			} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
-					| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		});
+		minioTestHelper.clearBucket(TEST_BUCKET_NAME);
 	}
 
 	private void setUpTestFileSystem() throws IOException {
