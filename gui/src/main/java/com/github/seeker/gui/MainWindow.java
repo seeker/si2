@@ -14,14 +14,14 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
-import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
-import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.configuration.RabbitMqRole;
+import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
+import io.minio.MinioClient;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -40,6 +40,7 @@ public class MainWindow extends Application{
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainWindow.class); 
 	
 	private MongoDbMapper mapper;
+	private MinioClient minio;
 	private MetaDataExplorer metaDataExplorer;
 	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
@@ -61,7 +62,9 @@ public class MainWindow extends Application{
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel());
 		
 		mapper = connectionProvider.getMongoDbMapper();
-		metaDataExplorer = new MetaDataExplorer(mapper, rabbitConnection, queueConfig);
+		minio = connectionProvider.getMinioClient();
+
+		metaDataExplorer = new MetaDataExplorer(mapper, minio);
 		fileLoaderJobs = new FileLoaderJobs(mapper);
 	}
 	

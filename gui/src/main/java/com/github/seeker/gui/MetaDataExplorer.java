@@ -1,27 +1,26 @@
 package com.github.seeker.gui;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
-import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
+import io.minio.MinioClient;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -46,18 +45,13 @@ import javafx.util.Callback;
 public class MetaDataExplorer extends Stage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MetaDataExplorer.class);
 	private final MongoDbMapper mapper;
-	private final Channel channel;
-	private final String replyQueue;
-	private final QueueConfiguration queueConfig;
+	private final MinioClient minio;
 	private final ImageView imageView;
 	private final Pagination listPager;
 	
-	public MetaDataExplorer(MongoDbMapper mapper, Connection rabbitConn, QueueConfiguration queueConfig) throws IOException {
+	public MetaDataExplorer(MongoDbMapper mapper, MinioClient minio) throws IOException {
 		this.mapper = mapper;
-		this.queueConfig = queueConfig;
-		
-		this.channel = rabbitConn.createChannel();
-		this.replyQueue = channel.queueDeclare().getQueue();
+		this.minio = minio;
 		
 		ObservableList<ImageMetaData> ol = FXCollections.observableArrayList();
         TableView<ImageMetaData> table = new TableView<ImageMetaData>(ol);
@@ -91,25 +85,6 @@ public class MetaDataExplorer extends Stage {
 		Scene scene = new Scene(border, 640, 480);
 		setTitle("Metadata Exporer");
 		setScene(scene);
-		
-		channel.basicConsume(replyQueue, true, new DefaultConsumer(channel) {
-			@Override
-			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
-					throws IOException {
-				String thumbnailFound = properties.getHeaders().get(MessageHeaderKeys.THUMBNAIL_FOUND).toString();
-				
-				if (!Boolean.parseBoolean(thumbnailFound)) {
-					LOGGER.warn("Thumbnail response message did not contain image");
-					return;
-				}
-				
-				ByteArrayInputStream bais = new ByteArrayInputStream(body);
-				Image image = new Image(bais);
-				imageView.setImage(image);
-				
-				LOGGER.debug("Consumed message with correlation ID {}", properties.getCorrelationId());
-			}
-		});
 	}
 	
 
@@ -203,21 +178,25 @@ public class MetaDataExplorer extends Stage {
 				
 				LOGGER.debug("Selected {}:{}", newValue.getAnchor(), newValue.getPath());
 				
-				final String correlationId = UUID.randomUUID().toString();
-				
-				AMQP.BasicProperties props = new AMQP.BasicProperties().builder().correlationId(correlationId).replyTo(replyQueue).build();
-				
-				UUID thumbnailID = newValue.getThumbnail().getImageId();
-				
-				ByteArrayDataOutput data = ByteStreams.newDataOutput(16);
-				data.writeLong(thumbnailID.getMostSignificantBits());
-				data.writeLong(thumbnailID.getLeastSignificantBits());
-				
-				byte[] raw = data.toByteArray();
-				
 				try {
-					LOGGER.debug("Requesting thumbnail with ID {}", thumbnailID);
-					channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnailRequests), props, raw);
+					LOGGER.debug("Requesting thumbnail for image ID {}", newValue.getImageId());
+					try {
+						GetObjectResponse response = minio.getObject(
+								GetObjectArgs.builder().bucket(MinioConfiguration.THUMBNAIL_BUCKET).object(newValue.getImageId().toString()).build());
+
+						Image image = new Image(response);
+						imageView.setImage(image);
+					} catch (ErrorResponseException ere) {
+						if ("NoSuchKey".equals(ere.getMessage())) {
+							LOGGER.warn("Unable to find thumbnail for {} - {} (imageID {})", newValue.getAnchor(), newValue.getPath(), newValue.getImageId());
+							imageView.setImage(null);
+						} else {
+							LOGGER.warn("Failed to load thumbnail: {}", ere.getMessage());
+						}
+					} catch (InvalidKeyException | InsufficientDataException | InternalException | InvalidResponseException
+							| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException e) {
+						LOGGER.error("Failed to load thumbnail: {}", e.getMessage());
+					}
 				} catch (IOException e) {
 					LOGGER.warn("Failed to send thumbnail request for {}: {}", newValue.getThumbnail(), e);
 					e.printStackTrace();
