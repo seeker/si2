@@ -7,7 +7,6 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -15,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -32,14 +32,15 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.VaultCredentials;
-import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
-import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.configuration.RabbitMqRole;
+import com.github.seeker.configuration.VaultIntegrationCredentials;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
+import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -52,12 +53,17 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import de.caluga.morphium.Morphium;
+import io.minio.MinioClient;
+import io.minio.RemoveBucketArgs;
+import io.minio.UploadObjectArgs;
 
 public class MessageDigestHasherIT {
 
 	private static final String ANCHOR = "testimages";
+	private static final String TEST_BUCKET_NAME = MinioTestHelper.integrationBucketName(MessageDigestHasherIT.class);
 	
 	private static final String IMAGE_AUTUMN = "autumn.jpg";
+	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
 	private static final String IMAGE_ROAD_FAR = "road-far.jpg";
 	
 	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
@@ -71,6 +77,8 @@ public class MessageDigestHasherIT {
 	private MessageDigestHasher cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
+	private static MinioClient minio;
+	private static MinioTestHelper minioHelper;
 	private Channel channelForTest;
 	private QueueConfiguration queueConfig;
 	
@@ -87,10 +95,23 @@ public class MessageDigestHasherIT {
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 		
 		assertThat(connectionProvider, is(notNullValue()));
+
+		minio = connectionProvider.getMinioClient();
+		minioHelper = new MinioTestHelper(minio);
+		minioHelper.createBucket(TEST_BUCKET_NAME);
+		uploadTestImage();
+	}
+
+	private static void uploadTestImage() throws Exception {
+		minio.uploadObject(
+				UploadObjectArgs.builder().bucket(TEST_BUCKET_NAME).object(IMAGE_AUTUMN_UUID.toString())
+						.filename("src\\test\\resources\\images\\" + IMAGE_AUTUMN).build());
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		minioHelper.clearBucket(TEST_BUCKET_NAME);
+		minio.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
 	@Before
@@ -108,7 +129,7 @@ public class MessageDigestHasherIT {
 		
 		queueConfig = new QueueConfiguration(channel, true);
 		
-		cut = new MessageDigestHasher(rabbitConn, consul, queueConfig);
+		cut = new MessageDigestHasher(rabbitConn, consul, minio, queueConfig, TEST_BUCKET_NAME);
 		
 		hashMessages = new LinkedBlockingQueue<Map<String, Hash>>();
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();
@@ -157,8 +178,8 @@ public class MessageDigestHasherIT {
 		return Paths.get(ClassLoader.getSystemResource("images/"+fileName).toURI());
 	}
 	
-	private void sendFileProcessMessage(Path image, boolean hasThumbnail) throws IOException {
-		byte[] rawImageData = Files.readAllBytes(image);
+	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail) throws IOException {
+		byte[] uuidAsBytes = UUIDUtils.UUIDtoByte(imageId);
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
 		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
@@ -167,7 +188,7 @@ public class MessageDigestHasherIT {
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, rawImageData);
+		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, uuidAsBytes);
 	}
 
 	@After
@@ -185,14 +206,14 @@ public class MessageDigestHasherIT {
 	
 	@Test
 	public void hashResponseIsReceived() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
 	}
 	
 	@Test
 	public void sha256IsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		Map<String, Hash> message = hashMessages.take();
 		
 		assertThat(message.get(ALGORITHM_NAME_SHA256).getHash(), is(AUTUMN_SHA256));
@@ -200,7 +221,7 @@ public class MessageDigestHasherIT {
 
 	@Test
 	public void sha512IsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), true);
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		Map<String, Hash> message = hashMessages.take();
 
 		assertThat(message.get(ALGORITHM_NAME_SHA512).getHash(), is(AUTUMN_SHA512));

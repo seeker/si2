@@ -1,0 +1,8 @@
+consul.ip: "127.0.0.1"
+consul.port: 8500
+consul.datacenter: "dc1"
+consul.overrideVirtualBoxAddress: true
+vault.secretId: dbnode
+vault.approleId: dbnode
+loader.anchors:
+  - "temp=/dev/null"

@@ -30,6 +30,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
@@ -48,13 +49,16 @@ public class MessageDigestHasher {
 	private final Connection rabbitMqConnection;
 	private final MinioClient minio;
 	private final QueueConfiguration queueConfig;
+	private final String imageBucket;
 	
-	public MessageDigestHasher(Connection rabbitMqConnection, ConsulClient consul, MinioClient minio, QueueConfiguration queueConfig) throws IOException, TimeoutException, InterruptedException {
+	public MessageDigestHasher(Connection rabbitMqConnection, ConsulClient consul, MinioClient minio, QueueConfiguration queueConfig, String imageBucket)
+			throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", MessageDigestHasher.class.getSimpleName());
 		
 		this.rabbitMqConnection = rabbitMqConnection;
 		this.minio = minio;
 		this.queueConfig = queueConfig;
+		this.imageBucket = imageBucket;
 		
 		processFiles();
 	}
@@ -64,7 +68,8 @@ public class MessageDigestHasher {
 				connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection(),
 				connectionProvider.getConsulClient(),
 				connectionProvider.getMinioClient(),
-				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel())
+				new QueueConfiguration(connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.digest_hasher).newConnection().createChannel()),
+				MinioConfiguration.IMAGE_BUCKET
 		);
 	}
 	
@@ -90,7 +95,7 @@ public class MessageDigestHasher {
 	
 	private void createMessageConsumer(String queueName) throws IOException {
 		Channel channel = createChannel();
-		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, minio, queueConfig));
+		channel.basicConsume(queueName, new MessageDigestHashConsumer(channel, minio, queueConfig, imageBucket));
 	}
 
 	private Channel createChannel() throws IOException {
@@ -107,12 +112,14 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 	private final HashMessageBuilder hashMessageBuilder;
 	private final HashMessageHelper hashMessageHelper;
 	private final MinioClient minio;
+	private final String imageBucket;
 	
-	public MessageDigestHashConsumer(Channel channel, MinioClient minio, QueueConfiguration queueConfig) {
+	public MessageDigestHashConsumer(Channel channel, MinioClient minio, QueueConfiguration queueConfig, String imageBucket) {
 		super(channel);
 		this.minio = minio;
 		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
 		this.hashMessageHelper = new HashMessageHelper();
+		this.imageBucket = imageBucket;
 	}
 
 	@Override
@@ -142,10 +149,13 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 			e1.printStackTrace();
 		}
 		
+		// TODO use InputStream with Memory Digest for more memory efficient processing
+		byte[] image = readImage(body);
+
 		for (String hash : hashes) {
 			try {
 				MessageDigest md = MessageDigest.getInstance(hash);
-				hashMessageBuilder.addHash(hash, md.digest(body));
+				hashMessageBuilder.addHash(hash, md.digest(image));
 			} catch (NoSuchAlgorithmException e) {
 				// TODO send a error message back
 				e.printStackTrace();
@@ -156,5 +166,18 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", originalHeader.get("anchor"), originalHeader.get("path"),	hashes);
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
+	}
+
+	private byte[] readImage(byte[] messageBody) throws IOException {
+		UUID imageId = UUIDUtils.ByteToUUID(messageBody);
+		try {
+			GetObjectResponse response = minio.getObject(GetObjectArgs.builder().bucket(imageBucket).object(imageId.toString()).build());
+
+			return response.readAllBytes();
+		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
+				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e1) {
+
+			throw new IOException("Failed to read object due to: ", e1);
+		}
 	}
 }
