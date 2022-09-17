@@ -3,7 +3,6 @@ package com.github.seeker.app;
 import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -56,7 +55,6 @@ import io.minio.RemoveBucketArgs;
 import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.minio.UploadObjectArgs;
-import io.minio.errors.ErrorResponseException;
 
 public class ImageResizerIT {
 	private static final int AWAIT_TIMEOUT_SECONDS = 5;
@@ -245,15 +243,5 @@ public class ImageResizerIT {
 		
 		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(THUMBNAIL_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
 		assertThat(response, is(notNullValue()));
-	}
-
-	@Test(expected = ErrorResponseException.class)
-	public void originalImageRemovedAfterProcessing() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
-
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
-
-		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(IMAGE_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
-		assertThat(response, is(nullValue()));
 	}
 }

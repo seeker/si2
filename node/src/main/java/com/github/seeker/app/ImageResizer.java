@@ -48,7 +48,6 @@ import com.rabbitmq.client.Envelope;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -222,13 +221,6 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		LOGGER.debug("Consumed message for {}:{}", anchor, relativePath);
 		
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
-
-		try {
-			minio.removeObject(RemoveObjectArgs.builder().bucket(imageBucket).object(imageId.toString()).build());
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
-			LOGGER.error("Failed to remove object {} from bucket {} due to: {}", imageId.toString(), imageBucket, e.getMessage());
-		}
 	}
 
 	private InputStream getImageFromBucket(UUID imageId) throws IOException {
