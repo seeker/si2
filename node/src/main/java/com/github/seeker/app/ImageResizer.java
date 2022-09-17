@@ -104,6 +104,10 @@ public class ImageResizer {
 		thumbnailBucket = MinioConfiguration.THUMBNAIL_BUCKET;
 		preProcessedBucket = MinioConfiguration.PREPROCESSED_IMAGES_BUCKET;
 		
+		MinioConfiguration.createBucket(minio, imageBucket);
+		MinioConfiguration.createBucket(minio, thumbnailBucket);
+		MinioConfiguration.createBucket(minio, preProcessedBucket);
+
 		hashMessageHelper = new HashMessageHelper();
 		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
@@ -232,7 +236,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			return minio.getObject(GetObjectArgs.builder().bucket(imageBucket).object(imageId.toString()).build());
 		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
 				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
-			throw new IOException("Failed to load image:", e);
+			throw new IOException("Failed to load image " + imageId.toString() + " :", e);
 		}
 	}
 

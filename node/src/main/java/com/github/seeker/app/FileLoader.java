@@ -105,6 +105,8 @@ public class FileLoader {
 		mapper = connectionProvider.getMongoDbMapper();
 		minio = connectionProvider.getMinioClient();
 		
+		MinioConfiguration.createBucket(minio, MinioConfiguration.IMAGE_BUCKET);
+
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
 		
 		LOGGER.info("Loaded anchors from config:\n {}", fileLoaderConfig.anchors());
