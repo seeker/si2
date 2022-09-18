@@ -11,16 +11,20 @@ import org.slf4j.LoggerFactory;
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
+import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.UUIDUtils;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
+import de.caluga.morphium.query.MorphiumIterator;
 import io.minio.MinioClient;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -44,6 +48,7 @@ public class MainWindow extends Application{
 	private MetaDataExplorer metaDataExplorer;
 	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
+	private ConsulClient consul;
 	
 	private Channel channel;
 	
@@ -63,6 +68,7 @@ public class MainWindow extends Application{
 		
 		mapper = connectionProvider.getMongoDbMapper();
 		minio = connectionProvider.getMinioClient();
+		consul = connectionProvider.getConsulClient();
 
 		metaDataExplorer = new MetaDataExplorer(mapper, minio);
 		fileLoaderJobs = new FileLoaderJobs(mapper);
@@ -112,11 +118,20 @@ public class MainWindow extends Application{
 			}
 		});
 		
+		MenuItem recreateThumbnails = new MenuItem("Recreate thumbnails");
+		recreateThumbnails.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				recreateThumbnails();
+			}
+		});
+
 		actions.getItems().add(exploreMetaData);
 		actions.getItems().add(viewFileLoaderJobs);
 		actions.getItems().add(startLoader);
 		actions.getItems().add(stoploader);
 		actions.getItems().add(pruneThumbs);
+		actions.getItems().add(recreateThumbnails);
 		
 		menuBar.getMenus().add(actions);
 		
@@ -149,6 +164,29 @@ public class MainWindow extends Application{
 		}
 	}
 	
+	private void recreateThumbnails() {
+
+
+		int thumbnailSize = (int)consul.getKvAsLong("config/general/thumbnail-size");
+		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(thumbnailSize);
+		
+		LOGGER.info("Queueing thumbnail generation for {} thumbnails which do not have the required size of {}", iter.getCount(), thumbnailSize);
+		
+		for (ImageMetaData meta : iter) {
+			try {
+				Map<String, Object> headers = new HashMap<String, Object>();
+				headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
+				headers.put(MessageHeaderKeys.ANCHOR, meta.getAnchor());
+				headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, meta.getPath());
+				AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+
+				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
+			} catch (IOException e) {
+				LOGGER.warn("Failed to create thumbnail recreate message for {} - {} due to {}", meta.getAnchor(), meta.getPath(), e.getMessage());
+			}
+		}
+	}
+
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		setUpVars();

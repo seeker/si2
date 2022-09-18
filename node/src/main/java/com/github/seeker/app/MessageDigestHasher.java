@@ -126,6 +126,11 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 		Map<String, Object> originalHeader = properties.getHeaders();
 		
+		if (originalHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
+		}
+
 		String anchor = hashMessageHelper.getAnchor(originalHeader);
 		String relativePath = hashMessageHelper.getRelativePath(originalHeader);
 		
