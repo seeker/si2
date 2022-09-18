@@ -7,10 +7,8 @@ package com.github.seeker.persistence;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,7 +19,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.hamcrest.collection.IsCollectionWithSize;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -31,7 +28,6 @@ import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
@@ -42,6 +38,7 @@ import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
 
 import de.caluga.morphium.Morphium;
+import de.caluga.morphium.query.MorphiumIterator;
 
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
@@ -307,7 +304,7 @@ public class MongoDbMapperIT {
 	public void imageIdDoesNotExist() throws Exception {
 		assertThat(mapper.hasImageId(THUMBNAIL_ID_NEW.toString()), is(false));
 	}
-	
+
 	private void cleanUpCollection(Class<? extends Object> clazz) {
 		morphium.dropCollection(clazz);
 		morphium.clearCachefor(clazz);
@@ -315,5 +312,19 @@ public class MongoDbMapperIT {
 
 	private long now() {
 		return Calendar.getInstance().getTimeInMillis();
+	}
+
+	@Test
+	public void getThumbnailsToResizeNoMatch() {
+		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(333);
+
+		assertThat(iter.getCount(), is(6L));
+	}
+
+	@Test
+	public void getThumbnailsToResizeWithMatch() {
+		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(123);
+
+		assertThat(iter.getCount(), is(5L));
 	}
 }

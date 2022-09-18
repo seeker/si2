@@ -5,12 +5,10 @@
 package com.github.seeker.persistence;
 
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +17,7 @@ import com.github.seeker.persistence.document.FileLoaderJob;
 import com.github.seeker.persistence.document.ImageMetaData;
 
 import de.caluga.morphium.Morphium;
+import de.caluga.morphium.query.MorphiumIterator;
 import de.caluga.morphium.query.Query;
 
 public class MongoDbMapper {
@@ -107,6 +106,11 @@ public class MongoDbMapper {
 		return query.skip(skip).limit(limit).asList();
 	}
 	
+	public MorphiumIterator<ImageMetaData> getThumbnailsToResize(int thumbnailSize) {
+		Query<ImageMetaData> query = client.createQueryFor(ImageMetaData.class).f("thumbnail.max_image_size").ne(thumbnailSize);
+		return query.asIterable();
+	}
+
 	/**
 	 * Return all entries that match the given filter. 
 	 * @param searchParameters field / value pairs for filtering results, all fields are combined with AND
