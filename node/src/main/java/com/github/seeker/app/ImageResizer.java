@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -38,6 +39,8 @@ import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.orbitz.consul.cache.KVCache;
+import com.orbitz.consul.model.kv.Value;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -65,8 +68,8 @@ public class ImageResizer {
 	private final Connection rabbitMqConnection;
 	private final QueueConfiguration queueConfig;
 	private final MinioClient minio;
+	private final ConsulClient consul;
 	
-	private final int thumbnailSize;
 	private final String imageBucket;
 	private final String thumbnailBucket;
 	private final String preProcessedBucket;
@@ -80,12 +83,12 @@ public class ImageResizer {
 		this.rabbitMqConnection = channel;
 		this.queueConfig = queueConfig;
 		this.minio = minio;
+		this.consul = consul;
 		this.imageBucket = imageBucket;
 		this.thumbnailBucket = thumbnailBucket;
 		this.preProcessedBucket = preProcessedBucket;
 
 		hashMessageHelper = new HashMessageHelper();
-		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
 		processFiles();
 	}
@@ -93,7 +96,7 @@ public class ImageResizer {
 	public ImageResizer(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
-		ConsulClient consul = connectionProvider.getConsulClient();
+		consul = connectionProvider.getConsulClient();
 		rabbitMqConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.image_resizer).newConnection();
 		
 		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel());
@@ -108,7 +111,6 @@ public class ImageResizer {
 		MinioConfiguration.createBucket(minio, preProcessedBucket);
 
 		hashMessageHelper = new HashMessageHelper();
-		thumbnailSize = Integer.parseInt(consul.getKvAsString("config/general/thumbnail-size"));
 
 		processFiles();
 	}
@@ -124,7 +126,7 @@ public class ImageResizer {
 				channel.basicQos(20);
 				LOGGER.info("Starting consumer on queue {}", queueName);
 				channel.basicConsume(queueName,
-						new ImageFileMessageConsumer(channel, thumbnailSize, queueConfig, minio, imageBucket, thumbnailBucket, preProcessedBucket));
+						new ImageFileMessageConsumer(channel, consul, queueConfig, minio, imageBucket, thumbnailBucket, preProcessedBucket));
 			} catch (IOException e) {
 				// TODO send message
 				LOGGER.warn("Failed to start consumer: {}", e);
@@ -147,17 +149,36 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	private final String thumbnailBucket;
 	private final String preProcessedBucket;
 	
-	public ImageFileMessageConsumer(Channel channel, int thumbnailSize, QueueConfiguration queueConfig, MinioClient minio, String imageBucket,
+	public ImageFileMessageConsumer(Channel channel, ConsulClient consul, QueueConfiguration queueConfig, MinioClient minio, String imageBucket,
 			String thumbnailBucket, String preProcessedBucket) {
 		super(channel);
 		
 		this.imageBucket = imageBucket;
-		this.thumbnailSize = thumbnailSize;
 		this.queueConfig = queueConfig;
 		this.minio = minio;
 		this.thumbnailBucket = thumbnailBucket;
 		this.preProcessedBucket = preProcessedBucket;
 		
+		final String thumbnailSizeKVpath = "config/general/thumbnail-size";
+
+		this.thumbnailSize = (int) consul.getKvAsLong(thumbnailSizeKVpath);
+		LOGGER.info("Set thumbnail size to {}", thumbnailSize);
+
+		KVCache rateLimitCache = consul.getKVCache(thumbnailSizeKVpath);
+		rateLimitCache.addListener(newValues -> {
+			Optional<Value> newValue = newValues.values().stream().filter(value -> value.getKey().equals(thumbnailSizeKVpath)).findAny();
+
+			newValue.ifPresent(value -> {
+				Optional<String> decodedThumbSize = newValue.get().getValueAsString();
+				decodedThumbSize.ifPresent(size -> {
+					this.thumbnailSize = Integer.parseInt(size);
+					LOGGER.info("Updated thumbnail size to {}", thumbnailSize);
+				});
+			});
+		});
+
+		rateLimitCache.start();
+
 		ImageIO.setUseCache(false);
 	}
 

@@ -224,7 +224,9 @@ public class ImageResizerIT {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 		
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
-		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(300));
+
+		int thumbnailSize = (int) consul.getKvAsLong("config/general/thumbnail-size");
+		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(thumbnailSize));
 	}
 	
 	@Test
