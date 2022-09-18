@@ -201,7 +201,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		
 		try (InputStream is = getImageFromBucket(imageId)) {
 			originalImage = ImageIO.read(is);
-		}catch (IIOException e) {
+		} catch (IIOException | IllegalArgumentException e) {
 			LOGGER.warn("Failed to read image {} - {}: {}", anchor, relativePath,e.getMessage());
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
