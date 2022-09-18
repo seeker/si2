@@ -163,7 +163,6 @@ public class ImageResizerIT {
 				preprocessedMessage.add(ArrayUtils.toObject(body));
 			}
 		});
-		
 	}
 	
 	
@@ -172,6 +171,10 @@ public class ImageResizerIT {
 	}
 	
 	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail) throws IOException {
+		sendFileProcessMessage(image, imageId, hasThumbnail, false);
+	}
+
+	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail, boolean recreateOnly) throws IOException {
 		byte[] imageIdBytes = UUIDUtils.UUIDtoByte(imageId);
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
@@ -179,6 +182,11 @@ public class ImageResizerIT {
 		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, image.toString());
 		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(hasThumbnail));
 		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
+
+		if (recreateOnly) {
+			headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
+		}
+
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
 		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, imageIdBytes);
@@ -245,5 +253,23 @@ public class ImageResizerIT {
 		
 		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(THUMBNAIL_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
 		assertThat(response, is(notNullValue()));
+	}
+
+	@Test
+	public void onlyRecreateThumbnailGeneratesThumbnail() throws Exception {
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
+
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+
+		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(THUMBNAIL_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
+		assertThat(response, is(notNullValue()));
+	}
+
+	@Test
+	public void onlyRecreateThumbnailNoPreprocessedMessage() throws Exception {
+		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
+
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(2, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(0));
 	}
 }

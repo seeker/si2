@@ -11,6 +11,10 @@ public class MessageHeaderKeys {
 	public static final String HASH_PHASH = "phash";
 	public static final String THUMBNAIL_FOUND = "thumbnail-found";
 	/**
+	 * Recreate only the thumbnail, regardless if it exists or not
+	 */
+	public static final String THUMBNAIL_RECREATE = "thumbnail-recreate";
+	/**
 	 * Thumbnail size parameter that was used to generate the thumbnail.
 	 */
 	public static final String THUMBNAIL_SIZE = "tn-size";

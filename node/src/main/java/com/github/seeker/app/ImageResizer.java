@@ -214,6 +214,13 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			return;
 		}
 		
+		if (receivedMessageHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
+			LOGGER.debug("Recreating thumbnail for {} - {} with size {}", anchor, relativePath, thumbnailSize);
+			createThumbnail(receivedMessageHeader, originalImage, imageId);
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			return;
+		}
+
 		boolean hasThumbnail = Boolean.parseBoolean(receivedMessageHeader.get(MessageHeaderKeys.THUMBNAIL_FOUND).toString());
 		
 		if(!hasThumbnail) {
