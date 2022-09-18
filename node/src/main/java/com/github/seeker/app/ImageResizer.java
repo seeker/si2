@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -116,6 +117,7 @@ public class ImageResizer {
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
+		minio.setTimeout(TimeUnit.MINUTES.toMillis(5), TimeUnit.MINUTES.toMillis(5), TimeUnit.MINUTES.toMillis(5));
 		int processorCount = Runtime.getRuntime().availableProcessors();
 		LOGGER.info("Starting {} message consumers", processorCount);
 		String queueName = queueConfig.getQueueName(ConfiguredQueues.fileResize);
