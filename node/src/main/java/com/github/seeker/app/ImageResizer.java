@@ -218,8 +218,19 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		
 		if (receivedMessageHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
 			LOGGER.debug("Recreating thumbnail for {} - {} with size {}", anchor, relativePath, thumbnailSize);
-			createThumbnail(receivedMessageHeader, originalImage, imageId);
-			getChannel().basicAck(envelope.getDeliveryTag(), false);
+			try {
+				createThumbnail(receivedMessageHeader, originalImage, imageId);
+				getChannel().basicAck(envelope.getDeliveryTag(), false);
+				return;
+			} catch (IllegalArgumentException iae) {
+				// TODO send a error message
+				LOGGER.warn("Failed to create thumbnail due to {}", iae);
+			} catch (IIOException iioe) {
+				// TODO send a error message
+				LOGGER.warn("Failed to create thumbnail for {}-{} due to an image error}", anchor, relativePath, iioe);
+			}
+
+			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 			return;
 		}
 
