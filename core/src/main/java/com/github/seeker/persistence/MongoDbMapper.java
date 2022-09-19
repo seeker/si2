@@ -108,7 +108,7 @@ public class MongoDbMapper {
 	
 	public MorphiumIterator<ImageMetaData> getThumbnailsToResize(int thumbnailSize) {
 		Query<ImageMetaData> query = client.createQueryFor(ImageMetaData.class).f("thumbnail.max_image_size").ne(thumbnailSize);
-		return query.asIterable();
+		return query.asIterable(1000);
 	}
 
 	/**
