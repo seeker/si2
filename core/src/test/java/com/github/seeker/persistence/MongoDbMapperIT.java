@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -326,5 +327,25 @@ public class MongoDbMapperIT {
 		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(123);
 
 		assertThat(iter.getCount(), is(5L));
+	}
+	
+	@Test
+	public void getProcessingCompletedMetadataCount() throws Exception {
+		MorphiumIterator<ImageMetaData> iter = mapper
+				.getProcessingCompletedMetadata(Arrays.asList(new String[] { HASH_NAME_SHA256, HASH_NAME_PHASH }));
+
+		assertThat(iter.getCount(), is(1L));
+	}
+
+	@Test
+	public void getProcessingCompletedMetadata() throws Exception {
+		MorphiumIterator<ImageMetaData> iter = mapper
+				.getProcessingCompletedMetadata(Arrays.asList(new String[] { HASH_NAME_SHA256, HASH_NAME_PHASH }));
+
+		ImageMetaData meta = iter.next();
+
+		assertThat(meta, is(notNullValue())); // guard assert
+
+		assertThat(meta.getThumbnail().getImageId(), is(THUMBNAIL_ID));
 	}
 }

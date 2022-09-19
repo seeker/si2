@@ -173,4 +173,20 @@ public class MongoDbMapper {
 		Query<FileLoaderJob> query = client.createQueryFor(FileLoaderJob.class);
 		return query.asList();
 	}
+	
+	/**
+	 * Return all metadata that has a thumbnail, the requested message digests and
+	 * custom hashes.
+	 * 
+	 * @return An iterator with metadata matching the query
+	 */
+	public MorphiumIterator<ImageMetaData> getProcessingCompletedMetadata(List<String> requiredHashes) {
+		Query<ImageMetaData> query = client.createQueryFor(ImageMetaData.class).f("thumbnail").exists();
+
+		for (String hash : requiredHashes) {
+			query = query.f("hashes." + hash).exists();
+		}
+
+		return query.asIterable();
+	}
 }
