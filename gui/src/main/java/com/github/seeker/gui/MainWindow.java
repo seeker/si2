@@ -1,9 +1,14 @@
 package com.github.seeker.gui;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +18,7 @@ import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
@@ -26,6 +32,16 @@ import com.rabbitmq.client.Connection;
 
 import de.caluga.morphium.query.MorphiumIterator;
 import io.minio.MinioClient;
+import io.minio.RemoveObjectsArgs;
+import io.minio.Result;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
+import io.minio.messages.DeleteError;
+import io.minio.messages.DeleteObject;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -126,12 +142,57 @@ public class MainWindow extends Application{
 			}
 		});
 
+		MenuItem pruneProcessedImages = new MenuItem("Prune processed images");
+		pruneProcessedImages.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				MorphiumIterator<ImageMetaData> originalImagesToDelete = mapper
+						.getProcessingCompletedMetadata(Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(","))));
+				
+				LOGGER.info("Found {} complete metadata entries", originalImagesToDelete.getCount());
+				
+				Iterator<DeleteObject> metaToDelete = new Iterator<DeleteObject>() {
+					@Override
+					public boolean hasNext() {
+						return originalImagesToDelete.hasNext();
+					}
+
+					@Override
+					public DeleteObject next() {
+						return new DeleteObject(originalImagesToDelete.next().getImageId().toString());
+					}
+				};
+				
+				Iterable<DeleteObject> deleteIterable = new Iterable<DeleteObject>() {
+					@Override
+					public Iterator<DeleteObject> iterator() {
+						return metaToDelete;
+					}
+				};
+
+				Iterable<Result<DeleteError>> result = minio
+						.removeObjects(RemoveObjectsArgs.builder().bucket(MinioConfiguration.IMAGE_BUCKET).objects(deleteIterable).build());
+
+				result.forEach(error -> {
+					try {
+						LOGGER.warn("Failed to delete {}: {}", error.get().objectName(), error.get().message());
+					} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
+							| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				});
+
+			}
+		});
+
 		actions.getItems().add(exploreMetaData);
 		actions.getItems().add(viewFileLoaderJobs);
 		actions.getItems().add(startLoader);
 		actions.getItems().add(stoploader);
 		actions.getItems().add(pruneThumbs);
 		actions.getItems().add(recreateThumbnails);
+		actions.getItems().add(pruneProcessedImages);
 		
 		menuBar.getMenus().add(actions);
 		
