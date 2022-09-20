@@ -1,6 +1,8 @@
 package com.github.seeker.app;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.awaitility.Awaitility.to;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,11 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
-
-import static org.awaitility.Awaitility.to;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -24,7 +23,6 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;

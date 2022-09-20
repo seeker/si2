@@ -44,9 +44,8 @@ import de.caluga.morphium.query.MorphiumIterator;
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
 	
-	private static final UUID THUMBNAIL_ID = UUID.randomUUID();
-	private static final UUID THUMBNAIL_ID_NEW = UUID.randomUUID();
-	
+	private static final UUID IMAGE_ID = UUID.randomUUID();
+
 	private static final String FIELD_NAME_ANCHOR = "anchor";
 	private static final String FIELD_NAME_PATH = "path";
 	
@@ -102,13 +101,14 @@ public class MongoDbMapperIT {
 		hashes.put(HASH_NAME_PHASH, new Hash(new byte[]{6,37,3,1,5,85,2}));
 		
 		metadataExisting = new ImageMetaData();
-		metadataExisting.setThumbnailId(new Thumbnail(123, THUMBNAIL_ID));
+		metadataExisting.setThumbnailId(new Thumbnail(123));
 		metadataExisting.setHashes(hashes);
 		metadataExisting.setAnchor(TEST_ANCHOR);
 		metadataExisting.setPath(TEST_PATH.toString());
+		metadataExisting.setImageId(IMAGE_ID);
 		
 		metadataNew = new ImageMetaData();
-		metadataNew.setThumbnailId(new Thumbnail(321, THUMBNAIL_ID_NEW));
+		metadataNew.setThumbnailId(new Thumbnail(321));
 
 		
 		setUpTestData();
@@ -296,16 +296,6 @@ public class MongoDbMapperIT {
 				)));
 	}
 	
-	@Test
-	public void imageIdExists() throws Exception {
-		assertThat(mapper.hasImageId(THUMBNAIL_ID.toString()), is(true));
-	}
-	
-	@Test
-	public void imageIdDoesNotExist() throws Exception {
-		assertThat(mapper.hasImageId(THUMBNAIL_ID_NEW.toString()), is(false));
-	}
-
 	private void cleanUpCollection(Class<? extends Object> clazz) {
 		morphium.dropCollection(clazz);
 		morphium.clearCachefor(clazz);
@@ -346,6 +336,6 @@ public class MongoDbMapperIT {
 
 		assertThat(meta, is(notNullValue())); // guard assert
 
-		assertThat(meta.getThumbnail().getImageId(), is(THUMBNAIL_ID));
+		assertThat(meta.getImageId(), is(IMAGE_ID));
 	}
 }

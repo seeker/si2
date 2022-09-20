@@ -185,7 +185,7 @@ class ThumbnailStore extends DefaultConsumer {
 			thumbnail = meta.getThumbnail();
 			thumbnail.setMaxImageSize(imageSize);
 		} else {
-			thumbnail = new Thumbnail(imageSize, meta.getImageId());
+			thumbnail = new Thumbnail(imageSize);
 			meta.setThumbnailId(thumbnail);
 		}
 		
