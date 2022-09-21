@@ -68,8 +68,7 @@ public class ImageMetaData {
 	/**
 	 * Unique identifier for an image, used for scaled images and thumbnails
 	 */
-	// FIXME make index unique
-	@Index
+	@Index(options = "unique: 1")
 	private UUID imageId;
 	
 	/**
