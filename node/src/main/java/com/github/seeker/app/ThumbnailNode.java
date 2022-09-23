@@ -1,12 +1,10 @@
 package com.github.seeker.app;
 
-import java.io.DataInput;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -24,8 +22,6 @@ import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
-import com.google.common.io.ByteStreams;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -72,77 +68,9 @@ public class ThumbnailNode {
 
 	private void startConsumers() throws IOException {
 		String queueName = queueConfig.getQueueName(ConfiguredQueues.thumbnails);
-		String thumbnailRequestQueue = queueConfig.getQueueName(ConfiguredQueues.thumbnailRequests);
 		
 		LOGGER.info("Starting consumer on queue {}", queueName);
 		channel.basicConsume(queueName, new ThumbnailStore(channel, mapper, thumbnailDirectory));
-		
-		LOGGER.info("Starting consumer on queue {}", thumbnailRequestQueue);
-		channelThumbRequ.basicConsume(thumbnailRequestQueue, new ThumbnailLoad(channelThumbRequ,thumbnailDirectory));
-	}
-}
-
-class ThumbnailLoad extends DefaultConsumer {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(ThumbnailStore.class);
-
-	private final Path baseThumbnailDirectory;
-	
-	public ThumbnailLoad(Channel channel, String baseThumbnailDirectory) {
-		super(channel);
-		
-		this.baseThumbnailDirectory = Paths.get(baseThumbnailDirectory);
-	}
-
-	@Override
-	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		DataInput in  = ByteStreams.newDataInput(body);
-		long most = in.readLong();
-		long least = in.readLong();
-		
-		UUID uuid = new UUID(most, least);
-		LOGGER.debug("Received thumbnail image request for UUID {}", uuid);
-		
-		Path thumbnailDirectory = generateDirectories(uuid);
-		Path absoluteThumbnail = thumbnailDirectory.resolve(uuid.toString()).toAbsolutePath();
-		
-		if(! Files.exists(absoluteThumbnail)) {
-			LOGGER.error("Thumbnail {} not found at {}", uuid, absoluteThumbnail);
-			noThumbnailFound(properties);
-		}else {
-			byte[] imageData = loadThumbnail(absoluteThumbnail);
-			responseMessage(properties, true, imageData);
-			LOGGER.debug("Fulfilled request for thumbnail with UUID{}", uuid);
-		}
-		
-		getChannel().basicAck(envelope.getDeliveryTag(), false);
-	}
-	
-	private Path generateDirectories(UUID uuid) throws IOException {
-		String imageName = uuid.toString();
-		
-		String firstCharacter = imageName.subSequence(0, 1).toString();
-		String firstTwoCharacters = imageName.subSequence(0, 2).toString();
-		
-		Path thumbnailDirectory = baseThumbnailDirectory.resolve(firstCharacter).resolve(firstTwoCharacters);
-		
-		return thumbnailDirectory;
-	}
-	
-	private byte[] loadThumbnail(Path absoluteThumbnail) throws IOException {
-		return Files.readAllBytes(absoluteThumbnail);
-	}
-	
-	private void noThumbnailFound(BasicProperties properties) throws IOException {
-		responseMessage(properties, false, null);
-	}
-	
-	private void responseMessage(BasicProperties properties, boolean thumbnailFound, byte[] thumbnailImageData) throws IOException {
-		Map<String, Object> messageHeaders = new HashMap<String, Object>();
-		messageHeaders.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(thumbnailFound));
-		
-		AMQP.BasicProperties messageProps = new AMQP.BasicProperties.Builder().headers(messageHeaders).correlationId(properties.getCorrelationId()).build();
-		getChannel().basicPublish("", properties.getReplyTo(), messageProps, thumbnailImageData);
 	}
 }
 

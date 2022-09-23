@@ -46,12 +46,7 @@ public class QueueConfiguration {
 		/**
 		 * Queue for generated thumbnails
 		 */
-		thumbnails,
-		
-		/**
-		 * Queue for requesting / loading stored thumbnails
-		 */
-		thumbnailRequests
+		thumbnails
 	};
 	
 	public enum ConfiguredExchanges {

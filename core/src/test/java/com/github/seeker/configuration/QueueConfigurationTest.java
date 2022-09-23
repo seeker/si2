@@ -1,10 +1,8 @@
 package com.github.seeker.configuration;
 
-import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +18,6 @@ import com.rabbitmq.client.Channel;
 public class QueueConfigurationTest {
 	private static final String HASH_QUEUE_NAME = "hashes";
 	private static final String THUMBNAIL_QUEUE_NAME = "thumbnails";
-	private static final String THUMBNAIL_REQ_QUEUE_NAME = "thumbnailRequests";
 	private static final String FILE_QUEUE_NAME = "fileDigest";
 	private static final String FILE_RESIZE_NAME = "fileResize";
 	
@@ -58,11 +55,6 @@ public class QueueConfigurationTest {
 	@Test
 	public void queueNameForThumbnail() throws Exception {
 		assertThat(cut.getQueueName(ConfiguredQueues.thumbnails), is(THUMBNAIL_QUEUE_NAME));
-	}
-	
-	@Test
-	public void queueNameForThumbnailRequest() throws Exception {
-		assertThat(cut.getQueueName(ConfiguredQueues.thumbnailRequests), is(THUMBNAIL_REQ_QUEUE_NAME));
 	}
 	
 	@Test
