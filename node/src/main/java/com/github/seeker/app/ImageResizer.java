@@ -292,8 +292,6 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			throw new IOException("Failed to store thumbnail due to:", e);
 		}
 		
-		// TODO send updates to database node, so thumbnail node can be retired
-
 		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
 		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
