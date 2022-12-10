@@ -4,11 +4,66 @@
  */
 package com.github.seeker.configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 
 public class MinioConfiguration {
+	public static enum BucketKey {
+		/**
+		 * Minio bucket for images that need to be processed
+		 */
+		Image,
+		/**
+		 * Minio bucket for thumbnails of loaded images
+		 */
+		Thumbnail,
+		/**
+		 * Minio bucket for grayscale and resized images used for phash
+		 */
+		PreProcessedImage,
+	}
+
+	/**
+	 * Create a {@link Map} with the bucket key and matching names.
+	 * 
+	 * @return a {@link Map} with the bucket names
+	 */
+	public static Map<BucketKey, String> productionBuckets() {
+		HashMap<BucketKey, String> map = new HashMap<>();
+		
+		map.put(BucketKey.Image, "si2-images");
+		map.put(BucketKey.Thumbnail, "si2-thumbnails");
+		map.put(BucketKey.PreProcessedImage, "si2-preprocessed");
+		
+		return map;
+	}
+
+	/**
+	 * Create a {@link Map} with the bucket key and matching names for integration
+	 * testing. The integration bucket names are production buckets prefixed with
+	 * `integration-`.
+	 * 
+	 * @return a {@link Map} with the bucket names for integration testing
+	 */
+	public static Map<BucketKey, String> integrationTestBuckets() {
+		Map<BucketKey, String> buckets = productionBuckets();
+
+		buckets.forEach(new BiConsumer<BucketKey, String>() {
+
+			@Override
+			public void accept(BucketKey key, String bucketName) {
+				buckets.put(key, "integration-" + bucketName);
+			}
+		});
+
+		return buckets;
+	}
+
 	/**
 	 * Minio bucket for images that need to be processed
 	 */
