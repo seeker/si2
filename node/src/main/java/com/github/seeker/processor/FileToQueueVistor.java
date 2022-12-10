@@ -157,20 +157,20 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		
 		try {
 			minio.uploadObject(UploadObjectArgs.builder().bucket(this.imageBucket).object(meta.getImageId().toString()).filename(file.toString()).build());
+
+			Map<String, Object> headers = new HashMap<String, Object>();
+			headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
+			headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
+			headers.put(MessageHeaderKeys.ANCHOR, anchor);
+			headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
+			headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(Boolean.logicalOr(!generateThumbnails, meta.hasThumbnail())));
+			AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+
+			channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
 		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
 				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
 			LOGGER.error("Failed to upload image {} to bucket {} due to error {}", file, MinioConfiguration.IMAGE_BUCKET, e.getMessage());
 		}
-		
-		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
-		headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
-		headers.put(MessageHeaderKeys.ANCHOR, anchor);
-		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
-		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(Boolean.logicalOr(!generateThumbnails, meta.hasThumbnail())));
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
-		channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
 	}
 
 	/**
