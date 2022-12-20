@@ -1,6 +1,7 @@
 package com.github.seeker.gui;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -8,13 +9,10 @@ import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.seeker.configuration.MinioConfiguration;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -45,11 +43,11 @@ import javafx.util.Callback;
 public class MetaDataExplorer extends Stage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MetaDataExplorer.class);
 	private final MongoDbMapper mapper;
-	private final MinioClient minio;
+	private final MinioStore minio;
 	private final ImageView imageView;
 	private final Pagination listPager;
 	
-	public MetaDataExplorer(MongoDbMapper mapper, MinioClient minio) throws IOException {
+	public MetaDataExplorer(MongoDbMapper mapper, MinioStore minio) throws IOException {
 		this.mapper = mapper;
 		this.minio = minio;
 		
@@ -181,8 +179,7 @@ public class MetaDataExplorer extends Stage {
 				try {
 					LOGGER.debug("Requesting thumbnail for image ID {}", newValue.getImageId());
 					try {
-						GetObjectResponse response = minio.getObject(
-								GetObjectArgs.builder().bucket(MinioConfiguration.THUMBNAIL_BUCKET).object(newValue.getImageId().toString()).build());
+						InputStream response = minio.getThumbnail(newValue.getImageId());
 
 						Image image = new Image(response);
 						imageView.setImage(image);

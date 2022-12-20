@@ -8,7 +8,10 @@ import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.configuration.MinioConfiguration;
+import com.github.seeker.persistence.MinioStore;
 
+import io.minio.MinioClient;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -55,23 +58,26 @@ public class App {
 		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
 		
 		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
-		
+		MinioClient minioClient = connectionProvider.getMinioClient();
+		MinioStore minio = new MinioStore(minioClient, MinioConfiguration.productionBuckets());
+
 		if(LOADER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new FileLoader(namespace.getString("id"), connectionProvider, configBuilder.getFileLoaderConfiguration());
+				new FileLoader(namespace.getString("id"), connectionProvider,
+						configBuilder.getFileLoaderConfiguration(), minio);
 				System.exit(0);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else if(PROCESSOR_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new MessageDigestHasher(connectionProvider);
+				new MessageDigestHasher(connectionProvider, minio);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else if(CUSTOM_HASH_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new CustomHashProcessor(connectionProvider);
+				new CustomHashProcessor(connectionProvider, minio);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -83,7 +89,7 @@ public class App {
 			}
 		} else if(RESIZER_COMMAND.equals(namespace.getString(COMMAND_ATTRIBUTE))) {
 			try {
-				new ImageResizer(connectionProvider);
+				new ImageResizer(connectionProvider, minio);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

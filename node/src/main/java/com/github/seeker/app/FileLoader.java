@@ -21,11 +21,11 @@ import com.github.seeker.app.FileLoader.Command;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.FileLoaderConfiguration;
-import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.FileLoaderJob;
 import com.github.seeker.processor.FileToQueueVistor;
@@ -35,8 +35,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-import io.minio.MinioClient;
-
 /**
  * Loads files from the file system and sends them to the message broker with additional meta data.
  */
@@ -45,7 +43,7 @@ public class FileLoader {
 	
 	private final Channel channel;
 	private final MongoDbMapper mapper;
-	private final MinioClient minio;
+	private final MinioStore minio;
 	private final List<String> requriedHashes;
 	private final QueueConfiguration queueConfig;
 	
@@ -66,7 +64,8 @@ public class FileLoader {
 	
 	//TODO get file types from consul
 	
-	public FileLoader(String id, ConnectionProvider connectionProvider, FileLoaderConfiguration fileLoaderConfig) throws IOException, TimeoutException, VaultException {
+	public FileLoader(String id, ConnectionProvider connectionProvider, FileLoaderConfiguration fileLoaderConfig,
+			MinioStore minio) throws IOException, TimeoutException, VaultException {
 		this.walking = new AtomicBoolean();
 		this.fileLoaderConfig = fileLoaderConfig;
 		
@@ -76,9 +75,7 @@ public class FileLoader {
 		queueConfig = new QueueConfiguration(channel);
 		
 		mapper = connectionProvider.getMongoDbMapper();
-		minio = connectionProvider.getMinioClient();
-		
-		MinioConfiguration.createBucket(minio, MinioConfiguration.IMAGE_BUCKET);
+		this.minio = minio;
 
 		requriedHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
 		
@@ -137,7 +134,7 @@ public class FileLoader {
 	private void loadFilesForAnchor(String anchor, Path anchorAbsolutePath, Path anchorRootPath, boolean generateThumbnails) {
 		LOGGER.info("Walking {} for anchor {}", anchorRootPath, anchor);
 		
-		fileToQueueVistor = new FileToQueueVistor(channel, anchor, anchorRootPath, mapper, minio, MinioConfiguration.IMAGE_BUCKET, requriedHashes,
+		fileToQueueVistor = new FileToQueueVistor(channel, anchor, anchorRootPath, mapper, minio, requriedHashes,
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 		fileToQueueVistor.setGenerateThumbnails(generateThumbnails);
 		

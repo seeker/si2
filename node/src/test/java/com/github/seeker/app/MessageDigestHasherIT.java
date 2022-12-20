@@ -31,6 +31,8 @@ import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.configuration.MinioConfiguration;
+import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
@@ -41,6 +43,7 @@ import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -55,12 +58,11 @@ import com.rabbitmq.client.Envelope;
 import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
-import io.minio.UploadObjectArgs;
 
 public class MessageDigestHasherIT {
 
 	private static final String ANCHOR = "testimages";
-	private static final String TEST_BUCKET_NAME = MinioTestHelper.integrationBucketName(MessageDigestHasherIT.class);
+	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
 	
 	private static final String IMAGE_AUTUMN = "autumn.jpg";
 	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
@@ -78,6 +80,7 @@ public class MessageDigestHasherIT {
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
 	private static MinioClient minio;
+	private static MinioStore minioStore;
 	private static MinioTestHelper minioHelper;
 	private Channel channelForTest;
 	private QueueConfiguration queueConfig;
@@ -98,14 +101,14 @@ public class MessageDigestHasherIT {
 
 		minio = connectionProvider.getMinioClient();
 		minioHelper = new MinioTestHelper(minio);
-		minioHelper.createBucket(TEST_BUCKET_NAME);
+		minioStore = new MinioStore(minio, MinioConfiguration.integrationTestBuckets());
+
+		minioStore.createBuckets();
 		uploadTestImage();
 	}
 
 	private static void uploadTestImage() throws Exception {
-		minio.uploadObject(
-				UploadObjectArgs.builder().bucket(TEST_BUCKET_NAME).object(IMAGE_AUTUMN_UUID.toString())
-						.filename("src\\test\\resources\\images\\" + IMAGE_AUTUMN).build());
+		minioStore.storeImage(Paths.get("src\\test\\resources\\images\\", IMAGE_AUTUMN), IMAGE_AUTUMN_UUID);
 	}
 
 	@AfterClass
@@ -129,7 +132,8 @@ public class MessageDigestHasherIT {
 		
 		queueConfig = new QueueConfiguration(channel, true);
 		
-		cut = new MessageDigestHasher(rabbitConn, consul, minio, queueConfig, TEST_BUCKET_NAME);
+		cut = new MessageDigestHasher(rabbitConn, consul,
+				new MinioStore(minio, MinioConfiguration.integrationTestBuckets()), queueConfig);
 		
 		hashMessages = new LinkedBlockingQueue<Map<String, Hash>>();
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();

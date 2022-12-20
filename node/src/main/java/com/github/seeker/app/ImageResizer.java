@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -33,13 +32,13 @@ import org.slf4j.LoggerFactory;
 import com.bettercloud.vault.VaultException;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.orbitz.consul.cache.KVCache;
 import com.orbitz.consul.model.kv.Value;
 import com.rabbitmq.client.AMQP;
@@ -49,9 +48,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-import io.minio.GetObjectArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -68,16 +64,12 @@ public class ImageResizer {
 
 	private final Connection rabbitMqConnection;
 	private final QueueConfiguration queueConfig;
-	private final MinioClient minio;
+	private final MinioStore minio;
 	private final ConsulClient consul;
 	
-	private final String imageBucket;
-	private final String thumbnailBucket;
-	private final String preProcessedBucket;
 	private final HashMessageHelper hashMessageHelper;
 	
-	public ImageResizer(Connection channel, ConsulClient consul, QueueConfiguration queueConfig, MinioClient minio, String imageBucket, String thumbnailBucket,
-			String preProcessedBucket)
+	public ImageResizer(Connection channel, ConsulClient consul, QueueConfiguration queueConfig, MinioStore minio)
 			throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
@@ -85,31 +77,23 @@ public class ImageResizer {
 		this.queueConfig = queueConfig;
 		this.minio = minio;
 		this.consul = consul;
-		this.imageBucket = imageBucket;
-		this.thumbnailBucket = thumbnailBucket;
-		this.preProcessedBucket = preProcessedBucket;
 
 		hashMessageHelper = new HashMessageHelper();
 
 		processFiles();
 	}
 	
-	public ImageResizer(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
+	public ImageResizer(ConnectionProvider connectionProvider, MinioStore minio)
+			throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
 		
 		consul = connectionProvider.getConsulClient();
 		rabbitMqConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.image_resizer).newConnection();
 		
 		queueConfig = new QueueConfiguration(rabbitMqConnection.createChannel());
-		minio = connectionProvider.getMinioClient();
+		this.minio = minio;
 
-		imageBucket = MinioConfiguration.IMAGE_BUCKET;
-		thumbnailBucket = MinioConfiguration.THUMBNAIL_BUCKET;
-		preProcessedBucket = MinioConfiguration.PREPROCESSED_IMAGES_BUCKET;
-		
-		MinioConfiguration.createBucket(minio, imageBucket);
-		MinioConfiguration.createBucket(minio, thumbnailBucket);
-		MinioConfiguration.createBucket(minio, preProcessedBucket);
+		minio.createBuckets();
 
 		hashMessageHelper = new HashMessageHelper();
 
@@ -117,7 +101,6 @@ public class ImageResizer {
 	}
 
 	public void processFiles() throws IOException, InterruptedException {
-		minio.setTimeout(TimeUnit.MINUTES.toMillis(5), TimeUnit.MINUTES.toMillis(5), TimeUnit.MINUTES.toMillis(5));
 		int processorCount = Runtime.getRuntime().availableProcessors();
 		LOGGER.info("Starting {} message consumers", processorCount);
 		String queueName = queueConfig.getQueueName(ConfiguredQueues.fileResize);
@@ -128,7 +111,7 @@ public class ImageResizer {
 				channel.basicQos(20);
 				LOGGER.info("Starting consumer on queue {}", queueName);
 				channel.basicConsume(queueName,
-						new ImageFileMessageConsumer(channel, consul, queueConfig, minio, imageBucket, thumbnailBucket, preProcessedBucket));
+						new ImageFileMessageConsumer(channel, consul, queueConfig, minio));
 			} catch (IOException e) {
 				// TODO send message
 				LOGGER.warn("Failed to start consumer: {}", e);
@@ -146,20 +129,14 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	
 	private int thumbnailSize;
 	private final QueueConfiguration queueConfig;
-	private final MinioClient minio;
-	private final String imageBucket;
-	private final String thumbnailBucket;
-	private final String preProcessedBucket;
+	private final MinioStore minio;
 	
-	public ImageFileMessageConsumer(Channel channel, ConsulClient consul, QueueConfiguration queueConfig, MinioClient minio, String imageBucket,
-			String thumbnailBucket, String preProcessedBucket) {
+	public ImageFileMessageConsumer(Channel channel, ConsulClient consul, QueueConfiguration queueConfig,
+			MinioStore minio) {
 		super(channel);
 		
-		this.imageBucket = imageBucket;
 		this.queueConfig = queueConfig;
 		this.minio = minio;
-		this.thumbnailBucket = thumbnailBucket;
-		this.preProcessedBucket = preProcessedBucket;
 		
 		final String thumbnailSizeKVpath = "config/general/thumbnail-size";
 
@@ -266,7 +243,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 
 	private InputStream getImageFromBucket(UUID imageId) throws IOException {
 		try {
-			return minio.getObject(GetObjectArgs.builder().bucket(imageBucket).object(imageId.toString()).build());
+			return minio.getImage(imageId);
 		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
 				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
 			throw new IOException("Failed to load image " + imageId.toString() + " :", e);
@@ -285,8 +262,8 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		metadata.put(MessageHeaderKeys.THUMBNAIL_SIZE, String.valueOf(currentThumbnailSize));
 		
 		try {
-			minio.putObject(PutObjectArgs.builder().bucket(thumbnailBucket).object(imageId.toString())
-					.stream(new ByteArrayInputStream(baos.toByteArray()), -1, 10485760).userMetadata(metadata).build());
+			// TODO need to store metadata?
+			minio.storeThumbnail(imageId, new ByteArrayInputStream(baos.toByteArray()));
 		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
 				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
 			throw new IOException("Failed to store thumbnail due to:", e);
@@ -311,8 +288,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		grayscaleImage.flush();
 
 		try {
-			minio.putObject(PutObjectArgs.builder().bucket(preProcessedBucket).object(imageId.toString())
-					.stream(new ByteArrayInputStream(baos.toByteArray()), -1, 10485760).build());
+			minio.storePreProcessedImage(imageId, new ByteArrayInputStream(baos.toByteArray()));
 		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
 				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
 			throw new IOException("Failed to store preprocessed image due to:", e);

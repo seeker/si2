@@ -2,6 +2,7 @@ package com.github.seeker.app;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -22,13 +23,13 @@ import com.github.dozedoff.commonj.util.ImageUtil;
 import com.github.seeker.commonhash.helper.TransformHelper;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
-import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.rabbitmq.client.AMQP;
@@ -38,9 +39,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -56,10 +54,10 @@ public class CustomHashProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CustomHashProcessor.class);
 
 	private final Channel channel;
-	private final MinioClient minio;
+	private final MinioStore minio;
 	private final QueueConfiguration queueConfig;
 	
-	public CustomHashProcessor(Channel channel, ConsulClient consul, MinioClient minio, QueueConfiguration queueConfig)
+	public CustomHashProcessor(Channel channel, ConsulClient consul, MinioStore minio, QueueConfiguration queueConfig)
 			throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
@@ -72,12 +70,12 @@ public class CustomHashProcessor {
 		processFiles();
 	}
 	
-	public CustomHashProcessor(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
+	public CustomHashProcessor(ConnectionProvider connectionProvider, MinioStore minio)
+			throws IOException, TimeoutException, InterruptedException, VaultException {
 		LOGGER.info("{} starting up...", CustomHashProcessor.class.getSimpleName());
 		
-		ConsulClient consul = connectionProvider.getConsulClient();
-		minio = connectionProvider.getMinioClient();
 		Connection conn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.hash_processor).newConnection();
+		this.minio = minio;
 		channel = conn.createChannel();
 		
 		queueConfig = new QueueConfiguration(channel);
@@ -104,9 +102,9 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 	
 	private final QueueConfiguration queueConfig;
 	private final HashMessageBuilder hashMessageBuilder;
-	private final MinioClient minio;
+	private final MinioStore minio;
 	
-	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig, MinioClient minio) {
+	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig, MinioStore minio) {
 		super(channel);
 		
 		this.queueConfig = queueConfig;
@@ -140,8 +138,7 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 		
 		UUID imageId = UUIDUtils.ByteToUUID(body);
 		
-		try (GetObjectResponse response = minio
-				.getObject(GetObjectArgs.builder().bucket(MinioConfiguration.PREPROCESSED_IMAGES_BUCKET).object(imageId.toString()).build())) {
+		try (InputStream response = minio.getPreProcessedImage(imageId)) {
 		
 		BufferedImage preProcessedImage;
 		

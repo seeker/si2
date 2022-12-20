@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +31,8 @@ import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
+import com.github.seeker.configuration.MinioConfiguration;
+import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
@@ -39,6 +42,7 @@ import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
@@ -52,15 +56,14 @@ import com.rabbitmq.client.Envelope;
 import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
-import io.minio.StatObjectArgs;
-import io.minio.StatObjectResponse;
 import io.minio.UploadObjectArgs;
 
 public class ImageResizerIT {
 	private static final int AWAIT_TIMEOUT_SECONDS = 5;
-	private static final String IMAGE_BUCKET = MinioTestHelper.integrationBucketName(ImageResizerIT.class, "image");
-	private static final String THUMBNAIL_BUCKET = MinioTestHelper.integrationBucketName(ImageResizerIT.class, "thumbnail");
-	private static final String PREPROCESSED_BUCKET = MinioTestHelper.integrationBucketName(ImageResizerIT.class, "preprocessed");
+	private static final String IMAGE_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
+	private static final String THUMBNAIL_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Thumbnail);
+	private static final String PREPROCESSED_BUCKET = MinioConfiguration.integrationTestBuckets()
+			.get(BucketKey.PreProcessedImage);
 	
 	private static final String ANCHOR = "testimages";
 	
@@ -76,6 +79,7 @@ public class ImageResizerIT {
 
 	private static ConnectionProvider connectionProvider;
 	private static MinioClient minio;
+	private static MinioStore minioStore;
 	private static MinioTestHelper minioHelper;
 
 	private ImageResizer cut;
@@ -103,9 +107,10 @@ public class ImageResizerIT {
 		minio = connectionProvider.getMinioClient();
 		minioHelper = new MinioTestHelper(minio);
 
-		minioHelper.createBucket(IMAGE_BUCKET);
-		minioHelper.createBucket(THUMBNAIL_BUCKET);
-		minioHelper.createBucket(PREPROCESSED_BUCKET);
+		minioStore = new MinioStore(minio, MinioConfiguration.integrationTestBuckets());
+		minioStore.createBuckets();
+		minioStore.storeImage(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN),
+				IMAGE_AUTUMN_UUID);
 	}
 
 	@AfterClass
@@ -137,7 +142,8 @@ public class ImageResizerIT {
 		minio.uploadObject(UploadObjectArgs.builder().bucket(IMAGE_BUCKET).object(IMAGE_AUTUMN_UUID.toString())
 				.filename("src\\test\\resources\\images\\" + IMAGE_AUTUMN).build());
 
-		cut = new ImageResizer(rabbitConn, consul, queueConfig, minio, IMAGE_BUCKET, THUMBNAIL_BUCKET, PREPROCESSED_BUCKET);
+		cut = new ImageResizer(rabbitConn, consul, queueConfig,
+				new MinioStore(minio, MinioConfiguration.integrationTestBuckets()));
 		
 		thumbMessage = new LinkedBlockingQueue<Byte[]>();
 		preprocessedMessage = new LinkedBlockingQueue<Byte[]>();
@@ -251,8 +257,8 @@ public class ImageResizerIT {
 
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
 		
-		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(THUMBNAIL_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
-		assertThat(response, is(notNullValue()));
+		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
+		assertThat(thumb, is(notNullValue()));
 	}
 
 	@Test
@@ -261,8 +267,8 @@ public class ImageResizerIT {
 
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
 
-		StatObjectResponse response = minio.statObject(StatObjectArgs.builder().bucket(THUMBNAIL_BUCKET).object(IMAGE_AUTUMN_UUID.toString()).build());
-		assertThat(response, is(notNullValue()));
+		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
+		assertThat(thumb, is(notNullValue()));
 	}
 
 	@Test

@@ -1,11 +1,8 @@
 package com.github.seeker.gui;
 
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
@@ -24,6 +21,7 @@ import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
@@ -31,17 +29,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import de.caluga.morphium.query.MorphiumIterator;
-import io.minio.MinioClient;
-import io.minio.RemoveObjectsArgs;
-import io.minio.Result;
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
-import io.minio.messages.DeleteError;
-import io.minio.messages.DeleteObject;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,7 +47,7 @@ public class MainWindow extends Application{
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainWindow.class); 
 	
 	private MongoDbMapper mapper;
-	private MinioClient minio;
+	private MinioStore minio;
 	private MetaDataExplorer metaDataExplorer;
 	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
@@ -83,7 +70,7 @@ public class MainWindow extends Application{
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel());
 		
 		mapper = connectionProvider.getMongoDbMapper();
-		minio = connectionProvider.getMinioClient();
+		minio = new MinioStore(connectionProvider.getMinioClient(), MinioConfiguration.productionBuckets());
 		consul = connectionProvider.getConsulClient();
 
 		metaDataExplorer = new MetaDataExplorer(mapper, minio);
@@ -151,38 +138,7 @@ public class MainWindow extends Application{
 				
 				LOGGER.info("Found {} complete metadata entries", originalImagesToDelete.getCount());
 				
-				Iterator<DeleteObject> metaToDelete = new Iterator<DeleteObject>() {
-					@Override
-					public boolean hasNext() {
-						return originalImagesToDelete.hasNext();
-					}
-
-					@Override
-					public DeleteObject next() {
-						return new DeleteObject(originalImagesToDelete.next().getImageId().toString());
-					}
-				};
-				
-				Iterable<DeleteObject> deleteIterable = new Iterable<DeleteObject>() {
-					@Override
-					public Iterator<DeleteObject> iterator() {
-						return metaToDelete;
-					}
-				};
-
-				Iterable<Result<DeleteError>> result = minio
-						.removeObjects(RemoveObjectsArgs.builder().bucket(MinioConfiguration.IMAGE_BUCKET).objects(deleteIterable).build());
-
-				result.forEach(error -> {
-					try {
-						LOGGER.warn("Failed to delete {}: {}", error.get().objectName(), error.get().message());
-					} catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException | InternalException
-							| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException | IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				});
-
+				minio.deleteImages(originalImagesToDelete);
 			}
 		});
 

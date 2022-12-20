@@ -29,12 +29,15 @@ import org.junit.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
+import com.github.seeker.configuration.MinioConfiguration;
+import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.google.common.collect.ImmutableList;
@@ -54,8 +57,7 @@ import io.minio.StatObjectArgs;
 public class FileToQueueVistorIT {
 	private static final Duration timeout = Duration.FIVE_SECONDS;
 	private static final String ANCHOR = "walk";
-	private static final String TEST_BUCKET_NAME = MinioTestHelper.integrationBucketName(FileToQueueVistorIT.class);
-
+	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
 	private static final String APPLE_FILENAME = "apple.jpg";
 	private static final String ORANGE_FILENAME = "orange.png";
 	private static final String CHERRY_FILENAME = "cherry.gif";
@@ -68,7 +70,8 @@ public class FileToQueueVistorIT {
 	private static final List<String> requiredHashes = ImmutableList.of("sha256", "sha512");
 
 	private static MongoDbMapper mapper;
-	private static MinioClient minio;
+	private static MinioStore minio;
+	private static MinioClient minioClient;
 	private static ConnectionFactory rabbitConnFactory;
 	private static Morphium morphium;
 	private static MinioTestHelper minioTestHelper;
@@ -87,18 +90,19 @@ public class FileToQueueVistorIT {
 		ConnectionProvider connProv = new ConnectionProvider(config.getConsulConfiguration(), config.getVaultCredentials(), true);
 
 		mapper = connProv.getIntegrationMongoDbMapper();
-		minio = connProv.getMinioClient();
+		minioClient = connProv.getMinioClient();
+		minio = new MinioStore(minioClient, MinioConfiguration.integrationTestBuckets());
 		rabbitConnFactory = connProv.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		morphium = connProv.getMorphiumClient(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 
-		minioTestHelper = new MinioTestHelper(minio);
-		minioTestHelper.createBucket(TEST_BUCKET_NAME);
+		minioTestHelper = new MinioTestHelper(minioClient);
+		minio.createBuckets();
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		morphium.close();
-		minio.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
+		minioClient.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
 	@Before
@@ -128,9 +132,7 @@ public class FileToQueueVistorIT {
 
 		RateLimiter rateLimiter = RateLimiter.create(50);
 
-
-
-		cut = new FileToQueueVistor(rabbitConn.createChannel(), ANCHOR, fileWalkRoot, mapper, minio, TEST_BUCKET_NAME, requiredHashes,
+		cut = new FileToQueueVistor(rabbitConn.createChannel(), ANCHOR, fileWalkRoot, mapper, minio, requiredHashes,
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 	}
 
@@ -262,9 +264,10 @@ public class FileToQueueVistorIT {
 		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
 		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
 
-		StatObjectArgs args = StatObjectArgs.builder().bucket(TEST_BUCKET_NAME).object(meta.getImageId().toString()).build();
-		Awaitility.await().atMost(timeout).untilCall(to(minio).statObject(args), is(notNullValue()));
+		StatObjectArgs args = StatObjectArgs.builder().bucket(TEST_BUCKET_NAME)
+				.object(meta.getImageId().toString() + ".jpg").build();
+		Awaitility.await().atMost(timeout).untilCall(to(minioClient).statObject(args), is(notNullValue()));
 
-		assertThat(minio.statObject(args).size(), is(11L));
+		assertThat(minioClient.statObject(args).size(), is(11L));
 	}
 }
