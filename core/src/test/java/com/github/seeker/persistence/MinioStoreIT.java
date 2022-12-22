@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.util.Map;
 import java.util.UUID;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
+import io.minio.RemoveBucketArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
 import io.minio.StatObjectArgs;
@@ -53,15 +55,15 @@ public class MinioStoreIT {
 		sut.createBuckets();
 	}
 
-//	@AfterClass
-//	public static void tearDownAfterClass() throws Exception {
-//		Map<BucketKey, String> buckets = MinioConfiguration.integrationTestBuckets();
-//
-//		for (String bucket : buckets.values()) {
-//			emptyBucket(bucket);
-//			minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucket).build());
-//		}
-//	}
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+		Map<BucketKey, String> buckets = MinioConfiguration.integrationTestBuckets();
+
+		for (String bucket : buckets.values()) {
+			emptyBucket(bucket);
+			minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucket).build());
+		}
+	}
 
 	private static void emptyBucket(String bucketName) throws Exception {
 		Iterable<Result<Item>> objects = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
