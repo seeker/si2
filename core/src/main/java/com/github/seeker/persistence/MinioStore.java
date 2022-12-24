@@ -23,6 +23,7 @@ import com.github.seeker.persistence.document.ImageMetaData;
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
@@ -148,5 +149,37 @@ public class MinioStore {
 				e.printStackTrace();
 			}
 		});
+	}
+
+	private void streamToObject(UUID imageId, InputStream imageStream, BucketKey bucket)
+			throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException,
+			NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		client.putObject(
+				PutObjectArgs.builder().bucket(bucketName(bucket)).object(uuidToObjectName(imageId)).stream(imageStream, -1, 5242880).build());
+	}
+
+	private InputStream objectToStream(UUID imageId, BucketKey bucket) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
+			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		return client.getObject(GetObjectArgs.builder().bucket(bucketName(bucket)).object(uuidToObjectName(imageId)).build());
+	}
+
+	public void storeThumbnail(UUID imageId, InputStream imageStream) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
+			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		streamToObject(imageId, imageStream, BucketKey.Thumbnail);
+	}
+
+	public InputStream getThumbnail(UUID imageId) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
+			InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		return objectToStream(imageId, BucketKey.Thumbnail);
+	}
+
+	public void storePreProcessedImage(UUID imageId, InputStream imageStream) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
+			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		streamToObject(imageId, imageStream, BucketKey.PreProcessedImage);
+	}
+
+	public InputStream getPreProcessedImage(UUID imageId) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
+			InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+		return objectToStream(imageId, BucketKey.PreProcessedImage);
 	}
 }

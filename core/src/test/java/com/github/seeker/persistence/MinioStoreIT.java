@@ -39,7 +39,9 @@ public class MinioStoreIT {
 	private static final String IMAGE_AUTUMN = "autumn.jpg";
 	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
 	private static final UUID IMAGE_ROAD_FAR_UUID = UUID.randomUUID();
+	private static final UUID IMAGE_ROAD_NEAR_UUID = UUID.randomUUID();
 	private static final String IMAGE_ROAD_FAR = "road-far.jpg";
+	private static final String IMAGE_ROAD_NEAR = "road-near.jpg";
 
 	private static Map<BucketKey, String> buckets;
 	private static MinioStore sut;
@@ -88,6 +90,8 @@ public class MinioStoreIT {
 		}
 
 		sut.storeImage(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
+		sut.storeThumbnail(IMAGE_AUTUMN_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN)));
+		sut.storePreProcessedImage(IMAGE_ROAD_NEAR_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_ROAD_NEAR)));
 	}
 
 	@Test
@@ -162,4 +166,39 @@ public class MinioStoreIT {
 		assertThat(sut.imageExisits(IMAGE_AUTUMN_UUID), is(false));
 		assertThat(sut.imageExisits(IMAGE_ROAD_FAR_UUID), is(false));
 	}
+
+	@Test
+	public void storeThumbnail() throws Exception {
+		sut.storeThumbnail(IMAGE_AUTUMN_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN)));
+
+		StatObjectResponse stat = minioClient
+				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Thumbnail)).object(IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
+
+		assertThat(stat.size(), is(312832L));
+	}
+
+	@Test
+	public void getThumbnail() throws Exception {
+		InputStream is = sut.getThumbnail(IMAGE_AUTUMN_UUID);
+
+		assertThat(is.skip(Long.MAX_VALUE), is(312832L));
+	}
+
+	@Test
+	public void storePreProcessed() throws Exception {
+		sut.storePreProcessedImage(IMAGE_AUTUMN_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN)));
+
+		StatObjectResponse stat = minioClient
+				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.PreProcessedImage)).object(IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
+
+		assertThat(stat.size(), is(312832L));
+	}
+
+	@Test
+	public void getPreProcessed() throws Exception {
+		InputStream is = sut.getPreProcessedImage(IMAGE_ROAD_NEAR_UUID);
+
+		assertThat(is.skip(Long.MAX_VALUE), is(820370L));
+	}
+
 }
