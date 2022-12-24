@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.MinioConfiguration.BucketKey;
+import com.github.seeker.persistence.document.ImageMetaData;
 
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
@@ -121,5 +124,42 @@ public class MinioStoreIT {
 		disOriginal.transferTo(OutputStream.nullOutputStream());
 
 		assertThat(mdOriginal.digest(), is(mdMinio.digest()));
+	}
+
+	@Test
+	public void deleteExisitngImage() throws Exception {
+		sut.deleteImage(IMAGE_ROAD_FAR_UUID);
+
+		assertThat(sut.imageExisits(IMAGE_ROAD_FAR_UUID), is(false));
+	}
+
+	@Test
+	public void imageExisits() throws Exception {
+		assertThat(sut.imageExisits(IMAGE_ROAD_FAR_UUID), is(true));
+	}
+
+	@Test
+	public void imageDoesNotExisit() throws Exception {
+		assertThat(sut.imageExisits(IMAGE_AUTUMN_UUID), is(false));
+	}
+
+	@Test
+	public void deleteMultipleImages() throws Exception {
+		sut.storeImage(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN), IMAGE_AUTUMN_UUID);
+
+		List<ImageMetaData> metaToDelete = new LinkedList<>();
+		ImageMetaData autumn = new ImageMetaData();
+		autumn.setImageId(IMAGE_AUTUMN_UUID);
+		ImageMetaData road = new ImageMetaData();
+		road.setImageId(IMAGE_ROAD_FAR_UUID);
+
+		
+		metaToDelete.add(autumn);
+		metaToDelete.add(road);
+		
+		sut.deleteImages(metaToDelete.iterator());
+
+		assertThat(sut.imageExisits(IMAGE_AUTUMN_UUID), is(false));
+		assertThat(sut.imageExisits(IMAGE_ROAD_FAR_UUID), is(false));
 	}
 }
