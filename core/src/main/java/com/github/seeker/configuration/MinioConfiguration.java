@@ -26,6 +26,10 @@ public class MinioConfiguration {
 		 * Minio bucket for grayscale and resized images used for phash
 		 */
 		PreProcessedImage,
+		/**
+		 * Bucket for SI2
+		 */
+		Si2
 	}
 
 	/**
@@ -39,6 +43,7 @@ public class MinioConfiguration {
 		map.put(BucketKey.Image, "si2-images");
 		map.put(BucketKey.Thumbnail, "si2-thumbnails");
 		map.put(BucketKey.PreProcessedImage, "si2-preprocessed");
+		map.put(BucketKey.Si2, "si2");
 		
 		return map;
 	}

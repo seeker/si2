@@ -42,6 +42,10 @@ import io.minio.messages.DeleteObject;
 public class MinioStore {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MinioStore.class);
 
+	private static final String PREFIX_IMAGE = "image";
+	private static final String PREFIX_THUMBNAIL = "thumb";
+	private static final String PREFIX_PREPROCESSED = "preprocessed";
+
 	// This is to work around that browsers do not display images without the
 	// correct extension, despite the Content Type: image/jpeg
 	private static final String OBJECT_ID_SUFFIX = ".jpg";
@@ -72,12 +76,12 @@ public class MinioStore {
 	public void storeImage(String path, UUID imageID) throws InvalidKeyException, ErrorResponseException,
 			InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException,
 			ServerException, XmlParserException, IllegalArgumentException, IOException {
-		client.uploadObject(UploadObjectArgs.builder().bucket(this.bucketNames.get(BucketKey.Image))
-				.object(uuidToObjectName(imageID)).filename(path).build());
+		client.uploadObject(UploadObjectArgs.builder().bucket(this.bucketNames.get(BucketKey.Si2))
+				.object(uuidToObjectName(PREFIX_IMAGE, imageID)).filename(path).build());
 	}
 
-	private String uuidToObjectName(UUID uuid) {
-		return uuid.toString() + OBJECT_ID_SUFFIX;
+	private String uuidToObjectName(String pathPrefix, UUID uuid) {
+		return pathPrefix + "/" + uuid.toString() + OBJECT_ID_SUFFIX;
 	}
 
 	private String bucketName(BucketKey key) {
@@ -87,16 +91,16 @@ public class MinioStore {
 	public InputStream getImage(UUID uuid) throws InvalidKeyException, ErrorResponseException,
 			InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException,
 			ServerException, XmlParserException, IllegalArgumentException, IOException {
-		return client.getObject(GetObjectArgs.builder().bucket(bucketNames.get(BucketKey.Image))
-				.object(uuidToObjectName(uuid))
+		return client.getObject(GetObjectArgs.builder().bucket(bucketNames.get(BucketKey.Si2))
+				.object(uuidToObjectName(PREFIX_IMAGE, uuid))
 				.build());
 	}
 
 	public void deleteImage(UUID imageId) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
 			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException,
 			IllegalArgumentException, IOException {
-		client.removeObject(RemoveObjectArgs.builder().bucket(bucketName(BucketKey.Image))
-				.object(uuidToObjectName(imageId)).build());
+		client.removeObject(RemoveObjectArgs.builder().bucket(bucketName(BucketKey.Si2))
+				.object(uuidToObjectName(PREFIX_IMAGE, imageId)).build());
 	}
 
 	public boolean imageExisits(UUID imageId) throws InvalidKeyException, ErrorResponseException,
@@ -104,7 +108,8 @@ public class MinioStore {
 			ServerException, XmlParserException, IllegalArgumentException, IOException {
 		try {
 		StatObjectResponse stat = client.statObject(
-				StatObjectArgs.builder().bucket(bucketName(BucketKey.Image)).object(uuidToObjectName(imageId)).build());
+				StatObjectArgs.builder().bucket(bucketName(BucketKey.Si2))
+						.object(uuidToObjectName(PREFIX_IMAGE, imageId)).build());
 
 		return null != stat;
 		}catch (ErrorResponseException e) {
@@ -125,7 +130,7 @@ public class MinioStore {
 
 			@Override
 			public DeleteObject next() {
-				return new DeleteObject(uuidToObjectName(imagesToDelete.next().getImageId()));
+				return new DeleteObject(uuidToObjectName(PREFIX_IMAGE, imagesToDelete.next().getImageId()));
 			}
 		};
 
@@ -137,7 +142,7 @@ public class MinioStore {
 		};
 
 		Iterable<Result<DeleteError>> result = client.removeObjects(
-				RemoveObjectsArgs.builder().bucket(bucketName(BucketKey.Image)).objects(deleteIterable).build());
+				RemoveObjectsArgs.builder().bucket(bucketName(BucketKey.Si2)).objects(deleteIterable).build());
 
 		result.forEach(error -> {
 			try {
@@ -151,35 +156,39 @@ public class MinioStore {
 		});
 	}
 
-	private void streamToObject(UUID imageId, InputStream imageStream, BucketKey bucket)
+	private void streamToObject(UUID imageId, InputStream imageStream, String prefix)
 			throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException,
 			NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
 		client.putObject(
-				PutObjectArgs.builder().bucket(bucketName(bucket)).object(uuidToObjectName(imageId)).stream(imageStream, -1, 5242880).build());
+				PutObjectArgs.builder().bucket(bucketName(BucketKey.Si2)).object(uuidToObjectName(prefix, imageId))
+						.stream(imageStream, -1, 5242880).build());
 	}
 
-	private InputStream objectToStream(UUID imageId, BucketKey bucket) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
+	private InputStream objectToStream(UUID imageId, String prefix)
+			throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
 			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		return client.getObject(GetObjectArgs.builder().bucket(bucketName(bucket)).object(uuidToObjectName(imageId)).build());
+		return client.getObject(
+				GetObjectArgs.builder().bucket(bucketName(BucketKey.Si2)).object(uuidToObjectName(prefix, imageId))
+						.build());
 	}
 
 	public void storeThumbnail(UUID imageId, InputStream imageStream) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
 			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		streamToObject(imageId, imageStream, BucketKey.Thumbnail);
+		streamToObject(imageId, imageStream, PREFIX_THUMBNAIL);
 	}
 
 	public InputStream getThumbnail(UUID imageId) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
 			InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		return objectToStream(imageId, BucketKey.Thumbnail);
+		return objectToStream(imageId, PREFIX_THUMBNAIL);
 	}
 
 	public void storePreProcessedImage(UUID imageId, InputStream imageStream) throws InvalidKeyException, ErrorResponseException, InsufficientDataException,
 			InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		streamToObject(imageId, imageStream, BucketKey.PreProcessedImage);
+		streamToObject(imageId, imageStream, PREFIX_PREPROCESSED);
 	}
 
 	public InputStream getPreProcessedImage(UUID imageId) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
 			InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		return objectToStream(imageId, BucketKey.PreProcessedImage);
+		return objectToStream(imageId, PREFIX_PREPROCESSED);
 	}
 }

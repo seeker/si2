@@ -71,7 +71,8 @@ public class MinioStoreIT {
 	}
 
 	private static void emptyBucket(String bucketName) throws Exception {
-		Iterable<Result<Item>> objects = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
+		Iterable<Result<Item>> objects = minioClient
+				.listObjects(ListObjectsArgs.builder().bucket(bucketName).recursive(true).build());
 
 		for (Result<Item> object : objects) {
 			String objectName = object.get().objectName();
@@ -96,8 +97,8 @@ public class MinioStoreIT {
 
 	@Test
 	public void testSetupHasExisitingImage() throws Exception {
-		StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Image))
-				.object(IMAGE_ROAD_FAR_UUID.toString() + ".jpg").build());
+		StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Si2))
+				.object("image/" + IMAGE_ROAD_FAR_UUID.toString() + ".jpg").build());
 
 		assertThat(stat.size(), is(901202L));
 	}
@@ -107,8 +108,8 @@ public class MinioStoreIT {
 		Map<BucketKey, String> buckets = MinioConfiguration.integrationTestBuckets();
 		sut.storeImage(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN), IMAGE_AUTUMN_UUID);
 
-		StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Image))
-				.object(IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
+		StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Si2))
+				.object("image/" + IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
 		
 		assertThat(stat.size(), is(312832L));
 	}
@@ -172,7 +173,8 @@ public class MinioStoreIT {
 		sut.storeThumbnail(IMAGE_AUTUMN_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN)));
 
 		StatObjectResponse stat = minioClient
-				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Thumbnail)).object(IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
+				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Si2))
+						.object("thumb/" + IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
 
 		assertThat(stat.size(), is(312832L));
 	}
@@ -189,7 +191,8 @@ public class MinioStoreIT {
 		sut.storePreProcessedImage(IMAGE_AUTUMN_UUID, Files.newInputStream(Paths.get("..\\node\\src\\test\\resources\\images\\", IMAGE_AUTUMN)));
 
 		StatObjectResponse stat = minioClient
-				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.PreProcessedImage)).object(IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
+				.statObject(StatObjectArgs.builder().bucket(buckets.get(BucketKey.Si2))
+						.object("preprocessed/" + IMAGE_AUTUMN_UUID.toString() + ".jpg").build());
 
 		assertThat(stat.size(), is(312832L));
 	}
