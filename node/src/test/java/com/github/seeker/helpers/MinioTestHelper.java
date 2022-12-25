@@ -9,14 +9,18 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 
 import io.minio.BucketExistsArgs;
 import io.minio.ListObjectsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.RemoveBucketArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
 import io.minio.errors.ErrorResponseException;
@@ -78,6 +82,20 @@ public class MinioTestHelper {
 				LOGGER.error("Failed to process object removal due to error: {}", e.getMessage());
 			}
 		});
+	}
+
+	/**
+	 * Empties all buckets and deletes them.
+	 * 
+	 * @param buckets map containing buckets to delete
+	 */
+	public void deleteAllBuckets(Map<BucketKey, String> buckets) throws InvalidKeyException, ErrorResponseException,
+			InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException,
+			ServerException, XmlParserException, IllegalArgumentException, IOException {
+		for (String bucket : buckets.values()) {
+			clearBucket(bucket);
+			minio.removeBucket(RemoveBucketArgs.builder().bucket(bucket).build());
+		}
 	}
 
 	/**
