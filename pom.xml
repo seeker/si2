@@ -26,6 +26,7 @@
 		<module>core</module>
 		<module>node</module>
 		<module>gui</module>
+		<module>test-helper</module>
 	</modules>
 
 	<reporting>
