@@ -21,6 +21,8 @@ import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 import com.github.seeker.persistence.document.ImageMetaData;
 
+import io.minio.CopyObjectArgs;
+import io.minio.CopySource;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -45,6 +47,7 @@ public class MinioStore {
 	private static final String PREFIX_IMAGE = "image";
 	private static final String PREFIX_THUMBNAIL = "thumb";
 	private static final String PREFIX_PREPROCESSED = "preprocessed";
+	private static final String PREFIX_CORRUPTED = "corrupted";
 
 	// This is to work around that browsers do not display images without the
 	// correct extension, despite the Content Type: image/jpeg
@@ -195,5 +198,19 @@ public class MinioStore {
 
 	public InputStream getPreProcessedImage(UUID imageId) throws MinioPersistenceException {
 		return objectToStream(imageId, PREFIX_PREPROCESSED);
+	}
+
+	public void moveImageToCorrupted(UUID imageId) throws MinioPersistenceException {
+		try {
+			client.copyObject(CopyObjectArgs.builder().bucket(bucketName(BucketKey.Si2))
+					.object(uuidToObjectName(PREFIX_CORRUPTED, imageId)).source(CopySource.builder()
+							.bucket(bucketName(BucketKey.Si2)).object(uuidToObjectName(PREFIX_IMAGE, imageId)).build())
+					.build());
+			deleteImage(imageId);
+		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+				| InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+				| IllegalArgumentException | IOException e) {
+			throw new MinioPersistenceException(e);
+		}
 	}
 }

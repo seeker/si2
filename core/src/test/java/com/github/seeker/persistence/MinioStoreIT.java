@@ -205,4 +205,17 @@ public class MinioStoreIT {
 		assertThat(is.skip(Long.MAX_VALUE), is(IMAGE_ROAD_NEAR_SIZE));
 	}
 
+	@Test
+	public void moveCorruptedFileCreatesFile() throws Exception {
+		sut.moveImageToCorrupted(IMAGE_ROAD_FAR_UUID);
+
+		imageExisitsAtPrefix("corrupted", IMAGE_ROAD_FAR_UUID, IMAGE_ROAD_FAR_SIZE);
+	}
+
+	@Test
+	public void corruptImageRemovedFromImages() throws Exception {
+		sut.moveImageToCorrupted(IMAGE_ROAD_FAR_UUID);
+
+		assertThat(sut.imageExisits(IMAGE_ROAD_FAR_UUID), is(false));
+	}
 }
