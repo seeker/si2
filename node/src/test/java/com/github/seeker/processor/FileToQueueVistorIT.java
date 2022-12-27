@@ -264,8 +264,9 @@ public class FileToQueueVistorIT {
 		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
 		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
 
-		StatObjectArgs args = StatObjectArgs.builder().bucket(TEST_BUCKET_NAME)
-				.object(meta.getImageId().toString() + ".jpg").build();
+		StatObjectArgs args = StatObjectArgs.builder().bucket(MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2))
+				.object("image/" + meta.getImageId().toString() + ".jpg").build();
+
 		Awaitility.await().atMost(timeout).untilCall(to(minioClient).statObject(args), is(notNullValue()));
 
 		assertThat(minioClient.statObject(args).size(), is(11L));
