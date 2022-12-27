@@ -15,18 +15,6 @@ import io.minio.MinioClient;
 public class MinioConfiguration {
 	public static enum BucketKey {
 		/**
-		 * Minio bucket for images that need to be processed
-		 */
-		Image,
-		/**
-		 * Minio bucket for thumbnails of loaded images
-		 */
-		Thumbnail,
-		/**
-		 * Minio bucket for grayscale and resized images used for phash
-		 */
-		PreProcessedImage,
-		/**
 		 * Bucket for SI2
 		 */
 		Si2
@@ -39,10 +27,7 @@ public class MinioConfiguration {
 	 */
 	public static Map<BucketKey, String> productionBuckets() {
 		HashMap<BucketKey, String> map = new HashMap<>();
-		
-		map.put(BucketKey.Image, "si2-images");
-		map.put(BucketKey.Thumbnail, "si2-thumbnails");
-		map.put(BucketKey.PreProcessedImage, "si2-preprocessed");
+
 		map.put(BucketKey.Si2, "si2");
 		
 		return map;

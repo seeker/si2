@@ -56,14 +56,10 @@ import com.rabbitmq.client.Envelope;
 import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
-import io.minio.UploadObjectArgs;
 
 public class ImageResizerIT {
 	private static final int AWAIT_TIMEOUT_SECONDS = 5;
-	private static final String IMAGE_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
-	private static final String THUMBNAIL_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Thumbnail);
-	private static final String PREPROCESSED_BUCKET = MinioConfiguration.integrationTestBuckets()
-			.get(BucketKey.PreProcessedImage);
+	private static final String INTEGRATION_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
 	
 	private static final String ANCHOR = "testimages";
 	
@@ -115,13 +111,8 @@ public class ImageResizerIT {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
-		minioHelper.clearBucket(IMAGE_BUCKET);
-		minioHelper.clearBucket(THUMBNAIL_BUCKET);
-		minioHelper.clearBucket(PREPROCESSED_BUCKET);
-
-		minio.removeBucket(RemoveBucketArgs.builder().bucket(IMAGE_BUCKET).build());
-		minio.removeBucket(RemoveBucketArgs.builder().bucket(THUMBNAIL_BUCKET).build());
-		minio.removeBucket(RemoveBucketArgs.builder().bucket(PREPROCESSED_BUCKET).build());
+		minioHelper.clearBucket(INTEGRATION_BUCKET);
+		minio.removeBucket(RemoveBucketArgs.builder().bucket(INTEGRATION_BUCKET).build());
 	}
 
 	@Before
@@ -139,8 +130,7 @@ public class ImageResizerIT {
 		
 		queueConfig = new QueueConfiguration(channel, true);
 		
-		minio.uploadObject(UploadObjectArgs.builder().bucket(IMAGE_BUCKET).object(IMAGE_AUTUMN_UUID.toString())
-				.filename("src\\test\\resources\\images\\" + IMAGE_AUTUMN).build());
+		// Uploaded autumn image here
 
 		cut = new ImageResizer(rabbitConn, consul, queueConfig,
 				new MinioStore(minio, MinioConfiguration.integrationTestBuckets()));

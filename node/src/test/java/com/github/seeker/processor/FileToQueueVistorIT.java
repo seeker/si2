@@ -57,7 +57,7 @@ import io.minio.StatObjectArgs;
 public class FileToQueueVistorIT {
 	private static final Duration timeout = Duration.FIVE_SECONDS;
 	private static final String ANCHOR = "walk";
-	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
+	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
 	private static final String APPLE_FILENAME = "apple.jpg";
 	private static final String ORANGE_FILENAME = "orange.png";
 	private static final String CHERRY_FILENAME = "cherry.gif";

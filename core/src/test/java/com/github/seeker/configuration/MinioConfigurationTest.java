@@ -23,7 +23,7 @@ public class MinioConfigurationTest {
 
 	@Test
 	public void productionImageBucketName() throws Exception {
-		assertThat(productionBuckets.get(MinioConfiguration.BucketKey.Image), is("si2-images"));
+		assertThat(productionBuckets.get(MinioConfiguration.BucketKey.Si2), is("si2"));
 	}
 
 	@Test
@@ -42,7 +42,7 @@ public class MinioConfigurationTest {
 
 	@Test
 	public void integrationTestImageBucketName() throws Exception {
-		assertThat(integrationBuckets.get(MinioConfiguration.BucketKey.Image), is("integration-si2-images"));
+		assertThat(integrationBuckets.get(MinioConfiguration.BucketKey.Si2), is("integration-si2"));
 	}
 
 }

@@ -62,7 +62,7 @@ import io.minio.RemoveBucketArgs;
 public class MessageDigestHasherIT {
 
 	private static final String ANCHOR = "testimages";
-	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Image);
+	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
 	
 	private static final String IMAGE_AUTUMN = "autumn.jpg";
 	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
