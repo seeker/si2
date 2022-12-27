@@ -3,8 +3,6 @@ package com.github.seeker.app;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +27,7 @@ import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -38,13 +37,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 
 /**
  * Fetches images from the queue and generates hashes and the thumbnail.
@@ -175,8 +167,7 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"), header.get("missing-hash"));
 
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
-	} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException | NoSuchAlgorithmException
-			| ServerException | XmlParserException | IllegalArgumentException e1) {
+	} catch (IllegalArgumentException | MinioPersistenceException e1) {
 		getChannel().basicNack(envelope.getDeliveryTag(), false, false);
 		throw new IOException("Failed to load preprocessed image:", e1);
 	}

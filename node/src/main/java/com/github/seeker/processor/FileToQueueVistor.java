@@ -9,8 +9,6 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,19 +20,13 @@ import org.slf4j.LoggerFactory;
 import com.github.seeker.io.ImageFileFilter;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 
 /**
  * Visits and loads files into the queue.
@@ -163,8 +155,7 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 			AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 
 			channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
+		} catch (IllegalArgumentException | IOException | MinioPersistenceException e) {
 			LOGGER.error("Failed to upload image {} due to error {}", file, e.getMessage());
 		}
 	}

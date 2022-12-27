@@ -2,7 +2,6 @@ package com.github.seeker.app;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -23,19 +22,13 @@ import com.github.seeker.messaging.HashMessageBuilder;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 
 /**
  * Fetches images from the queue and generates hashes based on the requested Algorithms using {@link MessageDigest}.
@@ -165,8 +158,7 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		try {
 			InputStream response = minio.getImage(imageId);
 			return response.readAllBytes();
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e1) {
+		} catch (IllegalArgumentException | IOException | MinioPersistenceException e1) {
 
 			throw new IOException("Failed to read object due to: ", e1);
 		}

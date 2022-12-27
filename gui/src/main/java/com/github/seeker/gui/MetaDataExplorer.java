@@ -2,23 +2,17 @@ package com.github.seeker.gui;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 
 import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -176,27 +170,26 @@ public class MetaDataExplorer extends Stage {
 				
 				LOGGER.debug("Selected {}:{}", newValue.getAnchor(), newValue.getPath());
 				
+				LOGGER.debug("Requesting thumbnail for image ID {}", newValue.getImageId());
 				try {
-					LOGGER.debug("Requesting thumbnail for image ID {}", newValue.getImageId());
-					try {
-						InputStream response = minio.getThumbnail(newValue.getImageId());
+					InputStream response = minio.getThumbnail(newValue.getImageId());
 
-						Image image = new Image(response);
-						imageView.setImage(image);
-					} catch (ErrorResponseException ere) {
+					Image image = new Image(response);
+					imageView.setImage(image);
+				} catch (MinioPersistenceException m) {
+					if (m.getCause() instanceof ErrorResponseException) {
+						Throwable ere = m.getCause();
+
 						if ("NoSuchKey".equals(ere.getMessage())) {
 							LOGGER.warn("Unable to find thumbnail for {} - {} (imageID {})", newValue.getAnchor(), newValue.getPath(), newValue.getImageId());
 							imageView.setImage(null);
 						} else {
 							LOGGER.warn("Failed to load thumbnail: {}", ere.getMessage());
 						}
-					} catch (InvalidKeyException | InsufficientDataException | InternalException | InvalidResponseException
-							| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException e) {
-						LOGGER.error("Failed to load thumbnail: {}", e.getMessage());
+					} else {
+						LOGGER.error("Failed to load thumbnail: {}", m.getMessage());
 					}
-				} catch (IOException e) {
-					LOGGER.warn("Failed to send thumbnail request for {}: {}", newValue.getThumbnail(), e);
-					e.printStackTrace();
+
 				}
 			}
 		});

@@ -7,8 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +36,7 @@ import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.orbitz.consul.cache.KVCache;
 import com.orbitz.consul.model.kv.Value;
@@ -47,13 +46,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 
 /**
  * Fetches images from the queue and generates thumbnails and resized images for further processing.
@@ -244,8 +236,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	private InputStream getImageFromBucket(UUID imageId) throws IOException {
 		try {
 			return minio.getImage(imageId);
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
+		} catch (IllegalArgumentException | MinioPersistenceException e) {
 			throw new IOException("Failed to load image " + imageId.toString() + " :", e);
 		}
 	}
@@ -264,8 +255,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		try {
 			// TODO need to store metadata?
 			minio.storeThumbnail(imageId, new ByteArrayInputStream(baos.toByteArray()));
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
+		} catch (IllegalArgumentException | MinioPersistenceException e) {
 			throw new IOException("Failed to store thumbnail due to:", e);
 		}
 		
@@ -289,8 +279,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 
 		try {
 			minio.storePreProcessedImage(imageId, new ByteArrayInputStream(baos.toByteArray()));
-		} catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException | InvalidResponseException
-				| NoSuchAlgorithmException | ServerException | XmlParserException | IllegalArgumentException | IOException e) {
+		} catch (IllegalArgumentException | MinioPersistenceException e) {
 			throw new IOException("Failed to store preprocessed image due to:", e);
 		}
 
