@@ -16,9 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 
-import io.minio.BucketExistsArgs;
 import io.minio.ListObjectsArgs;
-import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 import io.minio.RemoveObjectsArgs;
@@ -44,22 +42,11 @@ public class MinioTestHelper {
 		this.minio = minio;
 	}
 
-	/***
-	 * Create a bucket if it does not exists. Has no effect if the bucket is already present.
-	 * @param bucketName Name of the bucket to create
-	 */
-	public void createBucket(String bucketName) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
-			InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-		if (!minio.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
-			minio.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-		}
-	}
-
 	/**
 	 * Delete all objects in a bucket without deleting the bucket itself.
 	 */
 	public void clearBucket(String bucketName) {
-		Iterable<Result<Item>> objects = minio.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
+		Iterable<Result<Item>> objects = minio.listObjects(ListObjectsArgs.builder().bucket(bucketName).recursive(true).build());
 		List<DeleteObject> toDelete = new LinkedList<>();
 
 		objects.forEach(t -> {
@@ -95,34 +82,6 @@ public class MinioTestHelper {
 		for (String bucket : buckets.values()) {
 			clearBucket(bucket);
 			minio.removeBucket(RemoveBucketArgs.builder().bucket(bucket).build());
-		}
-	}
-
-	/**
-	 * Create a bucket name for integration, consists of the si2-integration- prefix
-	 * and class name.
-	 * 
-	 * @param clazz Class of the Test, used as part of the bucket name
-	 * @return a bucket name for the test
-	 */
-	public static String integrationBucketName(Class<?> clazz) {
-		return integrationBucketName(clazz, "");
-	}
-
-	/**
-	 * Create a bucket name for integration, consists of the si2-integration- prefix
-	 * and class name and suffix separated by a dash. If the suffix is blank, no
-	 * dash is appended.
-	 * 
-	 * @param clazz Class of the Test, used as part of the bucket name
-	 * @suffix Suffix to append to the bucket name
-	 * @return a bucket name for the test
-	 */
-	public static String integrationBucketName(Class<?> clazz, String suffix) {
-		if (suffix.isBlank()) {
-			return "si2-integration-" + clazz.getSimpleName().toLowerCase();
-		} else {
-			return "si2-integration-" + clazz.getSimpleName().toLowerCase() + "-" + suffix;
 		}
 	}
 }
