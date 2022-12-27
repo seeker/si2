@@ -55,15 +55,6 @@ public class MinioConfiguration {
 	}
 
 	/**
-	 * Minio bucket for thumbnails of loaded images
-	 */
-	public static String THUMBNAIL_BUCKET = "si2-thumbnails";
-	/**
-	 * Minio bucket for grayscale and resized images used for phash
-	 */
-	public static String PREPROCESSED_IMAGES_BUCKET = "si2-preprocessed";
-
-	/**
 	 * Try to create the bucket if it does not exist. Will rethrow any exception as
 	 * a runtime exception!
 	 * 
