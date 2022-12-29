@@ -199,7 +199,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 				LOGGER.warn("Failed to create thumbnail for {}-{} due to an image error}", anchor, relativePath, iioe);
 			}
 
-			getChannel().basicNack(envelope.getDeliveryTag(), false, false);
+			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
 
