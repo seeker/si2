@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package com.github.seeker.messaging.proto;
+
+// Message that describes the path for an image
+
+message ImagePath {
+	optional string anchor = 1;  // a arbitrary label that identifies the root path for the image
+	optional string relative_path = 2; // path and filename for the image relative to the anchor
+}
