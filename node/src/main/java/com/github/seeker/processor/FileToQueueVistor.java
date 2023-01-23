@@ -10,16 +10,16 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.seeker.io.ImageFileFilter;
-import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad.Builder;
 import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -146,15 +146,12 @@ public class FileToQueueVistor extends SimpleFileVisitor<Path> {
 		try {
 			minio.storeImage(file, meta.getImageId());
 
-			Map<String, Object> headers = new HashMap<String, Object>();
-			headers.put(MessageHeaderKeys.HASH_ALGORITHMS, String.join(",", missingHashes));
-			headers.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, String.join(",", missingCustomHashes));
-			headers.put(MessageHeaderKeys.ANCHOR, anchor);
-			headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, relativeToAnchor.toString());
-			headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(Boolean.logicalOr(!generateThumbnails, meta.hasThumbnail())));
-			AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+			Builder fileLoad = FileLoad.newBuilder().addAllMissingHash(missingHashes).addAllMissingCustomHash(missingCustomHashes)
+					.setGenerateThumbnail(Boolean.logicalAnd(generateThumbnails, !meta.hasThumbnail())).setImageId(meta.getImageId().toString());
+			fileLoad.getImagePathBuilder().setAnchor(anchor).setRelativePath(relativeToAnchor.toString());
+			FileLoad message = fileLoad.build();
 
-			channel.basicPublish(fileLoadExchange, "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
+			channel.basicPublish(fileLoadExchange, "", new AMQP.BasicProperties.Builder().headers(Collections.emptyMap()).build(), message.toByteArray());
 		} catch (IllegalArgumentException | IOException | MinioPersistenceException e) {
 			LOGGER.error("Failed to upload image {} due to error {}", file, e.getMessage());
 		}

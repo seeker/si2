@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -41,8 +41,8 @@ import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.HashMessageHelper;
-import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad.Builder;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
@@ -183,16 +183,13 @@ public class MessageDigestHasherIT {
 	}
 	
 	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail) throws IOException {
-		byte[] uuidAsBytes = UUIDUtils.UUIDtoByte(imageId);
+		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(Collections.emptyMap()).build();
 		
-		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
-		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, image.toString());
-		headers.put("thumb", Boolean.toString(hasThumbnail));
-		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
-		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, uuidAsBytes);
+		Builder messageBuilder = FileLoad.newBuilder().setGenerateThumbnail(!hasThumbnail).addMissingHash("SHA-256").addMissingHash("SHA-512")
+				.setImageId(imageId.toString());
+		messageBuilder.getImagePathBuilder().setAnchor(ANCHOR).setRelativePath(image.toString());
+
+		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, messageBuilder.build().toByteArray());
 	}
 
 	@After
