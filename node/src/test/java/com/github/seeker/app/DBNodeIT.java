@@ -3,11 +3,11 @@ package com.github.seeker.app;
 import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertArrayEquals;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -23,13 +23,18 @@ import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
+import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
-import com.github.seeker.messaging.HashMessageBuilder;
-import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
 import com.github.seeker.persistence.MongoDbMapper;
+import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
+import com.google.protobuf.ByteString;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
@@ -44,12 +49,14 @@ public class DBNodeIT {
 	
 	private static ConnectionProvider connectionProvider;
 
+	@SuppressWarnings("unused")
 	private DBNode cut;
 	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
-	private HashMessageBuilder hashMessage;
+	private DbUpdate prototype;
 	private Duration duration;
 	private QueueConfiguration queueConfig;
+	private Channel channel;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -68,24 +75,21 @@ public class DBNodeIT {
 		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 		ConsulClient consul = connectionProvider.getConsulClient();
 		
-		Channel channel = rabbitConn.createChannel();
+		channel = rabbitConn.createChannel();
 		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
 		
 		queueConfig = new QueueConfiguration(channel, true);
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
-		hashMessage = new HashMessageBuilder(channel, queueConfig);
-		hashMessage.addHash(SHA256_ALGORITHM_NAME, SHA256).send(createTestHeaders(RELATIVE_ANCHOR_PATH));
+		DbUpdate.Builder builder = DbUpdate.newBuilder().putDigestHash(SHA256_ALGORITHM_NAME, ByteString.copyFrom(SHA256)).setUpdateType(UpdateType.UPDATE_TYPE_DIGEST_HASH);
+		builder.getImagePathBuilder().setAnchor(ANCHOR).setRelativePath(RELATIVE_ANCHOR_PATH.toString());
+
+		this.prototype = builder.buildPartial();
 	}
 	
-	private Map<String, Object> createTestHeaders(Path releativeAnchorPath) {
-		Map<String, Object> newHeaders = new HashMap<String, Object>();
-		
-		newHeaders.put(MessageHeaderKeys.ANCHOR, ANCHOR);
-		newHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, releativeAnchorPath.toString());
-		
-		return newHeaders;
+	private void sendMessage(DbUpdate message) throws IOException {
+		channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.persistence), null, message.toByteArray());
 	}
 
 	@After
@@ -100,13 +104,45 @@ public class DBNodeIT {
 	
 	@Test
 	public void messageIsAddedToDatabase() throws Exception {
+		sendMessage(prototype);
+
 		Awaitility.await().atMost(duration).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH), is(notNullValue()));
 	}
 	
 	@Test
 	public void pathWithUmlatusIsCorrectlyReceived() throws Exception {
-		hashMessage.addHash("SHA-256", SHA256).send(createTestHeaders(RELATIVE_ANCHOR_PATH_WITH_UMLAUT));
-		
+		DbUpdate.Builder builder = DbUpdate.newBuilder(prototype);
+		builder.getImagePathBuilder().setRelativePath(RELATIVE_ANCHOR_PATH_WITH_UMLAUT.toString());
+
+		sendMessage(builder.build());
+
 		Awaitility.await().atMost(duration).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH_WITH_UMLAUT), is(notNullValue()));
+	}
+
+	@Test
+	public void digestHashIsUpdated() throws Exception {
+		sendMessage(prototype);
+
+		Awaitility.await().atMost(duration).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH), is(notNullValue()));
+
+		Hash sha256 = mapperForTest.getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH).getHashes().get(SHA256_ALGORITHM_NAME);
+
+		assertArrayEquals(sha256.getHash(), SHA256);
+	}
+
+	@Test
+	public void customHashIsUpdated() throws Exception {
+		ByteArrayDataOutput phashAsByteArray = ByteStreams.newDataOutput();
+		phashAsByteArray.writeLong(987439583L);
+
+		DbUpdate.Builder builder = DbUpdate.newBuilder(prototype);
+		builder.clearDigestHash();
+		builder.putDigestHash("phash", ByteString.copyFrom(phashAsByteArray.toByteArray()));
+		sendMessage(builder.build());
+
+		Awaitility.await().atMost(duration).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH), is(notNullValue()));
+
+		Hash phash = mapperForTest.getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH).getHashes().get("phash");
+		assertArrayEquals(phash.getHash(), phashAsByteArray.toByteArray());
 	}
 }

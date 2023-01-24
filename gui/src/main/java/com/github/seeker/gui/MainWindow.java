@@ -20,7 +20,7 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -193,11 +193,14 @@ public class MainWindow extends Application{
 			try {
 				Map<String, Object> headers = new HashMap<String, Object>();
 				headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
-				headers.put(MessageHeaderKeys.ANCHOR, meta.getAnchor());
-				headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, meta.getPath());
+
+				FileLoad.Builder builder = FileLoad.newBuilder();
+				builder.getImagePathBuilder().setAnchor(meta.getAnchor()).setRelativePath(meta.getPath());
+				builder.setImageId(meta.getImageId().toString());
+
 				AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 
-				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
+				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, builder.build().toByteArray());
 			} catch (IOException e) {
 				LOGGER.warn("Failed to create thumbnail recreate message for {} - {} due to {}", meta.getAnchor(), meta.getPath(), e.getMessage());
 			}

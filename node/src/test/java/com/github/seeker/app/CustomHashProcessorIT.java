@@ -7,10 +7,9 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,7 +31,6 @@ import com.github.seeker.configuration.ConsulConfiguration;
 import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.MinioConfiguration.BucketKey;
 import com.github.seeker.configuration.QueueConfiguration;
-import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
@@ -43,8 +41,9 @@ import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad.Builder;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.document.ImageMetaData;
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
 import com.google.protobuf.ByteString;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -56,24 +55,19 @@ import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 
-public class MessageDigestHasherIT {
+public class CustomHashProcessorIT {
 
 	private static final String ANCHOR = "testimages";
 	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
 	
-	private static final String IMAGE_AUTUMN = "autumn.jpg";
-	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
-	
-	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
-	private static final byte[] AUTUMN_SHA512 = {32, -119, 47, -64, -97, -72, -41, -5, 106, 112, -38, -113, -115, -107, 25, 59, -38, -1, 22, -71, -63, 88, 119, -54, 91, 25, 124, 3, 17, 60, -57, 79, -87, -127, 89, -91, 27, -52, 10, -4, 102, -99, -69, -19, 42, -13, 17, -51, -93, -60, -128, -96, 88, -126, -21, 38, 14, 71, 105, 63, 100, 4, 92, -72};
-	
-	private static final String ALGORITHM_NAME_SHA256 = "SHA-256";
-	private static final String ALGORITHM_NAME_SHA512 = "SHA-512";
-	
+	private static final String IMAGE_ROAD_FAR = "road-far-pp.jpg";
+	private static final UUID IMAGE_ROAD_FAR_UUID = UUID.randomUUID();
+	private static final long IMAGE_ROAD_FAR_PHASH = 8792943954746078079L;
+
 	private static ConnectionProvider connectionProvider;
 
 	@SuppressWarnings("unused")
-	private MessageDigestHasher cut;
+	private CustomHashProcessor cut;
 	private Connection rabbitConn;
 	private static MinioClient minio;
 	private static MinioStore minioStore;
@@ -81,7 +75,7 @@ public class MessageDigestHasherIT {
 	private Channel channelForTest;
 	private QueueConfiguration queueConfig;
 	
-	private LinkedBlockingQueue<DbUpdate> dbUpdateMessages;
+	private LinkedBlockingQueue<DbUpdate> hashMessages;
 	
     @Rule
     public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
@@ -102,7 +96,7 @@ public class MessageDigestHasherIT {
 	}
 
 	private static void uploadTestImage() throws Exception {
-		minioStore.storeImage(Paths.get("src\\test\\resources\\images\\", IMAGE_AUTUMN), IMAGE_AUTUMN_UUID);
+		minioStore.storePreProcessedImage(IMAGE_ROAD_FAR_UUID, Files.newInputStream(Paths.get("src\\test\\resources\\images\\", IMAGE_ROAD_FAR)));
 	}
 
 	@AfterClass
@@ -123,18 +117,19 @@ public class MessageDigestHasherIT {
 		channelForTest = rabbitConn.createChannel();
 		
 		queueConfig = new QueueConfiguration(channel, true);
+		cut = new CustomHashProcessor(channel, consul, minioStore, queueConfig);
 		
-		cut = new MessageDigestHasher(rabbitConn, consul,
-				new MinioStore(minio, MinioConfiguration.integrationTestBuckets()), queueConfig);
+		hashMessages = new LinkedBlockingQueue<DbUpdate>();
 		
-		dbUpdateMessages = new LinkedBlockingQueue<DbUpdate>();
 		
 		channel.basicConsume(queueConfig.getQueueName(ConfiguredQueues.persistence), new DefaultConsumer(channel) {
 			@Override
 			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
 					throws IOException {
+				
 				DbUpdate message = DbUpdate.parseFrom(body);
-				dbUpdateMessages.add(message);
+
+				hashMessages.add(message);
 			}
 		});
 	}
@@ -144,19 +139,12 @@ public class MessageDigestHasherIT {
 		return Paths.get(ClassLoader.getSystemResource("images/"+fileName).toURI());
 	}
 	
-	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail) throws IOException {
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(Collections.emptyMap()).build();
-		
-		Builder messageBuilder = FileLoad.newBuilder().setGenerateThumbnail(!hasThumbnail).addMissingHash("SHA-256").addMissingHash("SHA-512")
+	private void sendFileProcessMessage(Path image, UUID imageId) throws IOException {
+		Builder messageBuilder = FileLoad.newBuilder().setGenerateThumbnail(false).addMissingCustomHash("phash")
 				.setImageId(imageId.toString());
 		messageBuilder.getImagePathBuilder().setAnchor(ANCHOR).setRelativePath(image.toString());
 
-		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, messageBuilder.build().toByteArray());
-	}
-
-	private byte[] getHashFromMessage(DbUpdate message, String hashName) {
-		Map<String, ByteString> hashes = message.getDigestHashMap();
-		return hashes.get(hashName).toByteArray();
+		channelForTest.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.filePreProcessed), null, messageBuilder.build().toByteArray());
 	}
 
 	@After
@@ -174,24 +162,20 @@ public class MessageDigestHasherIT {
 	
 	@Test
 	public void hashResponseIsReceived() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
+		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(dbUpdateMessages).size(), is(1));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
 	}
 	
 	@Test
-	public void sha256IsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
-		DbUpdate message = dbUpdateMessages.take();
-		
-		assertThat(getHashFromMessage(message, ALGORITHM_NAME_SHA256), is(AUTUMN_SHA256));
-	}
+	public void phashIsCorrect() throws Exception {
+		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
 
-	@Test
-	public void sha512IsCorrect() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
-		DbUpdate message = dbUpdateMessages.take();
+		DbUpdate message = hashMessages.take();
+		ByteString hash = message.getDigestHashMap().get("phash");
+		ByteArrayDataInput dataIn = ByteStreams.newDataInput(hash.toByteArray());
 
-		assertThat(getHashFromMessage(message, ALGORITHM_NAME_SHA512), is(AUTUMN_SHA512));
+		assertThat(dataIn.readLong(), is(IMAGE_ROAD_FAR_PHASH));
 	}
 }

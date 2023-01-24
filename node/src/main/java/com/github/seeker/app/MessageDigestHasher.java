@@ -19,13 +19,14 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.HashMessageBuilder;
-import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
 import com.github.seeker.messaging.proto.ImagePathOuterClass.ImagePath;
 import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
+import com.google.protobuf.ByteString;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -102,15 +103,13 @@ public class MessageDigestHasher {
 class MessageDigestHashConsumer extends DefaultConsumer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageDigestHashConsumer.class);
 
-	private final HashMessageBuilder hashMessageBuilder;
-	private final HashMessageHelper hashMessageHelper;
 	private final MinioStore minio;
+	private final QueueConfiguration queueConfig;
 	
 	public MessageDigestHashConsumer(Channel channel, MinioStore minio, QueueConfiguration queueConfig) {
 		super(channel);
 		this.minio = minio;
-		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
-		this.hashMessageHelper = new HashMessageHelper();
+		this.queueConfig = queueConfig;
 	}
 
 	@Override
@@ -142,20 +141,24 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 		// TODO use InputStream with Memory Digest for more memory efficient processing
 		byte[] image = readImage(UUID.fromString(message.getImageId()));
 
+		DbUpdate.Builder builder = DbUpdate.newBuilder();
+		builder.getImagePathBuilder().mergeFrom(imagePath);
+		builder.setUpdateType(UpdateType.UPDATE_TYPE_DIGEST_HASH);
+
 		for (String hash : hashes) {
 			try {
 				MessageDigest md = MessageDigest.getInstance(hash);
-				hashMessageBuilder.addHash(hash, md.digest(image));
+				builder.putDigestHash(hash, ByteString.copyFrom(md.digest(image)));
 			} catch (NoSuchAlgorithmException e) {
 				// TODO send a error message back
 				e.printStackTrace();
 			}
 		}
 		
-		hashMessageBuilder.send(originalHeader);
-		LOGGER.debug("Consumed message for {} - {} > hashes: {}", anchor, relativePath, hashes);
-		
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.persistence), null, builder.build().toByteArray());
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
+
+		LOGGER.debug("Consumed message for {} - {} > hashes: {}", anchor, relativePath, hashes);
 	}
 
 	private byte[] readImage(UUID imageId) throws IOException {

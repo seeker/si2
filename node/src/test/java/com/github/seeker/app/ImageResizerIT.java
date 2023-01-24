@@ -17,7 +17,6 @@ import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -41,9 +40,10 @@ import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.helpers.MinioTestHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
 import com.github.seeker.persistence.MinioStore;
-import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -65,30 +65,23 @@ public class ImageResizerIT {
 	
 	private static final String IMAGE_AUTUMN = "autumn.jpg";
 	private static final UUID IMAGE_AUTUMN_UUID = UUID.randomUUID();
-	private static final String IMAGE_ROAD_FAR = "road-far.jpg";
-	
-	private static final byte[] AUTUMN_SHA256 = {48, -34, -2, 126, 61, -52, 0, -100, -51, 53, 101, -79, 68, -60, -85, -90, 24, 84, -14, -12, -20, -125, -38, -27, 46, -53, -115, 33, -66, 68, 6, 91};
-	private static final byte[] AUTUMN_SHA512 = {32, -119, 47, -64, -97, -72, -41, -5, 106, 112, -38, -113, -115, -107, 25, 59, -38, -1, 22, -71, -63, 88, 119, -54, 91, 25, 124, 3, 17, 60, -57, 79, -87, -127, 89, -91, 27, -52, 10, -4, 102, -99, -69, -19, 42, -13, 17, -51, -93, -60, -128, -96, 88, -126, -21, 38, 14, 71, 105, 63, 100, 4, 92, -72};
-	
-	private static final String ALGORITHM_NAME_SHA256 = "SHA-256";
-	private static final String ALGORITHM_NAME_SHA512 = "SHA-512";
 
 	private static ConnectionProvider connectionProvider;
 	private static MinioClient minio;
 	private static MinioStore minioStore;
 	private static MinioTestHelper minioHelper;
 
+	@SuppressWarnings("unused")
 	private ImageResizer cut;
-	private MongoDbMapper mapperForTest; 
 	private Connection rabbitConn;
 	private Channel channelForTest;
 	private QueueConfiguration queueConfig;
 	private ConsulClient consul;
 	
-	private LinkedBlockingQueue<Map<String, Object>> thumbMessageHeaders;
+	private LinkedBlockingQueue<Map<String, Object>> dbMessageHeaders;
 	private LinkedBlockingQueue<Map<String, Object>> preprocessedMessageHeaders;
-	private LinkedBlockingQueue<Byte[]> thumbMessage;
-	private LinkedBlockingQueue<Byte[]> preprocessedMessage;
+	private LinkedBlockingQueue<DbUpdate> dbMessage;
+	private LinkedBlockingQueue<FileLoad> preprocessedMessage;
 	
     @Rule
     public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
@@ -126,8 +119,6 @@ public class ImageResizerIT {
 		Channel channel = rabbitConn.createChannel();
 		channelForTest = rabbitConn.createChannel();
 		
-		mapperForTest = connectionProvider.getIntegrationMongoDbMapper();
-		
 		queueConfig = new QueueConfiguration(channel, true);
 		
 		// Uploaded autumn image here
@@ -135,18 +126,17 @@ public class ImageResizerIT {
 		cut = new ImageResizer(rabbitConn, consul, queueConfig,
 				new MinioStore(minio, MinioConfiguration.integrationTestBuckets()));
 		
-		thumbMessage = new LinkedBlockingQueue<Byte[]>();
-		preprocessedMessage = new LinkedBlockingQueue<Byte[]>();
-		thumbMessageHeaders = new LinkedBlockingQueue<Map<String,Object>>();
+		dbMessage = new LinkedBlockingQueue<DbUpdate>();
+		preprocessedMessage = new LinkedBlockingQueue<FileLoad>();
+		dbMessageHeaders = new LinkedBlockingQueue<Map<String,Object>>();
 		preprocessedMessageHeaders = new LinkedBlockingQueue<Map<String,Object>>();
 		
-		channel.basicConsume(queueConfig.getQueueName(ConfiguredQueues.thumbnails), new DefaultConsumer(channel) {
+		channel.basicConsume(queueConfig.getQueueName(ConfiguredQueues.persistence), new DefaultConsumer(channel) {
 			@Override
-			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
-					throws IOException {
-				
-					thumbMessageHeaders.add(properties.getHeaders());
-					thumbMessage.add(ArrayUtils.toObject(body));
+			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
+
+				dbMessageHeaders.add(properties.getHeaders());
+				dbMessage.add(DbUpdate.parseFrom(body));
 			}
 		});
 		
@@ -156,7 +146,7 @@ public class ImageResizerIT {
 					throws IOException {
 		
 				preprocessedMessageHeaders.add(properties.getHeaders());
-				preprocessedMessage.add(ArrayUtils.toObject(body));
+				preprocessedMessage.add(FileLoad.parseFrom(body));
 			}
 		});
 	}
@@ -171,13 +161,13 @@ public class ImageResizerIT {
 	}
 
 	private void sendFileProcessMessage(Path image, UUID imageId, boolean hasThumbnail, boolean recreateOnly) throws IOException {
-		byte[] imageIdBytes = UUIDUtils.UUIDtoByte(imageId);
+		FileLoad.Builder builder = FileLoad.newBuilder();
+		builder.setImageId(imageId.toString());
+		builder.getImagePathBuilder().setAnchor(ANCHOR).setRelativePath(image.toString());
+		builder.setGenerateThumbnail(!hasThumbnail);
+		builder.addMissingHash("SHA-256").addMissingHash("SHA-512");
 		
 		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.ANCHOR, ANCHOR);
-		headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, image.toString());
-		headers.put(MessageHeaderKeys.THUMBNAIL_FOUND, Boolean.toString(hasThumbnail));
-		headers.put(MessageHeaderKeys.HASH_ALGORITHMS, "SHA-256,SHA-512");
 
 		if (recreateOnly) {
 			headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
@@ -185,7 +175,7 @@ public class ImageResizerIT {
 
 		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, imageIdBytes);
+		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, builder.build().toByteArray());
 	}
 
 	@After
@@ -205,7 +195,11 @@ public class ImageResizerIT {
 	public void thumbnailGeneratedWhenMissing() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessage).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
+
+		DbUpdate message = dbMessage.take();
+
+		assertThat(message.getUpdateType(), is(UpdateType.UPDATE_TYPE_THUMBNAIL));
 	}
 	
 	@Test
@@ -213,7 +207,7 @@ public class ImageResizerIT {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
 		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(1));
-		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(AWAIT_TIMEOUT_SECONDS + 1, TimeUnit.SECONDS).untilCall(to(thumbMessage).size(), is(0));
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(AWAIT_TIMEOUT_SECONDS + 1, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(0));
 	}
 	
 	@Test
@@ -227,25 +221,17 @@ public class ImageResizerIT {
 	public void thumbnailMessageContainsThumbnailSize() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
 
 		int thumbnailSize = (int) consul.getKvAsLong("config/general/thumbnail-size");
-		assertThat(thumbMessageHeaders.take().get(MessageHeaderKeys.THUMBNAIL_SIZE), is(thumbnailSize));
-	}
-	
-	@Test
-	public void thumbnailMessageHasSizeHeader() throws Exception {
-		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
-
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
-		assertThat(thumbMessageHeaders.take().containsKey(MessageHeaderKeys.THUMBNAIL_SIZE), is(true));
+		assertThat(dbMessage.take().getThumbnailSize(), is(thumbnailSize));
 	}
 
 	@Test
 	public void thumbnailIsStoredInBucket() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
 		
 		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
 		assertThat(thumb, is(notNullValue()));
@@ -255,7 +241,7 @@ public class ImageResizerIT {
 	public void onlyRecreateThumbnailGeneratesThumbnail() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessageHeaders).size(), is(1));
 
 		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
 		assertThat(thumb, is(notNullValue()));
@@ -265,7 +251,7 @@ public class ImageResizerIT {
 	public void onlyRecreateThumbnailNoPreprocessedMessage() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(thumbMessageHeaders).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(2, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(0));
 	}
 }

@@ -7,15 +7,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.imageio.IIOException;
@@ -33,9 +29,11 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.HashMessageHelper;
 import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.ImagePathOuterClass.ImagePath;
 import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.orbitz.consul.cache.KVCache;
@@ -59,8 +57,6 @@ public class ImageResizer {
 	private final MinioStore minio;
 	private final ConsulClient consul;
 	
-	private final HashMessageHelper hashMessageHelper;
-	
 	public ImageResizer(Connection channel, ConsulClient consul, QueueConfiguration queueConfig, MinioStore minio)
 			throws IOException, TimeoutException, InterruptedException {
 		LOGGER.info("{} starting up...", ImageResizer.class.getSimpleName());
@@ -69,8 +65,6 @@ public class ImageResizer {
 		this.queueConfig = queueConfig;
 		this.minio = minio;
 		this.consul = consul;
-
-		hashMessageHelper = new HashMessageHelper();
 
 		processFiles();
 	}
@@ -86,8 +80,6 @@ public class ImageResizer {
 		this.minio = minio;
 
 		minio.createBuckets();
-
-		hashMessageHelper = new HashMessageHelper();
 
 		processFiles();
 	}
@@ -157,17 +149,13 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 		Map<String, Object> receivedMessageHeader = properties.getHeaders();
 		
-		String anchor = receivedMessageHeader.get(MessageHeaderKeys.ANCHOR).toString();
-		String relativePath = receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH).toString();
-		Set<String> customHashAlgorithms = Collections.emptySet();
-		
-		if(receivedMessageHeader.containsKey(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS)) {
-			String[] customHash = receivedMessageHeader.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS).toString().split(",");
+		FileLoad message = FileLoad.parseFrom(body);
+		ImagePath imagePath = message.getImagePath();
 
-			customHashAlgorithms = Arrays.stream(customHash).filter(ch -> ! ch.isEmpty()).collect(Collectors.toSet());
-		}
+		String anchor = imagePath.getAnchor();
+		String relativePath = imagePath.getRelativePath();
 		
-		UUID imageId = UUIDUtils.ByteToUUID(body);
+		UUID imageId = UUID.fromString(message.getImageId());
 		BufferedImage originalImage;
 		
 		try (InputStream is = getImageFromBucket(imageId)) {
@@ -188,7 +176,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		if (receivedMessageHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
 			LOGGER.debug("Recreating thumbnail for {} - {} with size {}", anchor, relativePath, thumbnailSize);
 			try {
-				createThumbnail(receivedMessageHeader, originalImage, imageId);
+				createThumbnail(message, originalImage);
 				getChannel().basicAck(envelope.getDeliveryTag(), false);
 				return;
 			} catch (IllegalArgumentException iae) {
@@ -202,13 +190,11 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
-
-		boolean hasThumbnail = Boolean.parseBoolean(receivedMessageHeader.get(MessageHeaderKeys.THUMBNAIL_FOUND).toString());
 		
-		if(!hasThumbnail) {
+		if (message.getGenerateThumbnail()) {
 			LOGGER.debug("{}:{} does not have a thumbnail, creating...", anchor, relativePath);
 			try {
-				createThumbnail(receivedMessageHeader, originalImage, imageId);
+				createThumbnail(message, originalImage);
 			} catch (IllegalArgumentException iae) {
 				//TODO send a error message
 				LOGGER.warn("Failed to create thumbnail due to {}", iae);
@@ -220,13 +206,9 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			LOGGER.debug("{}:{} already has a thumbnail, skipping...", anchor, relativePath);
 		}
 		
-		preProcessImage(receivedMessageHeader, originalImage, imageId);
+		preProcessImage(message, originalImage);
 		
 		originalImage.flush();
-		
-		Map<String, Object> hashHeaders = new HashMap<String, Object>();
-		hashHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
-		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
 
 		LOGGER.debug("Consumed message for {}:{}", anchor, relativePath);
 		
@@ -241,34 +223,30 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		}
 	}
 
-	private void createThumbnail(Map<String, Object> receivedMessageHeader, BufferedImage originalImage, UUID imageId) throws IOException {
+	private void createThumbnail(FileLoad message, BufferedImage originalImage) throws IOException {
 		int currentThumbnailSize = this.thumbnailSize;
 
 		BufferedImage thumbnail = Scalr.resize(originalImage, Method.BALANCED, currentThumbnailSize);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(307200);
 		ImageIO.write(thumbnail, "jpg", baos);
 		thumbnail.flush();
-
-		Map<String, String> metadata = new HashMap<>();
-		metadata.put(MessageHeaderKeys.THUMBNAIL_SIZE, String.valueOf(currentThumbnailSize));
 		
 		try {
 			// TODO need to store metadata?
-			minio.storeThumbnail(imageId, new ByteArrayInputStream(baos.toByteArray()));
+			minio.storeThumbnail(UUID.fromString(message.getImageId()), new ByteArrayInputStream(baos.toByteArray()));
 		} catch (IllegalArgumentException | MinioPersistenceException e) {
 			throw new IOException("Failed to store thumbnail due to:", e);
 		}
 		
-		Map<String, Object> thumbnailHeaders = new HashMap<String, Object>();
-		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
-		thumbnailHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-		thumbnailHeaders.put(MessageHeaderKeys.THUMBNAIL_SIZE, currentThumbnailSize);
+		DbUpdate.Builder builder = DbUpdate.newBuilder();
+		builder.getImagePathBuilder().mergeFrom(message.getImagePath());
+		builder.setUpdateType(UpdateType.UPDATE_TYPE_THUMBNAIL);
+		builder.setThumbnailSize(currentThumbnailSize);
 		
-		AMQP.BasicProperties thumbnailProps = new AMQP.BasicProperties.Builder().headers(thumbnailHeaders).build();
-		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.thumbnails), thumbnailProps, new byte[0]);
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.persistence), emptyHeader(), builder.build().toByteArray());
 	}
 	
-	private void preProcessImage(Map<String, Object> receivedMessageHeader, BufferedImage originalImage, UUID imageId) throws IOException {
+	private void preProcessImage(FileLoad message, BufferedImage originalImage) throws IOException {
 		BufferedImage grayscaleImage = Scalr.resize(originalImage, Method.SPEED, Mode.FIT_EXACT, IMAGE_SIZE,
 				new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null));
 
@@ -278,17 +256,15 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 		grayscaleImage.flush();
 
 		try {
-			minio.storePreProcessedImage(imageId, new ByteArrayInputStream(baos.toByteArray()));
+			minio.storePreProcessedImage(UUID.fromString(message.getImageId()), new ByteArrayInputStream(baos.toByteArray()));
 		} catch (IllegalArgumentException | MinioPersistenceException e) {
 			throw new IOException("Failed to store preprocessed image due to:", e);
 		}
 
-		Map<String, Object> preProcessedHeaders = new HashMap<String, Object>();
-		preProcessedHeaders.put(MessageHeaderKeys.ANCHOR, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR));
-		preProcessedHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, receivedMessageHeader.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-		preProcessedHeaders.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, receivedMessageHeader.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS));
-		
-		AMQP.BasicProperties preprocessedProps = new AMQP.BasicProperties.Builder().headers(preProcessedHeaders).build();
-		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.filePreProcessed), preprocessedProps, UUIDUtils.UUIDtoByte(imageId));
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.filePreProcessed), emptyHeader(), message.toByteArray());
+	}
+
+	private BasicProperties emptyHeader() {
+		return new AMQP.BasicProperties.Builder().headers(Collections.emptyMap()).build();
 	}
 }
