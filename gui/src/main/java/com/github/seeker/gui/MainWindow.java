@@ -30,6 +30,7 @@ import com.rabbitmq.client.Connection;
 
 import de.caluga.morphium.query.MorphiumIterator;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -52,7 +53,8 @@ public class MainWindow extends Application{
 	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
 	private ConsulClient consul;
-	
+	private ConnectionProvider connectionProvider;
+	private Connection rabbitConnection;
 	private Channel channel;
 	
 	public static void main(String[] args) {
@@ -63,8 +65,8 @@ public class MainWindow extends Application{
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
 		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
 		
-		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
-		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
+		connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
+		rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
 		this.channel = rabbitConnection.createChannel();
 		
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel());
@@ -217,6 +219,17 @@ public class MainWindow extends Application{
         Scene scene = new Scene(bp, 640, 480);
 
         primaryStage.setScene(scene);
-        primaryStage.show();		
+		primaryStage.show();
+	}
+
+	@Override
+	public void stop() throws Exception {
+		super.stop();
+		LOGGER.info("JavaFx stop method called");
+
+		this.rabbitConnection.close();
+		this.connectionProvider.shutdown();
+
+		Platform.exit();
 	}
 }
