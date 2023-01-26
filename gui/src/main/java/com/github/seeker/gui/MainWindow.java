@@ -2,8 +2,6 @@ package com.github.seeker.gui;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
@@ -19,12 +17,13 @@ import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.LoaderCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeType;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
@@ -103,7 +102,7 @@ public class MainWindow extends Application{
 		startLoader.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				sendLoaderCommand("start");
+				sendLoaderCommand(LoaderCommand.LOADER_COMMAND_START);
 			}
 		});
 		
@@ -111,7 +110,7 @@ public class MainWindow extends Application{
 		stoploader.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				sendLoaderCommand("stop");
+				sendLoaderCommand(LoaderCommand.LOADER_COMMAND_STOP);
 			}
 		});
 		
@@ -148,14 +147,12 @@ public class MainWindow extends Application{
 		return menuBar;
 	}
 
-	private void sendLoaderCommand(String command) {
-		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.FILE_LOADER_COMMAND, command);
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
+	private void sendLoaderCommand(LoaderCommand command) {
 		try {
 			LOGGER.info("Sending {} command to file loaders", command);
-			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
+			NodeCommand message = NodeCommand.newBuilder().setNodeType(NodeType.NODE_TYPE_LOADER).setLoaderCommand(command).build();
+
+			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", null, message.toByteArray());
 		} catch (IOException e) {
 			LOGGER.error("Failed to send file loader command {}", command, e);
 		}
