@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
@@ -19,7 +18,6 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
@@ -114,11 +112,9 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		Map<String, Object> originalHeader = properties.getHeaders();
-		
 		FileLoad message = FileLoad.parseFrom(body);
 
-		if (originalHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
+		if (message.getRecreateThumbnail()) {
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}

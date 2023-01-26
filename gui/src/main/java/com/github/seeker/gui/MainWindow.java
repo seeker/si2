@@ -191,16 +191,12 @@ public class MainWindow extends Application{
 		
 		for (ImageMetaData meta : iter) {
 			try {
-				Map<String, Object> headers = new HashMap<String, Object>();
-				headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
-
 				FileLoad.Builder builder = FileLoad.newBuilder();
 				builder.getImagePathBuilder().setAnchor(meta.getAnchor()).setRelativePath(meta.getPath());
 				builder.setImageId(meta.getImageId().toString());
+				builder.setRecreateThumbnail(true);
 
-				AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-
-				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, builder.build().toByteArray());
+				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", null, builder.build().toByteArray());
 			} catch (IOException e) {
 				LOGGER.warn("Failed to create thumbnail recreate message for {} - {} due to {}", meta.getAnchor(), meta.getPath(), e.getMessage());
 			}

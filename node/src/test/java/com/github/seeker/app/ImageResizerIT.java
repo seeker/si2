@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -39,13 +38,11 @@ import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.configuration.VaultIntegrationCredentials;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.helpers.MinioTestHelper;
-import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -167,15 +164,11 @@ public class ImageResizerIT {
 		builder.setGenerateThumbnail(!hasThumbnail);
 		builder.addMissingHash("SHA-256").addMissingHash("SHA-512");
 		
-		Map<String, Object> headers = new HashMap<String, Object>();
-
 		if (recreateOnly) {
-			headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
+			builder.setRecreateThumbnail(true);
 		}
-
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
 		
-		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, builder.build().toByteArray());
+		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", null, builder.build().toByteArray());
 	}
 
 	@After

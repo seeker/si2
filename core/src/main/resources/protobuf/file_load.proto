@@ -10,4 +10,5 @@ message FileLoad {
 	repeated string missing_custom_hash = 3;
 	optional bool generate_thumbnail = 4;
 	optional string image_id = 5;
+	bool recreate_thumbnail = 30;
 }

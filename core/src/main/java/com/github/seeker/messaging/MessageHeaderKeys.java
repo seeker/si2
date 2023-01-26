@@ -6,11 +6,6 @@ package com.github.seeker.messaging;
 
 public class MessageHeaderKeys {
 	/**
-	 * Recreate only the thumbnail, regardless if it exists or not
-	 */
-	public static final String THUMBNAIL_RECREATE = "thumbnail-recreate";
-
-	/**
 	 * Command message for the fileloader.
 	 */
 	public static final String FILE_LOADER_COMMAND = "loader-command";

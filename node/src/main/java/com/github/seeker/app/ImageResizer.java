@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -29,7 +28,6 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.MessageHeaderKeys;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
 import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
 import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
@@ -147,8 +145,6 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		Map<String, Object> receivedMessageHeader = properties.getHeaders();
-		
 		FileLoad message = FileLoad.parseFrom(body);
 		ImagePath imagePath = message.getImagePath();
 
@@ -173,7 +169,7 @@ class ImageFileMessageConsumer extends DefaultConsumer {
 			return;
 		}
 		
-		if (receivedMessageHeader.containsKey(MessageHeaderKeys.THUMBNAIL_RECREATE)) {
+		if (message.getRecreateThumbnail()) {
 			LOGGER.debug("Recreating thumbnail for {} - {} with size {}", anchor, relativePath, thumbnailSize);
 			try {
 				createThumbnail(message, originalImage);
