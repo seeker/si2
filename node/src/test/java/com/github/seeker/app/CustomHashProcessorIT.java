@@ -173,7 +173,7 @@ public class CustomHashProcessorIT {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
 
 		DbUpdate message = hashMessages.take();
-		ByteString hash = message.getDigestHashMap().get("phash");
+		ByteString hash = message.getHashMap().get("phash");
 		ByteArrayDataInput dataIn = ByteStreams.newDataInput(hash.toByteArray());
 
 		assertThat(dataIn.readLong(), is(IMAGE_ROAD_FAR_PHASH));

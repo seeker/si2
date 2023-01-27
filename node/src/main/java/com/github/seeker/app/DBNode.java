@@ -96,9 +96,7 @@ class DBStore extends DefaultConsumer {
 		UpdateType type = message.getUpdateType();
 
 		switch (type) {
-		// FIXME Remove update type to avoid fall through
-		case UPDATE_TYPE_CUSTOM_HASH:
-		case UPDATE_TYPE_DIGEST_HASH:
+		case UPDATE_TYPE_HASH:
 			handleHashUpdate(message, meta);
 			break;
 		case UPDATE_TYPE_THUMBNAIL:
@@ -116,7 +114,7 @@ class DBStore extends DefaultConsumer {
 	}
 
 	private void handleHashUpdate(DbUpdate message, ImageMetaData meta) {
-		Map<String, ByteString> hashes = message.getDigestHashMap();
+		Map<String, ByteString> hashes = message.getHashMap();
 
 		for (Entry<String, ByteString> entry : hashes.entrySet()) {
 			meta.getHashes().put(entry.getKey(), new Hash(entry.getKey(), entry.getValue().toByteArray(), "1"));

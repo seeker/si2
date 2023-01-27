@@ -139,12 +139,12 @@ class MessageDigestHashConsumer extends DefaultConsumer {
 
 		DbUpdate.Builder builder = DbUpdate.newBuilder();
 		builder.getImagePathBuilder().mergeFrom(imagePath);
-		builder.setUpdateType(UpdateType.UPDATE_TYPE_DIGEST_HASH);
+		builder.setUpdateType(UpdateType.UPDATE_TYPE_HASH);
 
 		for (String hash : hashes) {
 			try {
 				MessageDigest md = MessageDigest.getInstance(hash);
-				builder.putDigestHash(hash, ByteString.copyFrom(md.digest(image)));
+				builder.putHash(hash, ByteString.copyFrom(md.digest(image)));
 			} catch (NoSuchAlgorithmException e) {
 				// TODO send a error message back
 				e.printStackTrace();

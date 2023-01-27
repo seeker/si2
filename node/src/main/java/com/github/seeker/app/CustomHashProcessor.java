@@ -146,7 +146,7 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 		ByteArrayDataOutput hashValue = ByteStreams.newDataOutput();
 		hashValue.writeLong(pHash);
 
-		DbUpdate.Builder builder = DbUpdate.newBuilder().setUpdateType(UpdateType.UPDATE_TYPE_CUSTOM_HASH).putDigestHash("phash",
+		DbUpdate.Builder builder = DbUpdate.newBuilder().setUpdateType(UpdateType.UPDATE_TYPE_HASH).putHash("phash",
 				ByteString.copyFrom(hashValue.toByteArray()));
 		builder.getImagePathBuilder().setAnchor(anchor).setRelativePath(relativePath);
 

@@ -82,7 +82,8 @@ public class DBNodeIT {
 		
 		cut = new DBNode(consul, connectionProvider.getIntegrationMongoDbMapper(), rabbitConn, queueConfig);
 
-		DbUpdate.Builder builder = DbUpdate.newBuilder().putDigestHash(SHA256_ALGORITHM_NAME, ByteString.copyFrom(SHA256)).setUpdateType(UpdateType.UPDATE_TYPE_DIGEST_HASH);
+		DbUpdate.Builder builder = DbUpdate.newBuilder().putHash(SHA256_ALGORITHM_NAME, ByteString.copyFrom(SHA256))
+				.setUpdateType(UpdateType.UPDATE_TYPE_HASH);
 		builder.getImagePathBuilder().setAnchor(ANCHOR).setRelativePath(RELATIVE_ANCHOR_PATH.toString());
 
 		this.prototype = builder.buildPartial();
@@ -136,8 +137,8 @@ public class DBNodeIT {
 		phashAsByteArray.writeLong(987439583L);
 
 		DbUpdate.Builder builder = DbUpdate.newBuilder(prototype);
-		builder.clearDigestHash();
-		builder.putDigestHash("phash", ByteString.copyFrom(phashAsByteArray.toByteArray()));
+		builder.clearHash();
+		builder.putHash("phash", ByteString.copyFrom(phashAsByteArray.toByteArray()));
 		sendMessage(builder.build());
 
 		Awaitility.await().atMost(duration).untilCall(to(mapperForTest).getImageMetadata(ANCHOR, RELATIVE_ANCHOR_PATH), is(notNullValue()));

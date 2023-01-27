@@ -155,7 +155,7 @@ public class MessageDigestHasherIT {
 	}
 
 	private byte[] getHashFromMessage(DbUpdate message, String hashName) {
-		Map<String, ByteString> hashes = message.getDigestHashMap();
+		Map<String, ByteString> hashes = message.getHashMap();
 		return hashes.get(hashName).toByteArray();
 	}
 
