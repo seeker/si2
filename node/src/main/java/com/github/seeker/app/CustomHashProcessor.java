@@ -3,9 +3,7 @@ package com.github.seeker.app;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -24,14 +22,15 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.HashMessageBuilder;
-import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.ImagePathOuterClass.ImagePath;
 import com.github.seeker.persistence.MinioPersistenceException;
 import com.github.seeker.persistence.MinioStore;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import com.rabbitmq.client.AMQP;
+import com.google.protobuf.ByteString;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -93,14 +92,12 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 	private final DoubleDCT_2D jtransformDCT;
 	
 	private final QueueConfiguration queueConfig;
-	private final HashMessageBuilder hashMessageBuilder;
 	private final MinioStore minio;
 	
 	public CustomFileMessageConsumer(Channel channel, QueueConfiguration queueConfig, MinioStore minio) {
 		super(channel);
 		
 		this.queueConfig = queueConfig;
-		this.hashMessageBuilder = new HashMessageBuilder(channel, queueConfig);
 		this.minio = minio;
 
 		this.jtransformDCT = new DoubleDCT_2D(IMAGE_SIZE, IMAGE_SIZE); 
@@ -110,25 +107,19 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		Map<String, Object> header = properties.getHeaders();
+		FileLoad message = FileLoad.parseFrom(body);
+		ImagePath imagePath = message.getImagePath();
+
+		String anchor = imagePath.getAnchor();
+		String relativePath = imagePath.getRelativePath();
+		List<String> customHashes = message.getMissingCustomHashList();
 		
-		String anchor = header.get(MessageHeaderKeys.ANCHOR).toString();
-		String relativePath = header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH).toString();
-		Object rawCustomHashHeader = header.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS);
-		String[] customHashes = null;
-		
-		if (Objects.nonNull(rawCustomHashHeader)) {
-			customHashes = rawCustomHashHeader.toString().split(",");
-		} else {
-			customHashes = new String[0];
-		}
-		
-		if(! hasCustomHashes(customHashes)) {
+		if (customHashes.isEmpty()) {
 			getChannel().basicAck(envelope.getDeliveryTag(), false);
 			return;
 		}
 		
-		UUID imageId = UUIDUtils.ByteToUUID(body);
+		UUID imageId = UUID.fromString(message.getImageId());
 		
 		try (InputStream response = minio.getPreProcessedImage(imageId)) {
 		
@@ -152,19 +143,16 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 		long pHash = calculatePhash(preProcessedImage);
 		preProcessedImage.flush();
 
-		Map<String, Object> hashHeaders = new HashMap<String, Object>();
-		hashHeaders.put(MessageHeaderKeys.ANCHOR, header.get(MessageHeaderKeys.ANCHOR));
-		hashHeaders.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, header.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH));
-		hashHeaders.put(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS, header.get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS));
+		ByteArrayDataOutput hashValue = ByteStreams.newDataOutput();
+		hashValue.writeLong(pHash);
 
-		ByteArrayDataOutput messageBody = ByteStreams.newDataOutput();
-		messageBody.writeLong(pHash);
+		DbUpdate.Builder builder = DbUpdate.newBuilder().setUpdateType(UpdateType.UPDATE_TYPE_HASH).putHash("phash",
+				ByteString.copyFrom(hashValue.toByteArray()));
+		builder.getImagePathBuilder().setAnchor(anchor).setRelativePath(relativePath);
 
-		// TODO include custom hashes in HashMessageBuilder
-		AMQP.BasicProperties hashProps = new AMQP.BasicProperties.Builder().headers(hashHeaders).build();
-		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.hashes), hashProps, messageBody.toByteArray());
+		getChannel().basicPublish("", queueConfig.getQueueName(ConfiguredQueues.persistence), null, builder.build().toByteArray());
 
-		LOGGER.debug("Consumed message for {} - {} > hashes: {}", header.get("anchor"), header.get("path"), header.get("missing-hash"));
+		LOGGER.debug("Consumed message for {} - {} > hashes: {}", anchor, relativePath, customHashes);
 
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	} catch (IllegalArgumentException | MinioPersistenceException e1) {
@@ -173,9 +161,6 @@ class CustomFileMessageConsumer extends DefaultConsumer {
 	}
 }
 	
-	private boolean hasCustomHashes(String[] customHashes) {
-		return ! (customHashes.length == 0 || customHashes[0].isEmpty());
-	}
 	
 	private long calculatePhash(BufferedImage originalImage) {
 		double[][] reducedColorValues = ImageUtil.toDoubleMatrix(originalImage);

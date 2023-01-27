@@ -16,8 +16,7 @@ import com.rabbitmq.client.Channel;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueueConfigurationTest {
-	private static final String HASH_QUEUE_NAME = "hashes";
-	private static final String THUMBNAIL_QUEUE_NAME = "thumbnails";
+	private static final String PERSISTENCE_QUEUE_NAME = "persistence";
 	private static final String FILE_QUEUE_NAME = "fileDigest";
 	private static final String FILE_RESIZE_NAME = "fileResize";
 	
@@ -48,13 +47,8 @@ public class QueueConfigurationTest {
 	}
 	
 	@Test
-	public void queueNameForHash() throws Exception {
-		assertThat(cut.getQueueName(ConfiguredQueues.hashes), is(HASH_QUEUE_NAME));
-	}
-	
-	@Test
-	public void queueNameForThumbnail() throws Exception {
-		assertThat(cut.getQueueName(ConfiguredQueues.thumbnails), is(THUMBNAIL_QUEUE_NAME));
+	public void queueNameForPersistence() throws Exception {
+		assertThat(cut.getQueueName(ConfiguredQueues.persistence), is(PERSISTENCE_QUEUE_NAME));
 	}
 	
 	@Test
@@ -68,13 +62,8 @@ public class QueueConfigurationTest {
 	}
 	
 	@Test
-	public void queueNameForHashIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.hashes), is(startsWith(prefixWithIntegration(HASH_QUEUE_NAME))));
-	}
-	
-	@Test
-	public void queueNameForThumbnailIntegration() throws Exception {
-		assertThat(cutIntegration.getQueueName(ConfiguredQueues.thumbnails), is(startsWith(prefixWithIntegration(THUMBNAIL_QUEUE_NAME))));
+	public void queueNameForPersistenceIntegration() throws Exception {
+		assertThat(cutIntegration.getQueueName(ConfiguredQueues.persistence), is(startsWith(prefixWithIntegration(PERSISTENCE_QUEUE_NAME))));
 	}
 	
 	@Test

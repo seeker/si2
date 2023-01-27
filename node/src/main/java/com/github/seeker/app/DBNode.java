@@ -1,15 +1,9 @@
 package com.github.seeker.app;
 
 import java.io.IOException;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,12 +14,14 @@ import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.HashMessageHelper;
-import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.DbUpdate;
+import com.github.seeker.messaging.proto.DbUpdateOuterClass.UpdateType;
+import com.github.seeker.messaging.proto.ImagePathOuterClass.ImagePath;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.Hash;
 import com.github.seeker.persistence.document.ImageMetaData;
 import com.github.seeker.persistence.document.Thumbnail;
+import com.google.protobuf.ByteString;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -41,8 +37,6 @@ public class DBNode {
 
 	private final MongoDbMapper mapper;
 	private final QueueConfiguration queueConfig;
-	private final HashMessageHelper hashMessageHelper;
-	private final List<String> requiredHashes;
 	
 	public DBNode(ConnectionProvider connectionProvider) throws IOException, TimeoutException, InterruptedException, VaultException {
 		this(connectionProvider.getConsulClient(), connectionProvider.getMongoDbMapper(), connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection());
@@ -58,24 +52,15 @@ public class DBNode {
 		this.queueConfig = queueConfig;
 		this.mapper = mapper;
 		
-		requiredHashes = Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(",")));
-		hashMessageHelper = new HashMessageHelper();
-		
 		startConsumers(rabbitMqConnection);
 	}
 
 	private void startConsumers(Connection rabbitmqConnection) throws IOException {
 		Channel dbStoreChannel = rabbitmqConnection.createChannel();
 		dbStoreChannel.basicQos(100);
-		String queueName = queueConfig.getQueueName(ConfiguredQueues.hashes);
+		String queueName = queueConfig.getQueueName(ConfiguredQueues.persistence);
 		LOGGER.info("Starting consumer on queue {}", queueName);
-		dbStoreChannel.basicConsume(queueName, new DBStore(dbStoreChannel, mapper, hashMessageHelper, requiredHashes));
-
-		Channel thumbnailStoreChannel = rabbitmqConnection.createChannel();
-		thumbnailStoreChannel.basicQos(100);
-		String thumbQueue = queueConfig.getQueueName(ConfiguredQueues.thumbnails);
-		LOGGER.info("Starting consumer on queue {}", thumbQueue);
-		thumbnailStoreChannel.basicConsume(queueName, new ThumbnailStore(thumbnailStoreChannel, mapper));
+		dbStoreChannel.basicConsume(queueName, new DBStore(dbStoreChannel, mapper));
 	}
 }
 
@@ -84,23 +69,20 @@ class DBStore extends DefaultConsumer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DBStore.class);
 
 	private final MongoDbMapper mapper;
-	private final List<String> requiredHashes;
-	private final HashMessageHelper hashMessageHelper;
 	
-	public DBStore(Channel channel, MongoDbMapper mapper,HashMessageHelper hashMessageHelper ,List<String> requiredHashes) {
+	public DBStore(Channel channel, MongoDbMapper mapper) {
 		super(channel);
 		
 		this.mapper = mapper;
-		this.requiredHashes = requiredHashes;
-		this.hashMessageHelper = hashMessageHelper;
 	}
 
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
-		Map<String, Object> headers = properties.getHeaders();
-		
-		String anchor = hashMessageHelper.getAnchor(headers);
-		String relativeAnchorPath = hashMessageHelper.getRelativePath(headers);
+		DbUpdate message = DbUpdate.parseFrom(body);
+		ImagePath imagePath = message.getImagePath();
+
+		String anchor = imagePath.getAnchor();
+		String relativeAnchorPath = imagePath.getRelativePath();
 		
 		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
 		
@@ -111,55 +93,36 @@ class DBStore extends DefaultConsumer {
 			meta.setPath(relativeAnchorPath.toString());
 		}
 		
-		try {
-			//TODO this will be replaced with hash message helper
-			if(headers.containsKey(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS)) {
-				meta.getHashes().put("phash", new Hash(body));
-			}else {
-				meta.getHashes().putAll(hashMessageHelper.decodeHashMessage(headers, body));
-			}
-			
-			mapper.storeDocument(meta);
-			LOGGER.info("Updated database entry for {} - {}", anchor, relativeAnchorPath);
-		} catch (NoSuchAlgorithmException e) {
-			LOGGER.error("Failed to update hash because algorithm is unknown: {}", e);
-			// TODO Send message to queue
-			e.printStackTrace();
+		UpdateType type = message.getUpdateType();
+
+		switch (type) {
+		case UPDATE_TYPE_HASH:
+			handleHashUpdate(message, meta);
+			break;
+		case UPDATE_TYPE_THUMBNAIL:
+			handleThumbnailUpdate(message, meta);
+			break;
+		default:
+			LOGGER.warn("Message with unhandled update type: {}", type);
+			break;
 		}
-		
+
+		mapper.storeDocument(meta);
+		LOGGER.info("Updated {} database entry for {} - {} with ID {}", type, anchor, relativeAnchorPath, meta.getImageId());
+
 		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
-}
 
-class ThumbnailStore extends DefaultConsumer {
+	private void handleHashUpdate(DbUpdate message, ImageMetaData meta) {
+		Map<String, ByteString> hashes = message.getHashMap();
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(ThumbnailStore.class);
-
-	private final MongoDbMapper mapper;
-
-	public ThumbnailStore(Channel channel, MongoDbMapper mapper) {
-		super(channel);
-
-		this.mapper = mapper;
+		for (Entry<String, ByteString> entry : hashes.entrySet()) {
+			meta.getHashes().put(entry.getKey(), new Hash(entry.getKey(), entry.getValue().toByteArray(), "1"));
+		}
 	}
 
-	@Override
-	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
-			throws IOException {
-		Map<String, Object> header = properties.getHeaders();
-
-		String anchor = header.get("anchor").toString();
-		Path relativeAnchorPath = null;
-		try {
-			relativeAnchorPath = Paths.get(header.get("path").toString());
-		} catch (InvalidPathException e) {
-			LOGGER.warn("Invalid path {}", e);
-			getChannel().basicReject(envelope.getDeliveryTag(), false);
-			return;
-		}
-
-		ImageMetaData meta = mapper.getImageMetadata(anchor, relativeAnchorPath);
-		int imageSize = Integer.parseInt(header.get(MessageHeaderKeys.THUMBNAIL_SIZE).toString());
+	private void handleThumbnailUpdate(DbUpdate message, ImageMetaData meta) {
+		int imageSize = message.getThumbnailSize();
 
 		Thumbnail thumbnail;
 
@@ -170,11 +133,5 @@ class ThumbnailStore extends DefaultConsumer {
 			thumbnail = new Thumbnail(imageSize);
 			meta.setThumbnailId(thumbnail);
 		}
-
-		LOGGER.info("Updated thumbnail information for {} - {} with imageId {}", anchor, relativeAnchorPath,
-				meta.getImageId());
-		mapper.storeDocument(meta);
-
-		getChannel().basicAck(envelope.getDeliveryTag(), false);
 	}
 }

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+import "image_path.proto";
+
+package com.github.seeker.messaging.proto;
+
+/*
+ * Message for updating database records
+ */
+
+message DbUpdate {
+	optional ImagePath image_path = 1;
+	map<string,bytes> hash = 2;
+	UpdateType update_type = 4;
+	optional string image_id = 5;
+	uint32 thumbnail_size = 6;
+}
+
+enum UpdateType {
+	UPDATE_TYPE_UNDEFINED = 0;
+	UPDATE_TYPE_HASH = 1;
+	UPDATE_TYPE_THUMBNAIL = 2;
+}

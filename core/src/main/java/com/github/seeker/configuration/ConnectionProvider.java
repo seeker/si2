@@ -199,4 +199,8 @@ public class ConnectionProvider {
 				.credentials(username, password)
 				.build();
 	}
+
+	public void shutdown() {
+		renewPool.shutdown();
+	}
 }

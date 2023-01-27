@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package com.github.seeker.messaging.proto;
+
+/*
+ * Message for controlling nodes
+ */
+
+message NodeCommand {
+	NodeType node_type= 1;
+	
+	oneof command {
+		LoaderCommand loader_command = 2;
+	}
+}
+
+enum NodeType {
+	NODE_TYPE_UNDEFINED = 0;
+	NODE_TYPE_ALL = 1;
+	NODE_TYPE_LOADER = 2;
+}
+
+enum LoaderCommand {
+	LOADER_COMMAND_UNDEFINED = 0;
+	LOADER_COMMAND_START = 1;
+	LOADER_COMMAND_STOP = 2; 
+}

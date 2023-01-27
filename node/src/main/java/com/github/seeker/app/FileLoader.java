@@ -17,14 +17,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.bettercloud.vault.VaultException;
-import com.github.seeker.app.FileLoader.Command;
 import com.github.seeker.configuration.ConnectionProvider;
 import com.github.seeker.configuration.ConsulClient;
 import com.github.seeker.configuration.FileLoaderConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.MessageHeaderKeys;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.LoaderCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeType;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.FileLoaderJob;
@@ -180,26 +181,24 @@ class FileLoaderCommandConsumer extends DefaultConsumer {
 	@Override
 	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
 			throws IOException {
+		NodeCommand message = NodeCommand.parseFrom(body);
+		
+		if (NodeType.NODE_TYPE_LOADER.equals(message.getNodeType())) {
+			LoaderCommand command = message.getLoaderCommand();
 
-		Map<String, Object> headers = properties.getHeaders();
-
-		if (!headers.containsKey(MessageHeaderKeys.FILE_LOADER_COMMAND)) {
-			LOGGER.warn("Received message without command header, discarding message...");
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("{}", headers);
+			switch (command) {
+			case LOADER_COMMAND_START:
+				LOGGER.info("Received start command, starting file walk...");
+				parent.startFileWalk();
+				break;
+			case LOADER_COMMAND_STOP:
+				LOGGER.info("Received stop command, terminating in progress file walk...");
+				parent.stopFileWalk();
+				break;
+			default:
+				LOGGER.warn("Received a message with an unhandled loader command: {}", command);
+				break;
 			}
-			
-			return;
-		}
-		
-		String commandFromMessage = headers.get(MessageHeaderKeys.FILE_LOADER_COMMAND).toString(); 
-		
-		if (Command.stop.toString().equals(commandFromMessage)) {
-			LOGGER.info("Received stop command, terminating in progress file walk...");
-			parent.stopFileWalk();
-		} else if (Command.start.toString().equals(commandFromMessage)) {
-			LOGGER.info("Received start command, starting file walk...");
-			parent.startFileWalk();
 		}
 	}
 }

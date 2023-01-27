@@ -33,20 +33,14 @@ public class QueueConfiguration {
 		 * Files in this queue will be resized
 		 */
 		fileResize,
-		
-		
 		/**
 		 * Messages in this queue are pre-processed files. They need to be further processed to yield a usable hash.
 		 */
 		filePreProcessed,
 		/**
-		 * Queue for computed hashes
+		 * Queue for persistence / storage of image metadata
 		 */
-		hashes,
-		/**
-		 * Queue for generated thumbnails
-		 */
-		thumbnails
+		persistence
 	};
 	
 	public enum ConfiguredExchanges {

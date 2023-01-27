@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
@@ -35,8 +36,8 @@ import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
 import com.github.seeker.helpers.MinioTestHelper;
-import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.ImagePathOuterClass.ImagePath;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
@@ -81,7 +82,7 @@ public class FileToQueueVistorIT {
 
 	private Path fileWalkRoot;
 
-	private Map<String, byte[]> messageData;
+	private Map<String, FileLoad> messageData;
 	private Map<String, Map<String, Object>> messageHeader;
 
 	@BeforeClass
@@ -120,9 +121,13 @@ public class FileToQueueVistorIT {
 			@Override
 			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException {
 				Map<String, Object> headers = properties.getHeaders();
-				String relativePath = headers.get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH.toString()).toString();
 
-				messageData.put(relativePath, body);
+				FileLoad message = FileLoad.parseFrom(body);
+				ImagePath imagePath = message.getImagePath();
+
+				String relativePath = imagePath.getRelativePath();
+
+				messageData.put(relativePath, message);
 				messageHeader.put(relativePath, headers);
 			}
 		});
@@ -190,52 +195,52 @@ public class FileToQueueVistorIT {
 		Awaitility.await().atMost(timeout).until(messageData::size, is(3));
 
 		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
-		assertThat(UUIDUtils.ByteToUUID(messageData.get(APPLE_FILENAME)), is(meta.getImageId()));
+		assertThat(UUID.fromString(messageData.get(APPLE_FILENAME).getImageId()), is(meta.getImageId()));
 	}
 
 	@Test
-	public void missingDigestHashInHeader() throws Exception {
+	public void missingDigestHashInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.HASH_ALGORITHMS).toString(), is("sha256,sha512"));
+		assertThat(messageData.get(APPLE_FILENAME).getMissingHashList(), hasItems("sha256", "sha512"));
 	}
 
 	@Test
-	public void missingCustomHashInHeader() throws Exception {
+	public void missingCustomHashInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.CUSTOM_HASH_ALGORITHMS).toString(), is("phash"));
+		assertThat(messageData.get(APPLE_FILENAME).getMissingCustomHashList(), hasItem("phash"));
 	}
 
 	@Test
-	public void anchorInHeader() throws Exception {
+	public void anchorInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.ANCHOR).toString(), is(ANCHOR));
+		assertThat(messageData.get(APPLE_FILENAME).getImagePath().getAnchor(), is(ANCHOR));
 	}
 
 	@Test
-	public void anchorRelativePathInHeader() throws Exception {
+	public void anchorRelativePathInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.ANCHOR_RELATIVE_PATH).toString(), is(APPLE_FILENAME));
+		assertThat(messageData.get(APPLE_FILENAME).getImagePath().getRelativePath(), is(APPLE_FILENAME));
 	}
 
 	@Test
-	public void thumbnailFoundInHeader() throws Exception {
+	public void thumbnailFoundInMessage() throws Exception {
 		Files.walkFileTree(fileWalkRoot, cut);
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(Boolean.parseBoolean(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.THUMBNAIL_FOUND).toString()), is(false));
+		assertThat(messageData.get(APPLE_FILENAME).getGenerateThumbnail(), is(true));
 	}
 
 	@Test
@@ -245,7 +250,7 @@ public class FileToQueueVistorIT {
 
 		Awaitility.await().atMost(timeout).until(messageHeader::size, is(3));
 
-		assertThat(Boolean.parseBoolean(messageHeader.get(APPLE_FILENAME).get(MessageHeaderKeys.THUMBNAIL_FOUND).toString()), is(true));
+		assertThat(messageData.get(APPLE_FILENAME).getGenerateThumbnail(), is(false));
 	}
 
 	@Test

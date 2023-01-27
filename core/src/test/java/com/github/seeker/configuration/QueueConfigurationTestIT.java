@@ -5,7 +5,8 @@
 package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -78,14 +79,14 @@ public class QueueConfigurationTestIT {
 	@Test(expected = IOException.class)
 	public void queueDeleted() throws Exception {
 		try {
-			testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.hashes));
+			testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.persistence));
 		} catch (IOException e) {
 			fail("Queue was not delcared");
 		}
 
-		cut.deleteQueue(ConfiguredQueues.hashes);
+		cut.deleteQueue(ConfiguredQueues.persistence);
 
-		testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.hashes));
+		testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.persistence));
 	}
 
 	@Test

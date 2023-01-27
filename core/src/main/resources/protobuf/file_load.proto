@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "image_path.proto";
+
+package com.github.seeker.messaging.proto;
+
+message FileLoad {
+	optional ImagePath image_path = 1;
+	repeated string missing_hash = 2;
+	repeated string missing_custom_hash = 3;
+	bool generate_thumbnail = 4;
+	optional string image_id = 5;
+	bool recreate_thumbnail = 30;
+}

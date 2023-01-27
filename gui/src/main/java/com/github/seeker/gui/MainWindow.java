@@ -2,8 +2,6 @@ package com.github.seeker.gui;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
@@ -19,17 +17,19 @@ import com.github.seeker.configuration.MinioConfiguration;
 import com.github.seeker.configuration.QueueConfiguration;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.RabbitMqRole;
-import com.github.seeker.messaging.MessageHeaderKeys;
-import com.github.seeker.messaging.UUIDUtils;
+import com.github.seeker.messaging.proto.FileLoadOuterClass.FileLoad;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.LoaderCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeCommand;
+import com.github.seeker.messaging.proto.NodeCommandOuterClass.NodeType;
 import com.github.seeker.persistence.MinioStore;
 import com.github.seeker.persistence.MongoDbMapper;
 import com.github.seeker.persistence.document.ImageMetaData;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import de.caluga.morphium.query.MorphiumIterator;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -52,7 +52,8 @@ public class MainWindow extends Application{
 	private FileLoaderJobs fileLoaderJobs;
 	private QueueConfiguration queueConfig;
 	private ConsulClient consul;
-	
+	private ConnectionProvider connectionProvider;
+	private Connection rabbitConnection;
 	private Channel channel;
 	
 	public static void main(String[] args) {
@@ -63,8 +64,8 @@ public class MainWindow extends Application{
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
 		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
 		
-		ConnectionProvider connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
-		Connection rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
+		connectionProvider = new ConnectionProvider(consulConfig, configBuilder.getVaultCredentials(), consulConfig.overrideVirtualBoxAddress());
+		rabbitConnection = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.dbnode).newConnection();
 		this.channel = rabbitConnection.createChannel();
 		
 		queueConfig = new QueueConfiguration(rabbitConnection.createChannel());
@@ -101,7 +102,7 @@ public class MainWindow extends Application{
 		startLoader.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				sendLoaderCommand("start");
+				sendLoaderCommand(LoaderCommand.LOADER_COMMAND_START);
 			}
 		});
 		
@@ -109,15 +110,7 @@ public class MainWindow extends Application{
 		stoploader.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				sendLoaderCommand("stop");
-			}
-		});
-		
-		MenuItem pruneThumbs = new MenuItem("Prune thumbs");
-		pruneThumbs.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				sendThumbnailCommand("prune_thumbnails");
+				sendLoaderCommand(LoaderCommand.LOADER_COMMAND_STOP);
 			}
 		});
 		
@@ -146,7 +139,6 @@ public class MainWindow extends Application{
 		actions.getItems().add(viewFileLoaderJobs);
 		actions.getItems().add(startLoader);
 		actions.getItems().add(stoploader);
-		actions.getItems().add(pruneThumbs);
 		actions.getItems().add(recreateThumbnails);
 		actions.getItems().add(pruneProcessedImages);
 		
@@ -154,30 +146,15 @@ public class MainWindow extends Application{
 		
 		return menuBar;
 	}
-	
-	private void sendLoaderCommand(String command) {
-		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.FILE_LOADER_COMMAND, command);
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
+
+	private void sendLoaderCommand(LoaderCommand command) {
 		try {
 			LOGGER.info("Sending {} command to file loaders", command);
-			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
+			NodeCommand message = NodeCommand.newBuilder().setNodeType(NodeType.NODE_TYPE_LOADER).setLoaderCommand(command).build();
+
+			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", null, message.toByteArray());
 		} catch (IOException e) {
 			LOGGER.error("Failed to send file loader command {}", command, e);
-		}
-	}
-	
-	private void sendThumbnailCommand(String command) {
-		Map<String, Object> headers = new HashMap<String, Object>();
-		headers.put(MessageHeaderKeys.THUMB_NODE_COMMAND, command);
-		AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
-		
-		try {
-			LOGGER.info("Sending {} command to nodes loaders", command);
-			channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loaderCommand), "", props, null);
-		} catch (IOException e) {
-			LOGGER.error("Failed to send node command {}", command, e);
 		}
 	}
 	
@@ -191,13 +168,12 @@ public class MainWindow extends Application{
 		
 		for (ImageMetaData meta : iter) {
 			try {
-				Map<String, Object> headers = new HashMap<String, Object>();
-				headers.put(MessageHeaderKeys.THUMBNAIL_RECREATE, "");
-				headers.put(MessageHeaderKeys.ANCHOR, meta.getAnchor());
-				headers.put(MessageHeaderKeys.ANCHOR_RELATIVE_PATH, meta.getPath());
-				AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().headers(headers).build();
+				FileLoad.Builder builder = FileLoad.newBuilder();
+				builder.getImagePathBuilder().setAnchor(meta.getAnchor()).setRelativePath(meta.getPath());
+				builder.setImageId(meta.getImageId().toString());
+				builder.setRecreateThumbnail(true);
 
-				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", props, UUIDUtils.UUIDtoByte(meta.getImageId()));
+				channel.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", null, builder.build().toByteArray());
 			} catch (IOException e) {
 				LOGGER.warn("Failed to create thumbnail recreate message for {} - {} due to {}", meta.getAnchor(), meta.getPath(), e.getMessage());
 			}
@@ -218,6 +194,17 @@ public class MainWindow extends Application{
         Scene scene = new Scene(bp, 640, 480);
 
         primaryStage.setScene(scene);
-        primaryStage.show();		
+		primaryStage.show();
+	}
+
+	@Override
+	public void stop() throws Exception {
+		super.stop();
+		LOGGER.info("JavaFx stop method called");
+
+		this.rabbitConnection.close();
+		this.connectionProvider.shutdown();
+
+		Platform.exit();
 	}
 }
