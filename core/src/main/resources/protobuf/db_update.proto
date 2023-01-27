@@ -11,7 +11,7 @@ package com.github.seeker.messaging.proto;
 message DbUpdate {
 	optional ImagePath image_path = 1;
 	map<string,bytes> digest_hash = 2;
-	optional UpdateType update_type = 4;
+	UpdateType update_type = 4;
 	optional string image_id = 5;
 	uint32 thumbnail_size = 6;
 }
