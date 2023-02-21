@@ -24,7 +24,7 @@
 
   when: mounts_response['json']['data']['pki/'] is not defined
 
-- name: Generate PKI CA 
+- name: Generate PKI CA
   uri:
     url: "{{ vault_api_url }}/pki/root/generate/internal"
     method: POST
@@ -62,8 +62,6 @@
     body_format: json
     body:
       allow_any_name: true
-      # Recommended according to Nomad template docs
-      generate_lease: true
       enforce_hostnames: false
       allowed_domains:
         - "{{ ssl_domain }}"
