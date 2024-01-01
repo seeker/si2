@@ -1,6 +1,5 @@
 package com.github.seeker.app;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -13,6 +12,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -172,11 +172,19 @@ public class MessageDigestHasherIT {
 		dbClient.dropCollection(ImageMetaData.class);
 	}
 	
+	private Callable<Integer> getQueueSize(LinkedBlockingQueue<?> queue) {
+		return new Callable<Integer>() {
+			public Integer call() {
+				return queue.size();
+			}
+		};
+	}
+
 	@Test
 	public void hashResponseIsReceived() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(dbUpdateMessages).size(), is(1));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(getQueueSize(dbUpdateMessages), is(1));
 	}
 	
 	@Test

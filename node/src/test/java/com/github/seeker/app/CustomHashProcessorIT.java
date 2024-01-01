@@ -1,6 +1,5 @@
 package com.github.seeker.app;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -12,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -134,6 +134,13 @@ public class CustomHashProcessorIT {
 		});
 	}
 	
+	private Callable<Integer> numberOfHashMessages() {
+		return new Callable<Integer>() {
+			public Integer call() {
+				return hashMessages.size();
+			}
+		};
+	}
 	
 	private Path getClassPathFile(String fileName) throws URISyntaxException {
 		return Paths.get(ClassLoader.getSystemResource("images/"+fileName).toURI());
@@ -159,19 +166,18 @@ public class CustomHashProcessorIT {
 		dbClient.clearCachefor(ImageMetaData.class);
 		dbClient.dropCollection(ImageMetaData.class);
 	}
-	
+
 	@Test
 	public void hashResponseIsReceived() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(numberOfHashMessages(), is(1));
 	}
 	
 	@Test
 	public void phashIsCorrect() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
-
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(numberOfHashMessages(), is(1));
 		DbUpdate message = hashMessages.take();
 		ByteString hash = message.getHashMap().get("phash");
 		ByteArrayDataInput dataIn = ByteStreams.newDataInput(hash.toByteArray());

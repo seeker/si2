@@ -1,6 +1,5 @@
 package com.github.seeker.app;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -13,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -184,11 +184,19 @@ public class ImageResizerIT {
 		dbClient.dropCollection(ImageMetaData.class);
 	}
 	
+	private Callable<Integer> getQueueSize(LinkedBlockingQueue<?> queue) {
+		return new Callable<Integer>() {
+			public Integer call() {
+				return queue.size();
+			}
+		};
+	}
+
 	@Test
 	public void thumbnailGeneratedWhenMissing() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(dbMessage), is(1));
 
 		DbUpdate message = dbMessage.take();
 
@@ -199,22 +207,22 @@ public class ImageResizerIT {
 	public void thumbnailNotGeneratedWhenPresent() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(1));
-		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(AWAIT_TIMEOUT_SECONDS + 1, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(0));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(preprocessedMessage), is(1));
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(AWAIT_TIMEOUT_SECONDS + 1, TimeUnit.SECONDS).until(getQueueSize(dbMessage), is(0));
 	}
 	
 	@Test
 	public void PreprocessResponseIsReceived() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(preprocessedMessage), is(1));
 	}
 	
 	@Test
 	public void thumbnailMessageContainsThumbnailSize() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 		
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(dbMessage), is(1));
 
 		int thumbnailSize = (int) consul.getKvAsLong("config/general/thumbnail-size");
 		assertThat(dbMessage.take().getThumbnailSize(), is(thumbnailSize));
@@ -224,7 +232,7 @@ public class ImageResizerIT {
 	public void thumbnailIsStoredInBucket() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, false);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(dbMessage), is(1));
 		
 		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
 		assertThat(thumb, is(notNullValue()));
@@ -234,7 +242,7 @@ public class ImageResizerIT {
 	public void onlyRecreateThumbnailGeneratesThumbnail() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessageHeaders).size(), is(1));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(dbMessageHeaders), is(1));
 
 		InputStream thumb = minioStore.getThumbnail(IMAGE_AUTUMN_UUID);
 		assertThat(thumb, is(notNullValue()));
@@ -244,7 +252,7 @@ public class ImageResizerIT {
 	public void onlyRecreateThumbnailNoPreprocessedMessage() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true, true);
 
-		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).untilCall(to(dbMessage).size(), is(1));
-		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(2, TimeUnit.SECONDS).untilCall(to(preprocessedMessage).size(), is(0));
+		Awaitility.await().atMost(AWAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS).until(getQueueSize(dbMessage), is(1));
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(2, TimeUnit.SECONDS).until(getQueueSize(preprocessedMessage), is(0));
 	}
 }
