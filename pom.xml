@@ -209,7 +209,6 @@
 						<threadCount>10</threadCount>
 						<excludes>
 							<exclude>**/learning*</exclude>
-							<exclude>AllUnitTests.java</exclude>
 						</excludes>
 					</configuration>
 				</plugin>
