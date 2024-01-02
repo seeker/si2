@@ -200,11 +200,6 @@
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.googlecode.junit-toolbox</groupId>
-			<artifactId>junit-toolbox</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility-groovy</artifactId>
 			<scope>test</scope>
