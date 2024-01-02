@@ -40,6 +40,7 @@ import com.github.seeker.persistence.document.Thumbnail;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.query.MorphiumIterator;
+import de.caluga.morphium.query.QueryIterator;
 
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
@@ -307,21 +308,21 @@ public class MongoDbMapperIT {
 
 	@Test
 	public void getThumbnailsToResizeNoMatch() {
-		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(333);
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper.getThumbnailsToResize(333);
 
 		assertThat(iter.getCount(), is(6L));
 	}
 
 	@Test
 	public void getThumbnailsToResizeWithMatch() {
-		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(123);
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper.getThumbnailsToResize(123);
 
 		assertThat(iter.getCount(), is(5L));
 	}
 	
 	@Test
 	public void getProcessingCompletedMetadataCount() throws Exception {
-		MorphiumIterator<ImageMetaData> iter = mapper
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper
 				.getProcessingCompletedMetadata(Arrays.asList(new String[] { HASH_NAME_SHA256, HASH_NAME_PHASH }));
 
 		assertThat(iter.getCount(), is(1L));

@@ -27,7 +27,7 @@ import com.github.seeker.persistence.document.ImageMetaData;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
-import de.caluga.morphium.query.MorphiumIterator;
+import de.caluga.morphium.query.QueryIterator;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -126,9 +126,9 @@ public class MainWindow extends Application{
 		pruneProcessedImages.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				MorphiumIterator<ImageMetaData> originalImagesToDelete = mapper
+				QueryIterator<ImageMetaData> originalImagesToDelete = (QueryIterator<ImageMetaData>) mapper
 						.getProcessingCompletedMetadata(Arrays.asList(consul.getKvAsString("config/general/required-hashes").split(Pattern.quote(","))));
-				
+
 				LOGGER.info("Found {} complete metadata entries", originalImagesToDelete.getCount());
 				
 				minio.deleteImages(originalImagesToDelete);
@@ -162,8 +162,8 @@ public class MainWindow extends Application{
 
 
 		int thumbnailSize = (int)consul.getKvAsLong("config/general/thumbnail-size");
-		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(thumbnailSize);
-		
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper.getThumbnailsToResize(thumbnailSize);
+
 		LOGGER.info("Queueing thumbnail generation for {} thumbnails which do not have the required size of {}", iter.getCount(), thumbnailSize);
 		
 		for (ImageMetaData meta : iter) {
