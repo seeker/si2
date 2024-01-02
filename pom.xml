@@ -21,7 +21,7 @@
 		<logback-version>1.1.7</logback-version>
 		<javafx-version>11.0.2</javafx-version>
 		<mongodb-version>[4.11.1,)</mongodb-version>
-		<jdk-version>1.8</jdk-version>
+		<jdk-version>11</jdk-version>
 	</properties>
 
 	<modules>
