@@ -230,7 +230,7 @@
 						<includeTests>true</includeTests>
 						<failOnError>false</failOnError>
 						<excludeFilterFile>
-							spotbugs-exclude.xml
+							../spotbugs-exclude.xml
 						</excludeFilterFile>
 					</configuration>
 					<executions>
