@@ -7,19 +7,17 @@ package com.github.seeker.persistence;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -30,6 +28,7 @@ import com.github.seeker.persistence.document.FileLoaderJob;
 
 import de.caluga.morphium.Morphium;
 
+@Timeout(10)
 public class MongoDbMapperFileLoaderJobIT {
 	private static final String TEST_ANCHOR = "imAnAnchor";
 	private static final String TEST_ANCHOR_FRUIT = "fruit";
@@ -45,10 +44,8 @@ public class MongoDbMapperFileLoaderJobIT {
 
 	private static Morphium morphium;
 
-	@Rule
-	public Timeout testCaseTimeout = new Timeout((int) TimeUnit.MILLISECONDS.convert(10, TimeUnit.SECONDS));
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpClass() throws Exception {
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
 		ConsulConfiguration consulConfiguration = configBuilder.getConsulConfiguration();
@@ -59,7 +56,7 @@ public class MongoDbMapperFileLoaderJobIT {
 		mapper = connectionProvider.getMongoDbMapper(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		setUpTestData();
 
@@ -76,7 +73,7 @@ public class MongoDbMapperFileLoaderJobIT {
 		morphium.store(completed1);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() {
 		cleanUpCollection(FileLoaderJob.class);
 		morphium.clearCachefor(FileLoaderJob.class);

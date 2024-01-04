@@ -1,7 +1,7 @@
 package com.github.seeker.persistence;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -50,7 +50,7 @@ public class MinioStoreIT {
 	private static MinioStore sut;
 	private static MinioClient minioClient;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
 		ConsulConfiguration consulConfig = configBuilder.getConsulConfiguration();
@@ -63,7 +63,7 @@ public class MinioStoreIT {
 		sut.createBuckets();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		Map<BucketKey, String> buckets = MinioConfiguration.integrationTestBuckets();
 
@@ -85,7 +85,7 @@ public class MinioStoreIT {
 
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		Map<BucketKey, String> buckets = MinioConfiguration.integrationTestBuckets();
 

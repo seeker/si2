@@ -5,19 +5,19 @@
 package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
+import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 
 public class VaultIntegrationCredentialsTest {
 	private VaultIntegrationCredentials cut;
 	
 	private static final String DBNODE_ROLE = "dbnode";
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new VaultIntegrationCredentials(Approle.dbnode);
 	}

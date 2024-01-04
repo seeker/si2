@@ -7,8 +7,8 @@ package com.github.seeker.persistence;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,14 +18,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +38,9 @@ import com.github.seeker.persistence.document.Thumbnail;
 
 import de.caluga.morphium.Morphium;
 import de.caluga.morphium.query.MorphiumIterator;
+import de.caluga.morphium.query.QueryIterator;
 
+@Timeout(10)
 public class MongoDbMapperIT {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbMapperIT.class);
 	
@@ -81,10 +81,7 @@ public class MongoDbMapperIT {
 	
 	private Map<Path, ImageMetaData> metaInstances;
 	
-	@Rule
-	public Timeout testCaseTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(10, TimeUnit.SECONDS));
-	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpClass() throws Exception {
 		ConfigurationBuilder configBuilder = new ConfigurationBuilder();
 		ConsulConfiguration consulConfiguration = configBuilder.getConsulConfiguration();
@@ -94,7 +91,7 @@ public class MongoDbMapperIT {
 		mapper = connectionProvider.getMongoDbMapper(ConnectionProvider.INTEGRATION_DB_CONSUL_KEY);
 	}
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		Map<String, Hash> hashes = new HashMap<>();
 		hashes.put(HASH_NAME_SHA256, new Hash(HASH_DATA_SHA256));
@@ -139,7 +136,7 @@ public class MongoDbMapperIT {
 		return meta;
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() {
 		cleanUpCollection(ImageMetaData.class);
 		morphium.clearCachefor(ImageMetaData.class);
@@ -307,21 +304,21 @@ public class MongoDbMapperIT {
 
 	@Test
 	public void getThumbnailsToResizeNoMatch() {
-		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(333);
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper.getThumbnailsToResize(333);
 
 		assertThat(iter.getCount(), is(6L));
 	}
 
 	@Test
 	public void getThumbnailsToResizeWithMatch() {
-		MorphiumIterator<ImageMetaData> iter = mapper.getThumbnailsToResize(123);
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper.getThumbnailsToResize(123);
 
 		assertThat(iter.getCount(), is(5L));
 	}
 	
 	@Test
 	public void getProcessingCompletedMetadataCount() throws Exception {
-		MorphiumIterator<ImageMetaData> iter = mapper
+		QueryIterator<ImageMetaData> iter = (QueryIterator<ImageMetaData>) mapper
 				.getProcessingCompletedMetadata(Arrays.asList(new String[] { HASH_NAME_SHA256, HASH_NAME_PHASH }));
 
 		assertThat(iter.getCount(), is(1L));

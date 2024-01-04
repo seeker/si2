@@ -1,18 +1,18 @@
 package com.github.seeker.messaging;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class UUIDUtilsTest {
 	private UUID uuid;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		uuid = UUID.randomUUID();
 	}

@@ -1,12 +1,12 @@
 package com.github.seeker.persistence.document;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapWithSize.anEmptyMap;
 import static org.hamcrest.text.IsEmptyString.emptyString;
-import static org.junit.Assert.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -14,7 +14,7 @@ import nl.jqno.equalsverifier.Warning;
 public class ImageMetaDataTest {
 	private ImageMetaData cut;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new ImageMetaData();
 	}
@@ -38,10 +38,10 @@ public class ImageMetaDataTest {
 	public void doesNotHaveThumbnail() throws Exception {
 		assertThat(cut.hasThumbnail(), is(false));
 	}
-	
+
 	@Test
 	public void verifyEqualsAndHash() throws Exception {
-		EqualsVerifier.forClass(ImageMetaData.class).allFieldsShouldBeUsedExcept("id", "creationTime", "fileSize", "hashes", "thumbnail", "tags", "imageId")
+		EqualsVerifier.forClass(ImageMetaData.class).withIgnoredFields("id", "creationTime", "fileSize", "hashes", "thumbnail", "tags", "imageId")
 				.suppress(Warning.NONFINAL_FIELDS).verify();
 	}
 }

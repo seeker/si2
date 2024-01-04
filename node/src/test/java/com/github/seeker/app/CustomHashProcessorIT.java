@@ -1,9 +1,8 @@
 package com.github.seeker.app;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -12,17 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -55,6 +54,7 @@ import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 
+@Timeout(value = 20)
 public class CustomHashProcessorIT {
 
 	private static final String ANCHOR = "testimages";
@@ -77,10 +77,8 @@ public class CustomHashProcessorIT {
 	
 	private LinkedBlockingQueue<DbUpdate> hashMessages;
 	
-    @Rule
-    public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
 	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
@@ -99,13 +97,13 @@ public class CustomHashProcessorIT {
 		minioStore.storePreProcessedImage(IMAGE_ROAD_FAR_UUID, Files.newInputStream(Paths.get("src\\test\\resources\\images\\", IMAGE_ROAD_FAR)));
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		minioHelper.clearBucket(TEST_BUCKET_NAME);
 		minio.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		ConnectionFactory connFactory = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		assertThat(connFactory, is(notNullValue()));
@@ -134,6 +132,13 @@ public class CustomHashProcessorIT {
 		});
 	}
 	
+	private Callable<Integer> numberOfHashMessages() {
+		return new Callable<Integer>() {
+			public Integer call() {
+				return hashMessages.size();
+			}
+		};
+	}
 	
 	private Path getClassPathFile(String fileName) throws URISyntaxException {
 		return Paths.get(ClassLoader.getSystemResource("images/"+fileName).toURI());
@@ -147,7 +152,7 @@ public class CustomHashProcessorIT {
 		channelForTest.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.filePreProcessed), null, messageBuilder.build().toByteArray());
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		queueConfig.deleteAllQueues();
 		
@@ -159,19 +164,18 @@ public class CustomHashProcessorIT {
 		dbClient.clearCachefor(ImageMetaData.class);
 		dbClient.dropCollection(ImageMetaData.class);
 	}
-	
+
 	@Test
 	public void hashResponseIsReceived() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(numberOfHashMessages(), is(1));
 	}
 	
 	@Test
 	public void phashIsCorrect() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_ROAD_FAR), IMAGE_ROAD_FAR_UUID);
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(hashMessages).size(), is(1));
-
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(numberOfHashMessages(), is(1));
 		DbUpdate message = hashMessages.take();
 		ByteString hash = message.getHashMap().get("phash");
 		ByteArrayDataInput dataIn = ByteStreams.newDataInput(hash.toByteArray());

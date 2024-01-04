@@ -4,29 +4,31 @@
  */
 package com.github.seeker.processor;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -54,9 +56,16 @@ import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 
 public class FileToQueueVistorIT {
-	private static final Duration timeout = Duration.FIVE_SECONDS;
+	private static final Duration timeout = Duration.ofSeconds(5);
 	private static final String ANCHOR = "walk";
 	private static final String TEST_BUCKET_NAME = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
 	private static final String APPLE_FILENAME = "apple.jpg";
@@ -85,7 +94,7 @@ public class FileToQueueVistorIT {
 	private Map<String, FileLoad> messageData;
 	private Map<String, Map<String, Object>> messageHeader;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConfigurationBuilder config = new ConfigurationBuilder();
 		ConnectionProvider connProv = new ConnectionProvider(config.getConsulConfiguration(), config.getVaultCredentials(), true);
@@ -100,13 +109,13 @@ public class FileToQueueVistorIT {
 		minio.createBuckets();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		morphium.close();
 		minioClient.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		rabbitConn = rabbitConnFactory.newConnection();
 		QueueConfiguration queueConfig = new QueueConfiguration(rabbitConn.createChannel(), true);
@@ -141,7 +150,7 @@ public class FileToQueueVistorIT {
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		rabbitConn.close();
 		morphium.dropCollection(ImageMetaData.class);
@@ -253,12 +262,29 @@ public class FileToQueueVistorIT {
 		assertThat(messageData.get(APPLE_FILENAME).getGenerateThumbnail(), is(false));
 	}
 
+	private Callable<ImageMetaData> getImageMetadata(String anchor, String relativePath) {
+		return new Callable<ImageMetaData>() {
+			public ImageMetaData call() {
+				return mapper.getImageMetadata(anchor, relativePath);
+			}
+		};
+	}
+
+	private Callable<StatObjectResponse> getStatObject(StatObjectArgs args) {
+		return new Callable<StatObjectResponse>() {
+			public StatObjectResponse call() throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException,
+					InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IOException {
+				return minioClient.statObject(args);
+			}
+		};
+	}
+
 	@Test
 	public void imageMetadataCreated() throws Exception {
 		cut.setGenerateThumbnails(false);
 		Files.walkFileTree(fileWalkRoot, cut);
 
-		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
+		Awaitility.await().atMost(timeout).until(getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
 	}
 
 	@Test
@@ -266,13 +292,13 @@ public class FileToQueueVistorIT {
 		cut.setGenerateThumbnails(false);
 		Files.walkFileTree(fileWalkRoot, cut);
 		
-		Awaitility.await().atMost(timeout).untilCall(to(mapper).getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
+		Awaitility.await().atMost(timeout).until(getImageMetadata(ANCHOR, APPLE_FILENAME), is(notNullValue()));
 		ImageMetaData meta = mapper.getImageMetadata(ANCHOR, APPLE_FILENAME);
 
 		StatObjectArgs args = StatObjectArgs.builder().bucket(MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2))
 				.object("image/" + meta.getImageId().toString() + ".jpg").build();
 
-		Awaitility.await().atMost(timeout).untilCall(to(minioClient).statObject(args), is(notNullValue()));
+		Awaitility.await().atMost(timeout).until(getStatObject(args), is(notNullValue()));
 
 		assertThat(minioClient.statObject(args).size(), is(11L));
 	}

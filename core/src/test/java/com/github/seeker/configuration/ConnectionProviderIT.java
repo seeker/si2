@@ -6,11 +6,11 @@ package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
 import com.github.seeker.persistence.MongoDbMapper;
@@ -20,12 +20,12 @@ public class ConnectionProviderIT {
 	private static ConsulConfiguration consulConfig;
 	private ConnectionProvider cut;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		consulConfig =  new ConfigurationBuilder().getConsulConfiguration();
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 	}

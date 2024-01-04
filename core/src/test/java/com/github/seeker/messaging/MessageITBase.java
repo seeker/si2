@@ -1,11 +1,11 @@
 package com.github.seeker.messaging;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -32,7 +32,7 @@ public class MessageITBase {
 	protected ConsulClient consul;
 	protected Channel channel;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void baseSetUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		
@@ -40,12 +40,12 @@ public class MessageITBase {
 		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void baseTearDownAfterClass() throws Exception {
 		rabbitConn.close();
 	}
 	
-	@Before
+	@BeforeEach
 	public void baseSetUp() throws Exception {
 		consul = connectionProvider.getConsulClient();
 		channel = rabbitConn.createChannel();

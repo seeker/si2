@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.github.seeker.si2</groupId>
+	<artifactId>report</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<description>Used to generate an aggregated report</description>
+	<packaging>pom</packaging>
+
+	<name>similarImage2-report</name>
+	<url>https://github.com/dozedoff/si2</url>
+
+	<parent>
+		<groupId>com.github.seeker.si2</groupId>
+		<artifactId>si2</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/messaging/proto/*</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>report-aggregate</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.github.seeker.si2</groupId>
+	<artifactId>core</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.seeker.si2</groupId>
+	<artifactId>node</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.seeker.si2</groupId>
+	<artifactId>gui</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.seeker.si2</groupId>
+	<artifactId>test-helper</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+</project>

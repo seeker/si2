@@ -1,6 +1,7 @@
 package com.github.seeker.learning;
 
-import static org.junit.Assert.*;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;
@@ -10,9 +11,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import io.minio.BucketExistsArgs;
 import io.minio.ListObjectsArgs;
@@ -37,13 +38,13 @@ public class MinioClientLearn {
 	private static String TEST_BUCKET_NAME = "learning-test";
 	private static MinioClient minioClient;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		minioClient = MinioClient.builder().endpoint("http://127.0.0.1:9000").credentials("minioadmin", "minioadmin").build();
 		minioClient.makeBucket(MakeBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		Iterable<Result<Item>> objects = minioClient.listObjects(ListObjectsArgs.builder().bucket(TEST_BUCKET_NAME).build());
 		List<DeleteObject> toDelete = new LinkedList<>();

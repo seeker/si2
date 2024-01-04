@@ -5,18 +5,19 @@
 package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.both;
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
-import static org.junit.Assert.*;
 
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.bettercloud.vault.response.LogicalResponse;
 import com.github.seeker.configuration.VaultIntegrationCredentials.Approle;
@@ -27,22 +28,22 @@ public class VaultWorkaroundIT {
 
 	private VaultWorkaround cut;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connProv = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new VaultWorkaround(connProv.getVaultClient(new VaultIntegrationCredentials(Approle.integration)));
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 
 	}

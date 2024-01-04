@@ -4,10 +4,10 @@
  */
 package com.github.seeker.configuration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConnectionProviderTest {
 	private static final String VIRTUALBOX_NAT_ADDRESS = "10.0.2.15";

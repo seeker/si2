@@ -1,9 +1,8 @@
 package com.github.seeker.app;
 
-import static org.awaitility.Awaitility.to;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -13,17 +12,17 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -56,6 +55,7 @@ import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 
+@Timeout(value = 20)
 public class MessageDigestHasherIT {
 
 	private static final String ANCHOR = "testimages";
@@ -83,10 +83,7 @@ public class MessageDigestHasherIT {
 	
 	private LinkedBlockingQueue<DbUpdate> dbUpdateMessages;
 	
-    @Rule
-    public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
-	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
@@ -105,13 +102,13 @@ public class MessageDigestHasherIT {
 		minioStore.storeImage(Paths.get("src\\test\\resources\\images\\", IMAGE_AUTUMN), IMAGE_AUTUMN_UUID);
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		minioHelper.clearBucket(TEST_BUCKET_NAME);
 		minio.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		ConnectionFactory connFactory = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		assertThat(connFactory, is(notNullValue()));
@@ -159,7 +156,7 @@ public class MessageDigestHasherIT {
 		return hashes.get(hashName).toByteArray();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		queueConfig.deleteAllQueues();
 		
@@ -172,11 +169,19 @@ public class MessageDigestHasherIT {
 		dbClient.dropCollection(ImageMetaData.class);
 	}
 	
+	private Callable<Integer> getQueueSize(LinkedBlockingQueue<?> queue) {
+		return new Callable<Integer>() {
+			public Integer call() {
+				return queue.size();
+			}
+		};
+	}
+
 	@Test
 	public void hashResponseIsReceived() throws Exception {
 		sendFileProcessMessage(getClassPathFile(IMAGE_AUTUMN), IMAGE_AUTUMN_UUID, true);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).untilCall(to(dbUpdateMessages).size(), is(1));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(getQueueSize(dbUpdateMessages), is(1));
 	}
 	
 	@Test

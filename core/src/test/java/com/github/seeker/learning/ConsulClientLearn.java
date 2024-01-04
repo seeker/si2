@@ -1,15 +1,15 @@
 package com.github.seeker.learning;
 
-import static org.junit.Assert.assertThat;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
 import com.orbitz.consul.AgentClient;
@@ -26,7 +26,7 @@ public class ConsulClientLearn {
 	private static final String TEST_SERVICE = "training-wheels";
 	private static final String NODE_IP = "192.168.42.10";
 	
-	@BeforeClass
+	@BeforeAll
 	public static void beforeClass() {
 		client = Consul.builder().withHostAndPort(HostAndPort.fromParts(NODE_IP, 8500)).build();
 		serviceAgent = client.agentClient();
@@ -36,7 +36,7 @@ public class ConsulClientLearn {
 		serviceAgent.register(service);
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		serviceAgent.deregister(TEST_SERVICE);
 	}

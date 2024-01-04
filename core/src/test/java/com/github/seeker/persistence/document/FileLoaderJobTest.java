@@ -5,10 +5,11 @@
 package com.github.seeker.persistence.document;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class FileLoaderJobTest {
 	private FileLoaderJob cut;
@@ -16,7 +17,7 @@ public class FileLoaderJobTest {
 	private static final String ANCHOR = "foo";
 	private static final String PATH = "bar";
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new FileLoaderJob(ANCHOR, PATH);
 	}
@@ -33,19 +34,22 @@ public class FileLoaderJobTest {
 		assertThat(cut.isCompleted(), is(true));
 	}
 
-	@Test(expected = NullPointerException.class)
 	public void jobidCannotBeNull() throws Exception {
-		new FileLoaderJob(null, ANCHOR, PATH);
+		assertThrows(NullPointerException.class, () -> {
+			new FileLoaderJob(null, ANCHOR, PATH);
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
 	public void anchorCannotBeNull() throws Exception {
-		new FileLoaderJob(null, PATH);
+		assertThrows(NullPointerException.class, () -> {
+			new FileLoaderJob(null, PATH);
+		});
 	}
 
-	@Test(expected = NullPointerException.class)
 	public void pathCannotBeNull() throws Exception {
-		new FileLoaderJob(ANCHOR, null);
+		assertThrows(NullPointerException.class, () -> {
+			new FileLoaderJob(ANCHOR, null);
+		});
 	}
 	
 	@Test

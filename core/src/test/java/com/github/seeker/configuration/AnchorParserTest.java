@@ -4,27 +4,29 @@
  */
 package com.github.seeker.configuration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 
 public class AnchorParserTest {
 	private AnchorParser cut;
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new AnchorParser();
 	}
 
-	@Test(expected=IllegalArgumentException.class)
 	public void parseNull() throws Exception {
-		cut.parse(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			cut.parse(null);
+		});
 	}
 	
 	@Test
