@@ -53,7 +53,9 @@
       ttl: 720h
     headers:
       X-Vault-Token: "{{ vault_token }}"
-    status_code: 204
+    status_code:
+      - 200
+      - 204
 
 - name: Create / Update docker registry PKI role
   uri:
@@ -69,4 +71,6 @@
       ttl: 720h
     headers:
       X-Vault-Token: "{{ vault_token }}"
-    status_code: 204
+    status_code:
+      - 200
+      - 204
