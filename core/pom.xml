@@ -45,13 +45,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
-				<!-- nothing here -->
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-eclipse-plugin</artifactId>
-				<version>2.9</version>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -73,20 +70,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>2.17</version>
-				<configuration>
-					<configLocation>checkstyle.xml</configLocation>
-					<propertiesLocation>checkstyle_maven.properties</propertiesLocation>
-				</configuration>
-				<executions>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>com.puppycrawl.tools</groupId>
-						<artifactId>checkstyle</artifactId>
-						<version>7.3</version>
-					</dependency>
-				</dependencies>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -103,7 +86,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.3</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -125,7 +107,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.1.0</version>
+				<version>3.1.1</version>
 				<executions>
 					<execution>
 						<phase>generate-sources</phase>
@@ -142,7 +124,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.0.0</version>
+				<version>3.5.0</version>
 				<executions>
 					<execution>
 						<phase>generate-sources</phase>
