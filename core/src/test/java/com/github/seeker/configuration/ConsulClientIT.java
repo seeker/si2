@@ -1,11 +1,11 @@
 package com.github.seeker.configuration;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.ConsulClient.ConfiguredService;
 import com.orbitz.consul.model.health.ServiceHealth;
@@ -13,7 +13,7 @@ import com.orbitz.consul.model.health.ServiceHealth;
 public class ConsulClientIT {
 	private static ConsulClient client;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration config = new ConfigurationBuilder().getConsulConfiguration();
 		client = new ConsulClient(config);

@@ -2,7 +2,7 @@ package com.github.seeker.app;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,13 +17,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -54,6 +53,7 @@ import de.caluga.morphium.Morphium;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
 
+@Timeout(value = 20)
 public class ImageResizerIT {
 	private static final int AWAIT_TIMEOUT_SECONDS = 5;
 	private static final String INTEGRATION_BUCKET = MinioConfiguration.integrationTestBuckets().get(BucketKey.Si2);
@@ -80,10 +80,7 @@ public class ImageResizerIT {
 	private LinkedBlockingQueue<DbUpdate> dbMessage;
 	private LinkedBlockingQueue<FileLoad> preprocessedMessage;
 	
-    @Rule
-    public Timeout globalTimeout = new Timeout((int)TimeUnit.MILLISECONDS.convert(20, TimeUnit.SECONDS));
-	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
@@ -99,13 +96,13 @@ public class ImageResizerIT {
 				IMAGE_AUTUMN_UUID);
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		minioHelper.clearBucket(INTEGRATION_BUCKET);
 		minio.removeBucket(RemoveBucketArgs.builder().bucket(INTEGRATION_BUCKET).build());
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		ConnectionFactory connFactory = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration);
 		assertThat(connFactory, is(notNullValue()));
@@ -171,7 +168,7 @@ public class ImageResizerIT {
 		channelForTest.basicPublish(queueConfig.getExchangeName(ConfiguredExchanges.loader), "", null, builder.build().toByteArray());
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		queueConfig.deleteAllQueues();
 		

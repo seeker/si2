@@ -1,17 +1,18 @@
 package com.github.seeker.configuration;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.collection.IsMapContaining.hasValue;
-import static org.junit.Assert.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 
 public class ConfigurationBuilderTest {
 	private static final String LOADER_ANCHOR_KEY1 = "anchorOne";
@@ -24,7 +25,7 @@ public class ConfigurationBuilderTest {
 	private FileLoaderConfiguration fileLoaderConfig;
 	private static final Path TEST_CONFIG = Paths.get("unittest.yaml"); 
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new ConfigurationBuilder(TEST_CONFIG);
 		consulConfig = cut.getConsulConfiguration();

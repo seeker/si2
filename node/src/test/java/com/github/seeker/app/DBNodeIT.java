@@ -2,7 +2,7 @@ package com.github.seeker.app;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -11,11 +11,11 @@ import java.time.Duration;
 import java.util.concurrent.Callable;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -57,17 +57,17 @@ public class DBNodeIT {
 	private QueueConfiguration queueConfig;
 	private Channel channel;
 	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration), consulConfig.overrideVirtualBoxAddress());
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		duration = Duration.ofSeconds(20);
 		
@@ -92,7 +92,7 @@ public class DBNodeIT {
 		channel.basicPublish("", queueConfig.getQueueName(ConfiguredQueues.persistence), null, message.toByteArray());
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		queueConfig.deleteAllQueues();
 		rabbitConn.close();

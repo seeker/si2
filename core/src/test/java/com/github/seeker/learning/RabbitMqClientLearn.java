@@ -1,11 +1,11 @@
 package com.github.seeker.learning;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ public class RabbitMqClientLearn {
 	private static Channel channel;
 	
 	
-	@BeforeClass
+	@BeforeAll
 	public static void setUpClass() throws Exception {
 		ConsulConfiguration consulConfiguration = new ConfigurationBuilder().getConsulConfiguration();
 
@@ -54,7 +54,7 @@ public class RabbitMqClientLearn {
 		channel.queueDeclare(QUEUE_NAME, false, false, false, null);
 	}
 	
-	@AfterClass
+	@AfterAll
 	public static void tearDownClass() throws Exception {
 		conn.close();
 	}

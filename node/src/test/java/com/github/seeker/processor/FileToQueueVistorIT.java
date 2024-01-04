@@ -9,7 +9,7 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,11 +24,11 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.github.seeker.configuration.ConfigurationBuilder;
 import com.github.seeker.configuration.ConnectionProvider;
@@ -94,7 +94,7 @@ public class FileToQueueVistorIT {
 	private Map<String, FileLoad> messageData;
 	private Map<String, Map<String, Object>> messageHeader;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConfigurationBuilder config = new ConfigurationBuilder();
 		ConnectionProvider connProv = new ConnectionProvider(config.getConsulConfiguration(), config.getVaultCredentials(), true);
@@ -109,13 +109,13 @@ public class FileToQueueVistorIT {
 		minio.createBuckets();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		morphium.close();
 		minioClient.removeBucket(RemoveBucketArgs.builder().bucket(TEST_BUCKET_NAME).build());
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		rabbitConn = rabbitConnFactory.newConnection();
 		QueueConfiguration queueConfig = new QueueConfiguration(rabbitConn.createChannel(), true);
@@ -150,7 +150,7 @@ public class FileToQueueVistorIT {
 				queueConfig.getExchangeName(ConfiguredExchanges.loader));
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		rabbitConn.close();
 		morphium.dropCollection(ImageMetaData.class);

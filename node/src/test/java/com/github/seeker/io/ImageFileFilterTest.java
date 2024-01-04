@@ -5,16 +5,16 @@
 package com.github.seeker.io;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.jimfs.Jimfs;
 
@@ -22,13 +22,13 @@ public class ImageFileFilterTest {
 	private ImageFileFilter cut;
 	private FileSystem fs;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		fs = Jimfs.newFileSystem();
 		cut = new ImageFileFilter();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		fs.close();
 	}

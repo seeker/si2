@@ -2,19 +2,20 @@ package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredExchanges;
 import com.github.seeker.configuration.QueueConfiguration.ConfiguredQueues;
 import com.rabbitmq.client.Channel;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class QueueConfigurationTest {
 	private static final String PERSISTENCE_QUEUE_NAME = "persistence";
 	private static final String FILE_QUEUE_NAME = "fileDigest";
@@ -30,7 +31,7 @@ public class QueueConfigurationTest {
 		return "integration-" + queueName;
 	}
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cut = new QueueConfiguration(channel);
 		cutIntegration = new QueueConfiguration(channel, true);
@@ -71,9 +72,10 @@ public class QueueConfigurationTest {
 		assertThat(cutIntegration.getQueueName(ConfiguredQueues.fileDigest), is(startsWith(prefixWithIntegration(FILE_QUEUE_NAME))));
 	}
 	
-	@Test(expected=IllegalStateException.class)
 	public void noNameForQueue() throws Exception {
-		cutIntegration.getQueueName(null);
+		assertThrows(IllegalStateException.class, () -> {
+			cutIntegration.getQueueName(null);
+		});
 	}
 	
 	@Test

@@ -5,17 +5,18 @@
 package com.github.seeker.configuration;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.Objects;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public class QueueConfigurationTestIT {
 	private Channel cutChan;
 	private Channel testChan;
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUpBeforeClass() throws Exception {
 		ConsulConfiguration consulConfig = new ConfigurationBuilder().getConsulConfiguration();
 		connectionProvider = new ConnectionProvider(consulConfig, new VaultIntegrationCredentials(Approle.integration),
@@ -45,14 +46,14 @@ public class QueueConfigurationTestIT {
 		rabbitConn = connectionProvider.getRabbitMQConnectionFactory(RabbitMqRole.integration).newConnection();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownAfterClass() throws Exception {
 		if (Objects.nonNull(rabbitConn)) {
 			rabbitConn.close();
 		}
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		cutChan = rabbitConn.createChannel();
 		testChan = rabbitConn.createChannel();
@@ -60,7 +61,7 @@ public class QueueConfigurationTestIT {
 		cut = new QueueConfiguration(cutChan, true);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		cut.deleteAllQueues();
 		cutChan.close();
@@ -76,7 +77,6 @@ public class QueueConfigurationTestIT {
 		}
 	}
 
-	@Test(expected = IOException.class)
 	public void queueDeleted() throws Exception {
 		try {
 			testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.persistence));
@@ -85,8 +85,9 @@ public class QueueConfigurationTestIT {
 		}
 
 		cut.deleteQueue(ConfiguredQueues.persistence);
-
-		testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.persistence));
+		assertThrows(IOException.class, () -> {
+			testChan.queueDeclarePassive(cut.getQueueName(ConfiguredQueues.persistence));
+		});
 	}
 
 	@Test
