@@ -29,6 +29,7 @@
 		<module>core</module>
 		<module>node</module>
 		<module>gui</module>
+		<module>web-ui</module>
 		<module>test-helper</module>
 		<module>report</module>
 	</modules>
